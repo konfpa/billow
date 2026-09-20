@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
+from django.utils.text import capfirst
 from simple_history.models import HistoricalRecords
 
 from apps.business.gstin import state_code_of, validate_gstin
@@ -146,6 +147,18 @@ class Business(models.Model):
             for field in self.REQUIRED_FOR_SETUP
             if getattr(self, field) in (None, "")
         )
+
+    def what_setup_still_needs(self) -> list[str]:
+        """The missing fields, named for a Superuser to read.
+
+        Named from the model rather than from the setup form, so that a
+        release which adds a requirement asks for it even before the form
+        grows a field for it. See docs/adr/0004-required-is-validation-not-schema.md.
+        """
+        return [
+            capfirst(self._meta.get_field(field).verbose_name)
+            for field in self.missing_for_setup()
+        ]
 
     def clean(self) -> None:
         super().clean()

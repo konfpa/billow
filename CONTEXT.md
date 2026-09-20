@@ -48,9 +48,10 @@ _Avoid_: Tax state, supply state, region
 
 **Setup gate**:
 What billow closes over itself until the Business holds every detail it
-requires today, sending every request to the setup page instead. Judged against
-what the current release requires, so a Business recorded under older rules
-becomes incomplete again when a later release asks for more.
+requires today: a Superuser lands back on the setup page, and an Operator who
+is not one is told billow needs setting up. Judged against what the current
+release requires, so a Business recorded under older rules becomes incomplete
+again when a later release asks for more.
 _Avoid_: Onboarding, wizard, first-run
 
 **GST registered**:
