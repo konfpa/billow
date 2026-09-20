@@ -19,14 +19,23 @@
     only sign that a Business complete yesterday is short of something today.
   {% endcomment %}
   {% if missing %}
-    <div role="status" class="mt-6 rounded-panel border border-line bg-surface px-4 py-4 sm:px-5">
-      <p class="text-note font-medium text-ink">
-        billow cannot be used until the Business is recorded.
-      </p>
-      <p class="mt-1.5 text-note text-ink-soft">Still needed:</p>
-      <ul class="mt-1.5 list-disc pl-5 text-note text-ink">
-        {% for label in missing %}<li>{{ label }}</li>{% endfor %}
-      </ul>
+    <div role="status" class="mt-6 flex gap-3 rounded-panel border border-accent/25 bg-accent-soft px-4 py-4 sm:px-5">
+      <svg viewBox="0 0 16 16" class="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="8" cy="8" r="6"></circle>
+        <path d="M8 5v3.5" stroke-linecap="round"></path>
+        <circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"></circle>
+      </svg>
+      <div class="min-w-0">
+        <p class="text-note font-medium text-ink">
+          billow cannot be used until the Business is recorded.
+        </p>
+        <p class="mt-3 text-micro font-semibold uppercase text-ink-faint">Still needed</p>
+        <ul class="mt-2 flex flex-wrap gap-1.5">
+          {% for label in missing %}
+            <li class="rounded-control border border-accent/20 bg-surface px-2 py-1 text-micro font-semibold uppercase text-ink-soft">{{ label }}</li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
   {% endif %}
 
