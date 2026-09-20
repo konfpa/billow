@@ -107,8 +107,8 @@ DATABASES = {
         # exception rolls the whole request back.
         "ATOMIC_REQUESTS": True,
         # Reuse connections across requests rather than reconnecting on each.
-        # Every thread holds its own, so workers x threads x replicas is what
-        # the server sees against its max_connections.
+        # Every thread holds its own; docker/gunicorn.conf.py works out what
+        # that totals against the server's max_connections.
         "CONN_MAX_AGE": env.int("DJANGO_CONN_MAX_AGE", default=60),
         # A pooler or a failover can close a connection this process still
         # believes in; without this the first query on it raises instead of

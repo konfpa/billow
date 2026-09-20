@@ -11,9 +11,8 @@
 # There is no database service. This stack connects to whatever
 # DJANGO_DATABASE_URL in your .env names, exactly as `manage.py runserver` on
 # the host does. The one thing that changes inside a container is that
-# `localhost` means the container: a Postgres or a mail catcher on your own
-# machine is reached as host.docker.internal, which the extra_hosts entry below
-# makes resolvable.
+# `localhost` means the container; see extra_hosts below for how a Postgres or
+# a mail catcher on your own machine is reached instead.
 #
 # Uploads stay on the local filesystem while DJANGO_DEBUG is on, so no bucket
 # and no credentials are needed to develop.
