@@ -11,13 +11,13 @@ if TYPE_CHECKING:
 
     from django.http import HttpRequest, HttpResponse
 
-# Reachable while the gate is closed: the front door, without which nobody
+# Exempt while the gate is closed: the front door, without which nobody
 # could sign in to finish setup; the setup page itself, which would otherwise
 # redirect to itself; and the health check, because a half-configured
 # deployment must still report as alive to whatever is watching it. The admin
 # is let through by its namespace rather than by name, and static and media by
 # their paths.
-OPEN_URL_NAMES = frozenset({"login", "logout", "healthz", "business_settings"})
+EXEMPT_URL_NAMES = frozenset({"login", "logout", "healthz", "business_settings"})
 
 
 class SetupGateMiddleware:
@@ -43,15 +43,13 @@ class SetupGateMiddleware:
         # Run here rather than in __call__ because this is the earliest point
         # at which the request has been matched to a URL, and the exempt paths
         # are named URLs rather than spellings of a path.
-        if self.is_open(request):
+        if self.is_exempt(request):
             return None
 
         if not Business.load().missing_for_setup():
             return None
 
         if not request.user.is_authenticated:
-            # Gated rather than left to the view's own login_required, so that
-            # a view added later is covered whether or not it asks to be.
             return redirect_to_login(request.get_full_path())
 
         if request.user.is_superuser:
@@ -61,10 +59,10 @@ class SetupGateMiddleware:
         # cannot do anything about, so they get the reason instead.
         return render(request, "business/setup_needed.html")
 
-    def is_open(self, request: HttpRequest) -> bool:
+    def is_exempt(self, request: HttpRequest) -> bool:
         match = request.resolver_match
 
-        if match and (match.url_name in OPEN_URL_NAMES or match.app_name == "admin"):
+        if match and (match.url_name in EXEMPT_URL_NAMES or match.app_name == "admin"):
             return True
 
         return request.path.startswith((settings.STATIC_URL, settings.MEDIA_URL))
