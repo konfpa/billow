@@ -1,0 +1,69 @@
+{% comment %}
+  The logo picker: what is on file, what is about to replace it, and the two
+  things that can be done to it. The file input is the only control that
+  matters — the drop zone, the preview and the size are dressing that a
+  visitor without JavaScript loses without losing the ability to set a logo,
+  and removal is a real checkbox rather than a script, for the same reason.
+{% endcomment %}
+<div x-data="logoPicker">
+  <div class="group rounded-panel border border-dashed border-line-strong bg-canvas p-4 has-[input:focus-visible]:border-accent has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-accent-soft"
+       x-bind:class="zone"
+       x-on:dragover.prevent="dragOn"
+       x-on:dragleave="dragOff"
+       x-on:drop.prevent="dropped">
+    <div class="flex items-center gap-4 group-has-checked:opacity-45">
+      {% comment %}
+        The placeholder sits under the preview rather than beside it, so that
+        the tile is one fixed square whether or not there is an image; the
+        image hides itself until something has given it a source.
+      {% endcomment %}
+      <div class="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-control border border-line bg-surface">
+        <svg viewBox="0 0 24 24" class="h-6 w-6 text-ink-faint" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+          <circle cx="8.5" cy="9.5" r="1.5"></circle>
+          <path d="M4 17l4.5-4.5 3.5 3.5 3-3L20 17" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <img x-ref="image" {% if business.logo %}src="{{ business.logo.url }}"{% endif %}
+             alt="The Business's logo"
+             class="absolute inset-0 h-full w-full bg-surface object-contain p-1.5 [&:not([src])]:hidden">
+      </div>
+
+      <div class="min-w-0">
+        <p class="truncate text-note font-medium text-ink" x-ref="name" x-text="name">
+          {% if business.logo %}{{ business.logo.name|cut:"business/" }}{% else %}No logo yet{% endif %}
+        </p>
+        <p class="mt-0.5 text-note text-ink-faint" x-ref="detail" x-text="detail">
+          {% if business.logo %}On invoices now{% else %}PNG, JPG, WEBP or SVG{% endif %}
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center gap-2">
+      <label class="btn-quiet inline-flex cursor-pointer items-center gap-2" for="{{ form.logo.id_for_label }}">
+        <svg viewBox="0 0 16 16" class="h-3.5 w-3.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M8 11V3.5M5 6l3-3 3 3" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M3 10.5v1.5a1 1 0 001 1h8a1 1 0 001-1v-1.5" stroke-linecap="round"></path>
+        </svg>
+        {% if business.logo %}Replace{% else %}Choose an image{% endif %}
+        {{ form.logo }}
+      </label>
+
+      {% if business.logo %}
+        <label class="btn-quiet inline-flex cursor-pointer items-center gap-2 has-checked:border-danger has-checked:text-danger">
+          <input type="checkbox" name="{{ form.logo.html_name }}-clear" class="sr-only" x-model="removing">
+          <span class="group-has-checked:hidden">Remove</span>
+          <span class="hidden group-has-checked:inline">Keep it</span>
+        </label>
+      {% endif %}
+
+      <p class="text-note text-ink-faint">
+        <span class="group-has-checked:hidden">Or drop a file here</span>
+        <span class="hidden text-danger group-has-checked:inline">Removed when you save</span>
+      </p>
+    </div>
+  </div>
+
+  {% for error in form.logo.errors %}
+    <p class="mt-1.5 text-note text-danger">{{ error }}</p>
+  {% endfor %}
+</div>

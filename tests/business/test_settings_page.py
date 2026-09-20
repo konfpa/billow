@@ -198,6 +198,17 @@ def test_a_refused_submission_does_not_show_its_logo_as_the_current_one(
 
 
 @pytest.mark.django_db
+def test_a_logo_is_removed_when_the_picker_asks_for_it(client, superuser, business):
+    business.logo = an_image()
+    business.save()
+    client.force_login(superuser)
+
+    client.post(URL, {**submitted(), "logo-clear": "on"})
+
+    assert not Business.objects.get().logo
+
+
+@pytest.mark.django_db
 def test_the_current_logo_is_visible_while_editing(client, superuser, business):
     business.logo = an_image()
     business.save()

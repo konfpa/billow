@@ -122,11 +122,8 @@
 
       <section class="panel">
         <div class="panel-head"><h2 class="text-note font-semibold">Logo</h2></div>
-        <div class="flex flex-col gap-5 p-4 sm:p-5">
-          {% if business.logo %}
-            <img src="{{ business.logo.url }}" alt="The Business's logo" class="max-h-20 w-auto">
-          {% endif %}
-          {% include "business/field.html" with field=form.logo %}
+        <div class="p-4 sm:p-5">
+          {% include "business/logo.html" %}
         </div>
       </section>
 
