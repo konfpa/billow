@@ -1,0 +1,16 @@
+{% comment %}
+  One field of the Business form: label, widget, help and errors. Included
+  per field rather than looped over, so the page can group them and the
+  widths can differ; the markup around them stays in one place.
+{% endcomment %}
+<div>
+  <label class="lbl" for="{{ field.id_for_label }}">
+    {{ field.label }}
+    {% if not field.field.required %}<span class="text-micro font-normal uppercase text-ink-faint">Optional</span>{% endif %}
+  </label>
+  {{ field }}
+  {% if field.help_text %}<p class="mt-1.5 text-note text-ink-faint">{{ field.help_text }}</p>{% endif %}
+  {% for error in field.errors %}
+    <p class="mt-1.5 text-note text-danger">{{ error }}</p>
+  {% endfor %}
+</div>

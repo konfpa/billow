@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "simple_history",
     "apps.accounts",
+    "apps.business",
     "apps.core",
 ]
 
