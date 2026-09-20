@@ -19,7 +19,7 @@
     only sign that a Business complete yesterday is short of something today.
   {% endcomment %}
   {% if missing %}
-    <div role="status" class="mt-6 rounded-panel border border-line bg-surface px-5 py-4">
+    <div role="status" class="mt-6 rounded-panel border border-line bg-surface px-4 py-4 sm:px-5">
       <p class="text-note font-medium text-ink">
         billow cannot be used until the Business is recorded.
       </p>
@@ -42,7 +42,7 @@
 
       <section class="panel">
         <div class="panel-head"><h2 class="text-note font-semibold">Name</h2></div>
-        <div class="flex flex-col gap-5 p-5">
+        <div class="flex flex-col gap-5 p-4 sm:p-5">
           {% include "business/field.html" with field=form.name %}
           {% include "business/field.html" with field=form.legal_name %}
         </div>
@@ -53,7 +53,7 @@
           <h2 class="text-note font-semibold">Address</h2>
           <p class="text-micro uppercase text-ink-faint">Place of supply</p>
         </div>
-        <div class="flex flex-col gap-5 p-5">
+        <div class="flex flex-col gap-5 p-4 sm:p-5">
           {% include "business/field.html" with field=form.address_line_1 %}
           {% include "business/field.html" with field=form.address_line_2 %}
           <div class="grid gap-5 sm:grid-cols-2">
@@ -66,7 +66,7 @@
 
       <section class="panel">
         <div class="panel-head"><h2 class="text-note font-semibold">Tax registration</h2></div>
-        <div class="flex flex-col gap-5 p-5">
+        <div class="flex flex-col gap-5 p-4 sm:p-5">
           <fieldset>
             <legend class="lbl">{{ form.is_gst_registered.label }}</legend>
             <div class="flex flex-col gap-2">
@@ -90,7 +90,7 @@
 
       <section class="panel">
         <div class="panel-head"><h2 class="text-note font-semibold">Contact</h2></div>
-        <div class="flex flex-col gap-5 p-5">
+        <div class="flex flex-col gap-5 p-4 sm:p-5">
           <div class="grid gap-5 sm:grid-cols-2">
             {% include "business/field.html" with field=form.email %}
             {% include "business/field.html" with field=form.phone %}
@@ -101,7 +101,7 @@
 
       <section class="panel">
         <div class="panel-head"><h2 class="text-note font-semibold">Logo</h2></div>
-        <div class="flex flex-col gap-5 p-5">
+        <div class="flex flex-col gap-5 p-4 sm:p-5">
           {% if business.logo %}
             <img src="{{ business.logo.url }}" alt="The Business's logo" class="max-h-20 w-auto">
           {% endif %}
@@ -110,7 +110,7 @@
       </section>
 
       <div>
-        <button type="submit" class="btn">Save</button>
+        <button type="submit" class="btn w-full sm:w-auto">Save</button>
       </div>
     </form>
   {% else %}
@@ -124,7 +124,7 @@
         <h2 class="text-note font-semibold">{{ business.invoice_name|default:"Not set up yet" }}</h2>
         <p class="text-micro uppercase text-ink-faint">Read only</p>
       </div>
-      <dl class="flex flex-col gap-4 p-5 text-note">
+      <dl class="flex flex-col gap-4 p-4 text-note sm:p-5">
         <div>
           <dt class="text-ink-faint">Address</dt>
           <dd class="mt-0.5 text-ink">
@@ -163,7 +163,7 @@
           </div>
         </div>
       </dl>
-      <p class="border-t border-line px-5 py-3.5 text-note text-ink-faint">
+      <p class="border-t border-line px-4 py-3.5 text-note text-ink-faint sm:px-5">
         Only a Superuser changes these details.
       </p>
     </section>
