@@ -7,12 +7,49 @@ jobs:
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+
+    # Everything here only reads the checkout. Spelling that out keeps the
+    # token read-only whatever the repository default is, which matters
+    # because this workflow also runs on pull requests from forks.
+    permissions:
+      contents: read
+
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.14"]
+
+    # The suite runs against a real Postgres rather than a stand-in engine, so
+    # one has to be here. The health check is what makes `uv run pytest` below
+    # safe to start: without it the job races the server's first boot.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: billow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v7
+
+      # First, because it takes seconds and needs nothing installed: a
+      # malformed workflow file should not surface only after the suite has
+      # run against Postgres.
+      - name: Lint the workflows
+        env:
+          ACTIONLINT_VERSION: "1.7.12"
+        run: |
+          curl -sSLf "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz actionlint
+          ./actionlint
 
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
@@ -33,12 +70,6 @@ jobs:
         run: uv run ruff check .
 
       - name: Test
-        run: uv run pytest
-
-      - name: Lint the workflows
         env:
-          ACTIONLINT_VERSION: "1.7.12"
-        run: |
-          curl -sSLf "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
-            | tar -xz actionlint
-          ./actionlint
+          DJANGO_DATABASE_URL: postgres://postgres:postgres@localhost:5432/billow_test
+        run: uv run pytest

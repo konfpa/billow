@@ -102,25 +102,22 @@ TEMPLATES = [
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": env("DJANGO_DB_PATH", cast=Path, default=BASE_DIR / "db.sqlite3"),
+        **env.db_url("DJANGO_DATABASE_URL"),
         # Billing data warrants all-or-nothing requests: any unhandled
         # exception rolls the whole request back.
         "ATOMIC_REQUESTS": True,
+        # Reuse connections across requests rather than reconnecting on each.
+        # Every thread holds its own, so workers x threads x replicas is what
+        # the server sees against its max_connections.
+        "CONN_MAX_AGE": env.int("DJANGO_CONN_MAX_AGE", default=60),
+        # A pooler or a failover can close a connection this process still
+        # believes in; without this the first query on it raises instead of
+        # transparently reconnecting.
+        "CONN_HEALTH_CHECKS": True,
         "OPTIONS": {
-            # WAL lets readers run concurrently with a writer; NORMAL sync is
-            # safe under WAL and far cheaper than FULL. busy_timeout makes
-            # writers queue instead of raising "database is locked".
-            "init_command": (
-                "PRAGMA journal_mode=WAL;"
-                "PRAGMA synchronous=NORMAL;"
-                "PRAGMA busy_timeout=5000;"
-                "PRAGMA foreign_keys=ON;"
-                "PRAGMA temp_store=MEMORY;"
-            ),
-            # Take the write lock up front so concurrent transactions fail at
-            # BEGIN rather than halfway through with SQLITE_BUSY.
-            "transaction_mode": "IMMEDIATE",
+            # Bounds a statement that would otherwise hold locks indefinitely.
+            # Migrations set their own, so this does not constrain them.
+            "options": f"-c statement_timeout={env.int('DJANGO_STATEMENT_TIMEOUT_MS', default=30000)}",
         },
     },
 }
@@ -171,10 +168,42 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "media/"
 MEDIA_ROOT = env("DJANGO_MEDIA_ROOT", cast=Path, default=BASE_DIR / "media")
 
+# Uploads live in S3-compatible object storage, because nothing that serves
+# this app has a writable disk: the container filesystem is read-only and no
+# volume is mounted. Under DEBUG they go to MEDIA_ROOT instead, so local
+# development needs no bucket and no credentials.
+if DEBUG:
+    MEDIA_STORAGE = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+else:
+    MEDIA_STORAGE = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": env.str("DJANGO_S3_BUCKET"),
+            "access_key": env.str("DJANGO_S3_ACCESS_KEY_ID"),
+            "secret_key": env.str("DJANGO_S3_SECRET_ACCESS_KEY"),
+            # What makes this any S3-compatible provider rather than AWS.
+            "endpoint_url": env.str("DJANGO_S3_ENDPOINT_URL"),
+            "region_name": env.str("DJANGO_S3_REGION", default=""),
+            # Serve through the CDN hostname in front of the bucket when there
+            # is one, so objects are not fetched from the origin per request.
+            "custom_domain": env.str("DJANGO_S3_CUSTOM_DOMAIN", default="") or None,
+            # Neither B2 nor R2 implements ACLs; sending one is an error rather
+            # than a no-op. Object visibility is a bucket-level setting there.
+            "default_acl": None,
+            "querystring_auth": env.bool("DJANGO_S3_QUERYSTRING_AUTH", default=True),
+            "querystring_expire": env.int("DJANGO_S3_QUERYSTRING_EXPIRE", default=3600),
+            # Keep an upload that collides with an existing name rather than
+            # overwriting it: these are invoices and attachments, not a cache.
+            "file_overwrite": False,
+            "signature_version": "s3v4",
+            "addressing_style": env.str(
+                "DJANGO_S3_ADDRESSING_STYLE", default="virtual"
+            ),
+        },
+    }
+
 STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
+    "default": MEDIA_STORAGE,
     "staticfiles": {
         # Manifest hashing in production only: it requires `collectstatic` to
         # have run, which would break `runserver`.
