@@ -10,6 +10,11 @@ Reference: https://docs.gunicorn.org/en/latest/settings.html
 
 import os
 
+
+def _int(name: str, default: int) -> int:
+    return int(os.environ.get(name, default))
+
+
 # The proxy is the only thing that reaches this, and it does so over the
 # loopback address the container publishes to. Binding the container's own
 # 0.0.0.0 is what makes that published port reachable at all.
@@ -25,8 +30,8 @@ worker_class = "gthread"
 # so `2 * cpu_count() + 1` on a big host silently asks a 512M container for
 # thirty-three workers. A number that has to be chosen is better than one that
 # is confidently wrong.
-workers = int(os.environ.get("GUNICORN_WORKERS", "2"))
-threads = int(os.environ.get("GUNICORN_THREADS", "4"))
+workers = _int("GUNICORN_WORKERS", 2)
+threads = _int("GUNICORN_THREADS", 4)
 
 # Every thread holds its own database connection for CONN_MAX_AGE seconds, so
 # this product, times the number of replicas, is what Postgres sees. The
@@ -40,8 +45,8 @@ threads = int(os.environ.get("GUNICORN_THREADS", "4"))
 # rather than never. The jitter spreads those retirements out; without it every
 # worker reaches the limit within a few requests of the others and they all
 # restart at once, which is a small outage under load.
-max_requests = int(os.environ.get("GUNICORN_MAX_REQUESTS", "1000"))
-max_requests_jitter = int(os.environ.get("GUNICORN_MAX_REQUESTS_JITTER", "100"))
+max_requests = _int("GUNICORN_MAX_REQUESTS", 1000)
+max_requests_jitter = _int("GUNICORN_MAX_REQUESTS_JITTER", 100)
 
 # Load the application once in the master and fork workers from it. The pages
 # holding Django, the settings and every import are then shared copy-on-write
@@ -52,18 +57,18 @@ preload_app = os.environ.get("GUNICORN_PRELOAD", "true").lower() == "true"
 
 # A request still running after this is a worker that is not coming back, and it
 # is killed. It has to stay above the slowest thing a request legitimately does.
-timeout = int(os.environ.get("GUNICORN_TIMEOUT", "60"))
+timeout = _int("GUNICORN_TIMEOUT", 60)
 
 # On SIGTERM, workers stop accepting and finish what they are holding. Whatever
 # is still running when this expires is killed. `stop_grace_period` in the
 # compose file has to exceed it, or Docker kills the container mid-drain and the
 # graceful shutdown never happens.
-graceful_timeout = int(os.environ.get("GUNICORN_GRACEFUL_TIMEOUT", "30"))
+graceful_timeout = _int("GUNICORN_GRACEFUL_TIMEOUT", 30)
 
 # Slightly above the proxy's own keepalive so that the connection is reused
 # rather than reopened per request, and closed from this end rather than found
 # closed from the other.
-keepalive = int(os.environ.get("GUNICORN_KEEPALIVE", "5"))
+keepalive = _int("GUNICORN_KEEPALIVE", 5)
 
 # Bounds the header a request can send. The defaults are already conservative;
 # they are stated so that raising one is a visible edit rather than a discovery.
