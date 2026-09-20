@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Tailwind's automatic source detection starts from this file's directory,
+   which holds no markup. Every directory that can name a utility class has to
+   be listed explicitly, and the `assets` stage of the Dockerfile has to copy
+   each one: a directory missing from either side costs no error and no
+   warning, it just renders those elements unstyled. Add `apps` here when the
+   first app arrives. */
+@source "../../templates";
+
+@layer base {
+  button {
+    cursor: pointer;
+  }
+}

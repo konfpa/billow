@@ -222,3 +222,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node / Tailwind
+node_modules/
+npm-debug.log*
+
+# Compiled by the tailwind container (or the assets build stage), never by hand.
+/static/css/app.css

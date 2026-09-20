@@ -51,6 +51,8 @@ ignore = [
 "**/conftest.py" = ["ARG"]
 # Django's generated launcher: left as shipped upstream.
 "manage.py" = ["INP001", "ANN", "PLC0415", "TRY003", "EM101"]
+# Read by gunicorn as a file path, never imported as a module.
+"docker/gunicorn.conf.py" = ["INP001"]
 "**/settings*.py" = ["E501"]
 
 [tool.ruff.lint.isort]

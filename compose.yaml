@@ -1,0 +1,185 @@
+# The development stack: `docker compose up` and you are running.
+#
+#   django    the autoreloading runserver, with the working tree bind-mounted
+#   tailwind  the Tailwind CLI in watch mode, rebuilding static/css/app.css
+#
+# Services are named for what runs in them rather than for a tier, so they read
+# as billow-django-1 and billow-tailwind-1 in `docker ps` and in a log viewer,
+# where they sit alongside every other stack on the machine and a name like
+# `web` identifies nothing.
+#
+# There is no database service. This stack connects to whatever
+# DJANGO_DATABASE_URL in your .env names, exactly as `manage.py runserver` on
+# the host does. The one thing that changes inside a container is that
+# `localhost` means the container: a Postgres or a mail catcher on your own
+# machine is reached as host.docker.internal, which the extra_hosts entry below
+# makes resolvable.
+#
+# Uploads stay on the local filesystem while DJANGO_DEBUG is on, so no bucket
+# and no credentials are needed to develop.
+
+name: billow
+
+services:
+  django:
+    build:
+      context: .
+      target: dev
+      args:
+        # Must match `user:` below. The dev stage chowns /opt/venv and the uv
+        # cache to this uid so the entrypoint's `uv sync` can write to them.
+        DOCKER_UID: ${DOCKER_UID:-1000}
+        DOCKER_GID: ${DOCKER_GID:-1000}
+    # Run as you, not as root. This container and the tailwind one both write
+    # into the bind-mounted working tree (a file from makemigrations, the
+    # database, a compiled stylesheet) and running as root leaves those
+    # root-owned in your repository where your editor and git cannot touch them
+    # without sudo. Override DOCKER_UID/DOCKER_GID in .env if your account is
+    # not the usual 1000.
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    env_file:
+      # Optional, so a fresh clone starts without one. Note that
+      # config/settings.py also reads this same file directly from the bind
+      # mount at /app/.env. This line only additionally exports the values as
+      # real environment variables, which is what lets the overrides below take
+      # precedence.
+      #
+      # format: raw stops compose expanding `$` inside those values. It matters
+      # doubly here: without it a key containing a `$` is truncated for the
+      # container while django-environ hands the host's `manage.py runserver`
+      # the whole thing, so the same file yields two different keys and every
+      # session cookie is invalid on the other side. Requires Compose v2.30 or
+      # newer.
+      - path: .env
+        required: false
+        format: raw
+    # Every entry below is a DEFAULT, never an override: `${FOO:-fallback}`
+    # means setting FOO in .env wins. That matters because compose's
+    # `environment:` outranks its `env_file:`, so a bare `FOO: value` here would
+    # silently make .env unreadable for that key.
+    environment:
+      # Without this the settings module's production defaults apply:
+      # DJANGO_HTTPS_ONLY follows `not DEBUG`, so http://localhost:8000 is
+      # redirected to https, which nothing here terminates.
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+      # DJANGO_SECRET_KEY is deliberately NOT listed. A `${DJANGO_SECRET_KEY}`
+      # here would be interpolated by compose no matter what the env_file above
+      # says, reintroducing the truncation that `format: raw` exists to
+      # prevent. Under DEBUG the settings module supplies a throwaway key.
+      #
+      # settings.py already appends localhost and 127.0.0.1, so this is only
+      # for reaching the stack under another name.
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-}
+    volumes:
+      # The working tree, live. Everything below it is an anonymous volume
+      # masking a host directory that must not reach into the container.
+      - .:/app
+      # The host's virtualenv is built for the host's platform and Python; the
+      # container's environment lives at /opt/venv, outside this mount,
+      # precisely so the two cannot collide.
+      - /app/.venv
+      # A stale local collectstatic run would let WhiteNoise serve yesterday's
+      # files from a manifest written today.
+      - /app/staticfiles
+      # Not needed in the container, large, and rewritten constantly.
+      - /app/.git
+      - /app/.ruff_cache
+      - /app/.pytest_cache
+      # node_modules belongs to the tailwind container's platform, not the
+      # host's.
+      - /app/node_modules
+      # Survives `uv sync` across container recreates, so a rebuild does not
+      # re-download the whole dependency set.
+      - uv-cache:/cache/uv
+    ports:
+      - "${DOCKER_HOST_PORT:-8000}:8000"
+    extra_hosts:
+      # Docker provides this name automatically on macOS and Windows but not on
+      # Linux, where it has to be pointed at the bridge gateway explicitly. It
+      # is here so that a DJANGO_EMAIL_HOST naming host.docker.internal
+      # resolves, the only way to reach a server listening on your own machine.
+      - "host.docker.internal:host-gateway"
+    # Keep stdin and a tty attached so `breakpoint()` in a view drops you into
+    # pdb under `docker compose attach django`.
+    stdin_open: true
+    tty: true
+    # Distinguishes a working stack from the one failure mode a running
+    # container hides: when runserver hits an import error at startup, the
+    # autoreloader parent stays alive watching files while the child never
+    # binds the port, so `docker ps` reports Up with nothing listening.
+    #
+    # /healthz also opens the database, so this fails when Postgres is
+    # unreachable rather than only when Python is. No curl in the slim base,
+    # hence python.
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=4).status == 200 else 1)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      # Covers the entrypoint's `uv sync` on a cold cache.
+      start_period: 120s
+    restart: unless-stopped
+    depends_on:
+      # Waits for the stylesheet to exist, not merely for the container to have
+      # been created. On a fresh clone static/css/app.css is absent (it is
+      # gitignored) and the tailwind container has to npm install before it can
+      # produce it, which takes long enough that service_started would let
+      # Django serve the first page unstyled, with nothing in any log to say
+      # why.
+      tailwind:
+        condition: service_healthy
+
+  tailwind:
+    build:
+      context: .
+      target: tailwind
+      args:
+        # Must match `user:` below: the stage creates /app/node_modules owned by
+        # this uid so the anonymous volume masking it is writable. See the stage.
+        DOCKER_UID: ${DOCKER_UID:-1000}
+        DOCKER_GID: ${DOCKER_GID:-1000}
+    # As above: the files it writes land in your working tree, so they must be
+    # written as you and not as root.
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    # Not decoration. Without a TTY the CLI's stdin is closed immediately, and a
+    # plain `--watch` treats that as "the thing driving me has gone" and exits,
+    # leaving a container that looks alive while the stylesheet silently stops
+    # rebuilding. The `--watch=always` in package.json is the documented
+    # counterpart: keep watching even when stdin closes. Both are here because
+    # either one alone has been observed to be enough to break it.
+    tty: true
+    volumes:
+      - .:/app
+      - /app/node_modules
+    # npm install rather than `npm ci` because node_modules is an anonymous
+    # volume that outlives a single run: ci deletes and reinstalls the tree
+    # every start, install skips the work when it is already correct.
+    command: sh -c "npm install --no-audit --no-fund && npm run watch"
+    # "Healthy" here means the one thing anything downstream cares about: the
+    # generated stylesheet is on disk. The generous start_period covers the
+    # first npm install on a cold cache, during which failures do not count
+    # against retries and the container reports `starting` rather than flapping.
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /app/static/css/app.css"]
+      interval: 2s
+      timeout: 3s
+      retries: 5
+      start_period: 180s
+    restart: unless-stopped
+    # A file watcher over a bind-mounted tree can spin hard when something goes
+    # wrong. This bounds the damage to a fraction of the machine rather than the
+    # whole of it.
+    deploy:
+      resources:
+        limits:
+          cpus: ${DOCKER_TAILWIND_CPU_LIMIT:-0.5}
+          memory: ${DOCKER_TAILWIND_MEMORY_LIMIT:-512M}
+
+volumes:
+  uv-cache:
