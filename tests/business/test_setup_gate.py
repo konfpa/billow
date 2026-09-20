@@ -89,13 +89,18 @@ def test_the_health_check_stays_reachable_while_the_gate_is_closed(client):
 @pytest.mark.django_db
 @pytest.mark.urls("tests.business.urls_serving_files")
 def test_static_and_media_stay_reachable_while_the_gate_is_closed(
-    client, superuser, settings
+    client, superuser, settings, tmp_path
 ):
+    # Both files are written here rather than taken from the working tree,
+    # where the stylesheet is a Tailwind build artifact a fresh clone lacks.
+    stylesheets = tmp_path / "static"
+    stylesheets.mkdir()
+    (stylesheets / "app.css").write_text("body {}")
+    settings.STATICFILES_DIRS = [stylesheets]
+    (settings.MEDIA_ROOT / "logo.png").write_bytes(b"a logo")
     client.force_login(superuser)
 
-    (settings.MEDIA_ROOT / "logo.png").write_bytes(b"a logo")
-
-    static = client.get("/static/css/app.css")
+    static = client.get("/static/app.css")
     media = client.get("/media/logo.png")
 
     assert static.status_code == 200
