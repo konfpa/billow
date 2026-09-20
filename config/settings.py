@@ -107,6 +107,7 @@ TEMPLATES = [
 # ---------------------------------------------------------------------------
 
 _database = env.db_url("DJANGO_DATABASE_URL")
+_database_options = _database.get("OPTIONS", {})
 
 DATABASES = {
     "default": {
@@ -125,11 +126,23 @@ DATABASES = {
         # Merged rather than replaced: the URL's own options (sslmode,
         # connect_timeout) are parsed into OPTIONS and would be dropped.
         "OPTIONS": {
-            **_database.get("OPTIONS", {}),
+            **_database_options,
             # Bounds a statement that would otherwise hold locks indefinitely.
             # It is a connection parameter, so it applies to migrations too;
             # compose.prod.yaml sets it to 0 for the migrate service.
-            "options": f"-c statement_timeout={env.int('DJANGO_STATEMENT_TIMEOUT_MS', default=30000)}",
+            #
+            # Appended to whatever the URL's own `options` carried rather than
+            # assigned: a `?options=-c search_path%3Dtenant` would otherwise be
+            # dropped here and every query would read the wrong schema. Later
+            # `-c` flags win, so the timeout still applies.
+            "options": " ".join(
+                part
+                for part in (
+                    _database_options.get("options"),
+                    f"-c statement_timeout={env.int('DJANGO_STATEMENT_TIMEOUT_MS', default=30000)}",
+                )
+                if part
+            ),
         },
     },
 }
