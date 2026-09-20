@@ -1,0 +1,23 @@
+{% load static %}<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}billow{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  </head>
+  <body class="bg-canvas font-sans text-body text-ink antialiased">
+    {% block shell %}
+      <div class="flex min-h-screen flex-col lg:flex-row">
+        {% include "core/rail.html" %}
+
+        <main class="min-w-0 flex-1">
+          <div class="mx-auto max-w-[760px] px-5 py-10 sm:px-8 lg:py-14">
+            {% include "core/messages.html" %}
+            {% block content %}{% endblock %}
+          </div>
+        </main>
+      </div>
+    {% endblock %}
+  </body>
+</html>

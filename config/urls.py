@@ -6,13 +6,14 @@ Reference: https://docs.djangoproject.com/en/6.1/topics/http/urls/
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 
 from config.health import healthz
 
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
     path(settings.ADMIN_URL, admin.site.urls),
+    path("", include("apps.core.urls")),
 ]
 
 if settings.DEBUG:

@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "simple_history",
     "apps.accounts",
+    "apps.core",
 ]
 
 MIDDLEWARE = [
@@ -172,9 +173,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-LOGIN_URL = "admin:login"
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
+# billow has its own front door; the admin's login page is for the admin.
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "login"
 
 # ---------------------------------------------------------------------------
 # Internationalization
