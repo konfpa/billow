@@ -11,6 +11,10 @@ echo "dev-entrypoint: syncing dependencies"
 uv sync --frozen
 
 echo "dev-entrypoint: applying migrations"
-python manage.py migrate --noinput
+# The timeout settings.py sets is a libpq connection parameter, so it bounds
+# migrations like any other statement. An index build that outruns it aborts,
+# `set -eu` exits non-zero, and `restart: unless-stopped` turns that into a
+# crash loop. compose.prod.yaml does the same for its migrate service.
+DJANGO_STATEMENT_TIMEOUT_MS=0 python manage.py migrate --noinput
 
 exec "$@"
