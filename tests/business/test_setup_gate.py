@@ -15,6 +15,19 @@ def half_a_business(db):
     return Business.objects.create(name="Umbrella Trading", state=State.MAHARASHTRA)
 
 
+@pytest.fixture
+def upgraded(business, monkeypatch):
+    """A complete Business, and then a release that requires one field more."""
+    monkeypatch.setattr(
+        Business,
+        "REQUIRED_FOR_SETUP",
+        (*Business.REQUIRED_FOR_SETUP, "cin"),
+    )
+    business.cin = ""
+    business.save()
+    return business
+
+
 @pytest.mark.django_db
 def test_an_unconfigured_billow_sends_every_request_to_setup(client, superuser):
     client.force_login(superuser)
@@ -80,8 +93,10 @@ def test_static_and_media_stay_reachable_while_the_gate_is_closed(client, superu
     static = client.get("/static/css/app.css")
     media = client.get("/media/business/logo.png")
 
-    assert static.status_code != 302
-    assert media.status_code != 302
+    # Served or absent, but never answered by the gate: whether a file is
+    # there is the file server's business, not setup's.
+    assert static.status_code in {200, 404}
+    assert media.status_code in {200, 404}
 
 
 @pytest.mark.django_db
@@ -91,7 +106,7 @@ def test_the_setup_page_names_what_is_missing(client, superuser, half_a_business
     response = client.get(SETTINGS)
 
     assert set(response.context["missing"]) == {
-        "Address",
+        "Address line 1",
         "City",
         "Postal code",
         "GST registered",
@@ -109,16 +124,7 @@ def test_the_gate_opens_once_the_required_fields_are_supplied(
 
 
 @pytest.mark.django_db
-def test_a_newly_required_field_closes_the_gate_again(
-    client, superuser, business, monkeypatch
-):
-    monkeypatch.setattr(
-        Business,
-        "REQUIRED_FOR_SETUP",
-        (*Business.REQUIRED_FOR_SETUP, "cin"),
-    )
-    business.cin = ""
-    business.save()
+def test_a_newly_required_field_closes_the_gate_again(client, superuser, upgraded):
     client.force_login(superuser)
 
     response = client.get(HOME)
@@ -128,16 +134,7 @@ def test_a_newly_required_field_closes_the_gate_again(
 
 
 @pytest.mark.django_db
-def test_reopening_asks_only_for_what_an_upgrade_added(
-    client, superuser, business, monkeypatch
-):
-    monkeypatch.setattr(
-        Business,
-        "REQUIRED_FOR_SETUP",
-        (*Business.REQUIRED_FOR_SETUP, "cin"),
-    )
-    business.cin = ""
-    business.save()
+def test_reopening_asks_only_for_what_an_upgrade_added(client, superuser, upgraded):
     client.force_login(superuser)
 
     response = client.get(SETTINGS)
@@ -156,7 +153,16 @@ def test_an_operator_who_cannot_set_billow_up_is_told_so(client, operator):
     response = client.get(HOME)
 
     assert response.status_code == 200
-    assert "administrator" in response.content.decode()
+    assert "needs setting up" in response.content.decode()
+    assert "Superuser" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_nobody_signed_in_is_sent_to_sign_in_rather_than_to_setup(client):
+    response = client.get(HOME)
+
+    assert response.status_code == 302
+    assert response.url == f"{reverse('login')}?next={HOME}"
 
 
 @pytest.mark.django_db

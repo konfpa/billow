@@ -28,7 +28,7 @@ def business_settings(request: HttpRequest) -> HttpResponse:
         raise PermissionDenied
 
     if request.method != "POST":
-        return page(request, business, BusinessForm(instance=business))
+        return settings_page(request, business, BusinessForm(instance=business))
 
     if not request.user.is_superuser:
         raise PermissionDenied
@@ -41,14 +41,16 @@ def business_settings(request: HttpRequest) -> HttpResponse:
     if not form.is_valid():
         # Rendered rather than redirected, so that everything already typed is
         # still on the page next to what was wrong with it.
-        return page(request, business, form)
+        return settings_page(request, business, form)
 
     form.save()
     messages.success(request, "The Business's details are saved.")
     return redirect("business_settings")
 
 
-def page(request: HttpRequest, business: Business, form: BusinessForm) -> HttpResponse:
+def settings_page(
+    request: HttpRequest, business: Business, form: BusinessForm
+) -> HttpResponse:
     """The page, naming whatever setup is still waiting on.
 
     What is missing is read off the stored Business rather than off the form,
@@ -61,8 +63,6 @@ def page(request: HttpRequest, business: Business, form: BusinessForm) -> HttpRe
         {
             "business": business,
             "form": form,
-            "missing": [
-                form.fields[field].label for field in business.missing_for_setup()
-            ],
+            "missing": business.what_setup_still_needs(),
         },
     )
