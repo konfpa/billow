@@ -12,9 +12,17 @@
         {% include "core/rail.html" %}
 
         <main class="min-w-0 flex-1">
-          <div class="mx-auto max-w-[760px] px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
+          {% comment %}
+            A flex gap rather than a margin on either side: the messages
+            include renders nothing at all when there is nothing to say, and
+            nothing is not a flex item, so the gap disappears with it. A margin
+            would have to be cancelled from the outside, which is what an
+            `empty:` variant tries and fails to do over a template's
+            whitespace.
+          {% endcomment %}
+          <div class="mx-auto flex max-w-[760px] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
             {% include "core/messages.html" %}
-            {% block content %}{% endblock %}
+            <div>{% block content %}{% endblock %}</div>
           </div>
         </main>
       </div>

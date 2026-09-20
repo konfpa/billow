@@ -19,57 +19,64 @@
         <h1 class="text-title font-semibold">Sign in to billow</h1>
         <p class="mt-2 text-note text-ink-soft">Use the email address billow knows you by.</p>
 
-        <div class="mt-6 empty:mt-0">{% include "core/messages.html" %}</div>
+        {% comment %}
+          One column with one gap, so that a message, an error and the form
+          space themselves the same whichever of them the page has. See the
+          note in base.html on why the gap is not a margin.
+        {% endcomment %}
+        <div class="mt-6 flex flex-col gap-6">
+          {% include "core/messages.html" %}
 
-        {% if form.errors %}
-          {% comment %}
-            One message for every failure, deliberately. Saying which half was
-            wrong would confirm to a stranger that an address is registered.
-          {% endcomment %}
-          <div role="alert" class="mt-6 flex gap-3 rounded-panel border border-danger/30 bg-danger-soft px-4 py-3">
-            <svg viewBox="0 0 16 16" class="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
-              <circle cx="8" cy="8" r="6"></circle>
-              <path d="M8 5v3.5" stroke-linecap="round"></path>
-              <circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"></circle>
-            </svg>
-            <p class="text-note text-ink-soft">Those details do not match an account.</p>
-          </div>
-        {% endif %}
+          {% if form.errors %}
+            {% comment %}
+              One message for every failure, deliberately. Saying which half was
+              wrong would confirm to a stranger that an address is registered.
+            {% endcomment %}
+            <div role="alert" class="flex gap-3 rounded-panel border border-danger/30 bg-danger-soft px-4 py-3">
+              <svg viewBox="0 0 16 16" class="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
+                <circle cx="8" cy="8" r="6"></circle>
+                <path d="M8 5v3.5" stroke-linecap="round"></path>
+                <circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"></circle>
+              </svg>
+              <p class="text-note text-ink-soft">Those details do not match an account.</p>
+            </div>
+          {% endif %}
 
-        <form method="post" action="{% url 'login' %}" class="mt-6 panel p-4 sm:p-5">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ next }}">
+          <form method="post" action="{% url 'login' %}" class="panel p-4 sm:p-5">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
 
-          <div>
-            <label class="lbl" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
-            <input class="field {% if form.errors %}field-invalid{% endif %}"
-                   type="email"
-                   name="{{ form.username.html_name }}"
-                   id="{{ form.username.id_for_label }}"
-                   value="{{ form.username.value|default:'' }}"
-                   autocomplete="username"
-                   maxlength="254"
-                   autofocus
-                   required>
-            <p class="mt-1.5 text-note text-ink-faint">Capitals are ignored.</p>
-          </div>
+            <div>
+              <label class="lbl" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+              <input class="field {% if form.errors %}field-invalid{% endif %}"
+                     type="email"
+                     name="{{ form.username.html_name }}"
+                     id="{{ form.username.id_for_label }}"
+                     value="{{ form.username.value|default:'' }}"
+                     autocomplete="username"
+                     maxlength="254"
+                     autofocus
+                     required>
+              <p class="mt-1.5 text-note text-ink-faint">Capitals are ignored.</p>
+            </div>
 
-          <div class="mt-5">
-            <label class="lbl" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
-            <input class="field {% if form.errors %}field-invalid{% endif %}"
-                   type="password"
-                   name="{{ form.password.html_name }}"
-                   id="{{ form.password.id_for_label }}"
-                   autocomplete="current-password"
-                   required>
-          </div>
+            <div class="mt-5">
+              <label class="lbl" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+              <input class="field {% if form.errors %}field-invalid{% endif %}"
+                     type="password"
+                     name="{{ form.password.html_name }}"
+                     id="{{ form.password.id_for_label }}"
+                     autocomplete="current-password"
+                     required>
+            </div>
 
-          <button type="submit" class="btn mt-6 w-full">Sign in</button>
-        </form>
+            <button type="submit" class="btn mt-6 w-full">Sign in</button>
+          </form>
 
-        <p class="mt-5 text-note text-ink-faint">
-          Lost your password? An administrator resets it for you — billow does not send email.
-        </p>
+          <p class="text-note text-ink-faint">
+            Lost your password? An administrator resets it for you — billow does not send email.
+          </p>
+        </div>
       </div>
     </main>
   </div>
