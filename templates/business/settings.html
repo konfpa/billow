@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Business · billow{% endblock %}
+
+{% block content %}
+  <header>
+    <p class="text-micro font-semibold uppercase text-ink-faint">Settings</p>
+    <h1 class="mt-2 text-title font-semibold">The Business</h1>
+    <p class="mt-2 max-w-[54ch] text-note text-ink-soft">
+      Who billow invoices on behalf of. These details appear on every invoice it issues.
+    </p>
+  </header>
+
+  {% if user.is_superuser %}
+    <form method="post" enctype="multipart/form-data" novalidate class="mt-8 flex flex-col gap-5">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div role="alert" class="rounded-panel border border-danger/30 bg-danger-soft px-4 py-3">
+          {% for error in form.non_field_errors %}<p class="text-note text-ink">{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <section class="panel">
+        <div class="panel-head"><h2 class="text-note font-semibold">Name</h2></div>
+        <div class="flex flex-col gap-5 p-5">
+          {% include "business/field.html" with field=form.name %}
+          {% include "business/field.html" with field=form.legal_name %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="text-note font-semibold">Address</h2>
+          <p class="text-micro uppercase text-ink-faint">Place of supply</p>
+        </div>
+        <div class="flex flex-col gap-5 p-5">
+          {% include "business/field.html" with field=form.address_line_1 %}
+          {% include "business/field.html" with field=form.address_line_2 %}
+          <div class="grid gap-5 sm:grid-cols-2">
+            {% include "business/field.html" with field=form.city %}
+            {% include "business/field.html" with field=form.postal_code %}
+          </div>
+          {% include "business/field.html" with field=form.state %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2 class="text-note font-semibold">Tax registration</h2></div>
+        <div class="flex flex-col gap-5 p-5">
+          <fieldset>
+            <legend class="lbl">{{ form.is_gst_registered.label }}</legend>
+            <div class="flex flex-col gap-2">
+              {% for choice in form.is_gst_registered %}
+                <label class="flex items-center gap-2.5 text-note text-ink">
+                  {{ choice.tag }} {{ choice.choice_label }}
+                </label>
+              {% endfor %}
+            </div>
+            {% for error in form.is_gst_registered.errors %}
+              <p class="mt-1.5 text-note text-danger">{{ error }}</p>
+            {% endfor %}
+          </fieldset>
+          {% include "business/field.html" with field=form.gstin %}
+          <div class="grid gap-5 sm:grid-cols-2">
+            {% include "business/field.html" with field=form.pan %}
+            {% include "business/field.html" with field=form.cin %}
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2 class="text-note font-semibold">Contact</h2></div>
+        <div class="flex flex-col gap-5 p-5">
+          <div class="grid gap-5 sm:grid-cols-2">
+            {% include "business/field.html" with field=form.email %}
+            {% include "business/field.html" with field=form.phone %}
+          </div>
+          {% include "business/field.html" with field=form.website %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2 class="text-note font-semibold">Logo</h2></div>
+        <div class="flex flex-col gap-5 p-5">
+          {% if business.logo %}
+            <img src="{{ business.logo.url }}" alt="The Business's logo" class="max-h-20 w-auto">
+          {% endif %}
+          {% include "business/field.html" with field=form.logo %}
+        </div>
+      </section>
+
+      <div>
+        <button type="submit" class="btn">Save</button>
+      </div>
+    </form>
+  {% else %}
+    {% comment %}
+      An Operator who is not a Superuser may check what appears on invoices,
+      and may not change it. The form is absent rather than disabled: a
+      disabled form is an invitation that ends in a refusal.
+    {% endcomment %}
+    <section class="panel mt-8">
+      <div class="panel-head">
+        <h2 class="text-note font-semibold">{{ business.invoice_name|default:"Not set up yet" }}</h2>
+        <p class="text-micro uppercase text-ink-faint">Read only</p>
+      </div>
+      <dl class="flex flex-col gap-4 p-5 text-note">
+        <div>
+          <dt class="text-ink-faint">Address</dt>
+          <dd class="mt-0.5 text-ink">
+            {{ business.address_line_1 }}{% if business.address_line_2 %}, {{ business.address_line_2 }}{% endif %}<br>
+            {{ business.city }} {{ business.postal_code }}, {{ business.get_state_display }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-ink-faint">GST</dt>
+          <dd class="mt-0.5 text-ink">
+            {% if business.is_gst_registered %}Registered · {{ business.gstin }}
+            {% elif business.is_gst_registered is False %}Not registered
+            {% else %}Not answered yet{% endif %}
+          </dd>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt class="text-ink-faint">PAN</dt>
+            <dd class="mt-0.5 text-ink">{{ business.pan|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-ink-faint">CIN</dt>
+            <dd class="mt-0.5 text-ink">{{ business.cin|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-ink-faint">Email</dt>
+            <dd class="mt-0.5 text-ink">{{ business.email|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-ink-faint">Phone</dt>
+            <dd class="mt-0.5 text-ink">{{ business.phone|default:"—" }}</dd>
+          </div>
+          <div>
+            <dt class="text-ink-faint">Website</dt>
+            <dd class="mt-0.5 break-words text-ink">{{ business.website|default:"—" }}</dd>
+          </div>
+        </div>
+      </dl>
+      <p class="border-t border-line px-5 py-3.5 text-note text-ink-faint">
+        Only a Superuser changes these details.
+      </p>
+    </section>
+  {% endif %}
+{% endblock %}

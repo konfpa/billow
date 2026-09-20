@@ -13,6 +13,7 @@ from config.health import healthz
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
     path(settings.ADMIN_URL, admin.site.urls),
+    path("", include("apps.business.urls")),
     path("", include("apps.core.urls")),
 ]
 
