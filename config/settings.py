@@ -18,7 +18,13 @@ from django.utils.csp import CSP
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
-environ.Env.read_env(BASE_DIR / ".env")
+
+# The test suite sets this so that it configures itself entirely from
+# tests/settings.py. Without the opt-out, every variable that file does not pin
+# is still answered by whatever a developer happens to have in their `.env`,
+# and the suite tests a different configuration on each machine.
+if env.bool("DJANGO_READ_DOT_ENV", default=True):
+    environ.Env.read_env(BASE_DIR / ".env")
 
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 
