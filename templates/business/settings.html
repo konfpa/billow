@@ -78,10 +78,11 @@
         <div class="flex flex-col gap-5 p-4 sm:p-5">
           <fieldset>
             <legend class="lbl">{{ form.is_gst_registered.label }}</legend>
-            <div class="flex flex-col gap-2">
+            <div class="grid gap-2.5 sm:grid-cols-2">
               {% for choice in form.is_gst_registered %}
-                <label class="flex items-center gap-2.5 text-note text-ink">
-                  {{ choice.tag }} {{ choice.choice_label }}
+                <label class="choice">
+                  {{ choice.tag }}
+                  <span>{{ choice.choice_label }}</span>
                 </label>
               {% endfor %}
             </div>
