@@ -25,9 +25,6 @@ class EmailAuthenticationForm(auth_forms.AuthenticationForm):
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
+        # Only the label, because registration/login.html writes its own
+        # inputs: widget attributes set here would never reach the page.
         self.fields["username"].label = "Email address"
-        self.fields["username"].widget.input_type = "email"
-        self.fields["username"].widget.attrs.update(
-            {"autocomplete": "username", "autofocus": True},
-        )
-        self.fields["password"].widget.attrs["autocomplete"] = "current-password"
