@@ -5,7 +5,10 @@ on:
 
 jobs:
   test:
-    name: Test (Python ${{ matrix.python-version }})
+    # Deliberately free of the matrix version: this name becomes the required
+    # status check context, and bumping Python must not silently retire the
+    # rule that guards main.
+    name: Test
     runs-on: ubuntu-latest
 
     # Everything here only reads the checkout. Spelling that out keeps the
