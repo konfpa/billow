@@ -20,4 +20,5 @@ attribute may hold — `x-data="dropdown"` naming a component registered with
 `Alpine.data()`, and `x-on:click="toggle"` naming one of its methods, rather
 than a JavaScript expression written in the markup. Registering those
 components needs a file of our own served from this directory, since an inline
-`<script>` is forbidden by the same header.
+`<script>` is forbidden by the same header. That file is `app.js`, which is
+billow's own code rather than a vendored build.

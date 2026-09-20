@@ -14,6 +14,24 @@ class TaxCodeField(forms.CharField):
         return (super().to_python(value) or "").upper()
 
 
+class LogoInput(forms.ClearableFileInput):
+    """A file input with no chrome of its own.
+
+    Django's clearable input renders "Currently / Change / Clear" around the
+    input; the page draws all of that itself. The class stays a
+    ClearableFileInput so the clear checkbox the page renders is still read
+    back off the POST.
+    """
+
+    template_name = "django/forms/widgets/file.html"
+
+    def format_value(self, value: object) -> None:  # noqa: ARG002
+        # The clearable widget hands the stored name back as the input's
+        # value, which a file input has no use for: the page shows what is on
+        # file itself, and browsers ignore the attribute anyway.
+        return None
+
+
 class BusinessForm(forms.ModelForm):
     # Declared rather than inferred from the nullable column: Django's
     # NullBooleanField offers "Unknown" as a third answer, and unanswered is
@@ -62,8 +80,13 @@ class BusinessForm(forms.ModelForm):
         }
         widgets = {
             "state": forms.Select(attrs={"class": "field"}),
-            "logo": forms.ClearableFileInput(
-                attrs={"class": "text-note", "accept": "image/*"}
+            "logo": LogoInput(
+                attrs={
+                    "class": "sr-only",
+                    "accept": "image/png,image/jpeg,image/webp,image/svg+xml",
+                    "x-ref": "input",
+                    "x-on:change": "chosen",
+                }
             ),
         }
 
