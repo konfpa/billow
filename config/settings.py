@@ -235,6 +235,11 @@ STORAGES = {
 # Email
 # ---------------------------------------------------------------------------
 
+# No application code sends mail yet. This is configured ahead of that because
+# the mail_admins handler in LOGGING is the only route an unhandled production
+# exception has out of the process, and because deployment credentials are
+# easier to set once here than to retrofit later when the first sender lands.
+#
 # Without an SMTP host, mail is written to stdout instead of being sent.
 _smtp_host = env.str("DJANGO_EMAIL_HOST", default="")
 
