@@ -80,9 +80,10 @@ in front of it via `DJANGO_S3_CUSTOM_DOMAIN`. Both containers can be destroyed
 and recreated with nothing to migrate out of them; what needs backing up is the
 Postgres server and the bucket, neither of which these files manage.
 
-`GET /healthz` returns `200` with `{"status": "ok"}` when the process can reach
-the database and `503` otherwise; it is what both compose files use as the
-container healthcheck.
+`GET /healthz` returns `200` with `{"status": "ok", "database": "up"}` when the
+process can reach the database, and `503` with `{"status": "error", "database":
+"down"}` otherwise; it is what both compose files use as the container
+healthcheck.
 
 ### Publishing an image
 
