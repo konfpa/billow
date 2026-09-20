@@ -166,7 +166,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 MEDIA_URL = "media/"
-MEDIA_ROOT = env("DJANGO_MEDIA_ROOT", cast=Path, default=BASE_DIR / "media")
+_media_root = env("DJANGO_MEDIA_ROOT", cast=Path, default=BASE_DIR / "media")
+
+# A relative override would otherwise resolve against the process CWD, which
+# differs between a shell, a manage.py run and the container entrypoint.
+MEDIA_ROOT = _media_root if _media_root.is_absolute() else BASE_DIR / _media_root
 
 # Uploads live in S3-compatible object storage, because nothing that serves
 # this app has a writable disk: the container filesystem is read-only and no
