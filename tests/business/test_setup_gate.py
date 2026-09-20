@@ -87,16 +87,19 @@ def test_the_health_check_stays_reachable_while_the_gate_is_closed(client):
 
 
 @pytest.mark.django_db
-def test_static_and_media_stay_reachable_while_the_gate_is_closed(client, superuser):
+@pytest.mark.urls("tests.business.urls_serving_files")
+def test_static_and_media_stay_reachable_while_the_gate_is_closed(
+    client, superuser, settings
+):
     client.force_login(superuser)
 
-    static = client.get("/static/css/app.css")
-    media = client.get("/media/business/logo.png")
+    (settings.MEDIA_ROOT / "logo.png").write_bytes(b"a logo")
 
-    # Served or absent, but never answered by the gate: whether a file is
-    # there is the file server's business, not setup's.
-    assert static.status_code in {200, 404}
-    assert media.status_code in {200, 404}
+    static = client.get("/static/css/app.css")
+    media = client.get("/media/logo.png")
+
+    assert static.status_code == 200
+    assert media.status_code == 200
 
 
 @pytest.mark.django_db
