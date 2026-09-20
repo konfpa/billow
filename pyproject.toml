@@ -5,6 +5,7 @@ requires-python = ">=3.14"
 dependencies = [
     "django>=6.1.1",
     "django-environ>=0.14.0",
+    "django-simple-history>=3.13.0",
 ]
 
 [dependency-groups]
