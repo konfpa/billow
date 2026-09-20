@@ -19,7 +19,7 @@
         <h1 class="text-title font-semibold">Sign in to billow</h1>
         <p class="mt-2 text-note text-ink-soft">Use the email address billow knows you by.</p>
 
-        <div class="mt-6">{% include "core/messages.html" %}</div>
+        <div class="mt-6 empty:mt-0">{% include "core/messages.html" %}</div>
 
         {% if form.errors %}
           {% comment %}
@@ -48,6 +48,7 @@
                    id="{{ form.username.id_for_label }}"
                    value="{{ form.username.value|default:'' }}"
                    autocomplete="username"
+                   maxlength="254"
                    autofocus
                    required>
             <p class="mt-1.5 text-note text-ink-faint">Capitals are ignored.</p>

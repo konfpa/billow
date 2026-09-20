@@ -1,4 +1,8 @@
+from types import SimpleNamespace
+
 import pytest
+from django.contrib import messages
+from django.template.loader import render_to_string
 from django.urls import reverse
 
 from tests.core.conftest import PASSWORD
@@ -9,7 +13,7 @@ def test_the_login_page_is_billows_own(client):
     response = client.get(reverse("login"))
 
     assert response.status_code == 200
-    assert "/admin/" not in response.request["PATH_INFO"]
+    assert "registration/login.html" in [t.name for t in response.templates]
 
 
 @pytest.mark.django_db
@@ -105,8 +109,23 @@ def test_every_page_carries_the_same_navigation(client, signed_in):
     assert reverse("logout") in home
 
 
-@pytest.mark.django_db
-def test_a_confirmation_is_shown_where_messages_live(client, signed_in):
-    response = client.get(reverse("home"))
+def render_message(level, text):
+    return render_to_string(
+        "core/messages.html",
+        {"messages": [SimpleNamespace(level=level, __str__=lambda self: text)]},
+    )
 
-    assert 'id="messages"' in response.content.decode()
+
+def test_a_confirmation_is_shown_where_messages_live():
+    assert 'id="messages"' in render_message(messages.SUCCESS, "Saved.")
+
+
+def test_something_to_act_on_is_not_dressed_as_a_confirmation():
+    warning = render_message(messages.WARNING, "Two invoices are overdue.")
+
+    assert "bg-danger-soft" in warning
+    assert "bg-good-soft" not in warning
+
+
+def test_nothing_is_rendered_when_there_is_nothing_to_say():
+    assert render_to_string("core/messages.html", {"messages": []}).strip() == ""
