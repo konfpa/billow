@@ -2,6 +2,11 @@
 
 import os
 
+# Everything below pins the handful of variables the suite cares about. This
+# stops config/settings.py reading `.env` at all, so the rest fall back to
+# their declared defaults rather than to whatever this machine has configured.
+os.environ["DJANGO_READ_DOT_ENV"] = "False"
+
 os.environ["DJANGO_DEBUG"] = "False"
 os.environ["DJANGO_HTTPS_ONLY"] = "False"
 os.environ["DJANGO_EMAIL_HOST"] = ""
