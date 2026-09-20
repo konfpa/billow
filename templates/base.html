@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}billow{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    {% comment %}
+      Both deferred, so neither blocks the first paint and both have run by
+      DOMContentLoaded, which is what Alpine waits for before it walks the
+      page. htmx comes first only so that its own attributes are processed
+      before Alpine starts initialising components over the same markup.
+    {% endcomment %}
+    <script src="{% static 'js/htmx.min.js' %}" defer></script>
+    <script src="{% static 'js/alpine.min.js' %}" defer></script>
   </head>
   <body class="bg-canvas font-sans text-body text-ink antialiased">
     {% block shell %}
