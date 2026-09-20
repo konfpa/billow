@@ -177,9 +177,9 @@ MEDIA_ROOT = _media_root if _media_root.is_absolute() else BASE_DIR / _media_roo
 # volume is mounted. Under DEBUG they go to MEDIA_ROOT instead, so local
 # development needs no bucket and no credentials.
 if DEBUG:
-    MEDIA_STORAGE = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+    _media_storage = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
 else:
-    MEDIA_STORAGE = {
+    _media_storage = {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
             "bucket_name": env.str("DJANGO_S3_BUCKET"),
@@ -207,7 +207,7 @@ else:
     }
 
 STORAGES = {
-    "default": MEDIA_STORAGE,
+    "default": _media_storage,
     "staticfiles": {
         # Manifest hashing in production only: it requires `collectstatic` to
         # have run, which would break `runserver`.
@@ -224,14 +224,14 @@ STORAGES = {
 # ---------------------------------------------------------------------------
 
 # Without an SMTP host, mail is written to stdout instead of being sent.
-SMTP_HOST = env.str("DJANGO_EMAIL_HOST", default="")
+_smtp_host = env.str("DJANGO_EMAIL_HOST", default="")
 
-if SMTP_HOST:
+if _smtp_host:
     MAILERS = {
         "default": {
             "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
             "OPTIONS": {
-                "host": SMTP_HOST,
+                "host": _smtp_host,
                 "port": env.int("DJANGO_EMAIL_PORT", default=587),
                 "username": env.str("DJANGO_EMAIL_HOST_USER", default=""),
                 "password": env.str("DJANGO_EMAIL_HOST_PASSWORD", default=""),
@@ -260,14 +260,14 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # One switch for everything that assumes HTTPS, so a plain-HTTP deployment
 # (internal network, staging) stays usable without running in DEBUG.
-HTTPS_ONLY = env.bool("DJANGO_HTTPS_ONLY", default=not DEBUG)
+_https_only = env.bool("DJANGO_HTTPS_ONLY", default=not DEBUG)
 
-SECURE_SSL_REDIRECT = HTTPS_ONLY
+SECURE_SSL_REDIRECT = _https_only
 SECURE_HSTS_SECONDS = (
-    env.int("DJANGO_HSTS_SECONDS", default=31536000) if HTTPS_ONLY else 0
+    env.int("DJANGO_HSTS_SECONDS", default=31536000) if _https_only else 0
 )
-SECURE_HSTS_INCLUDE_SUBDOMAINS = HTTPS_ONLY
-SECURE_HSTS_PRELOAD = HTTPS_ONLY
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _https_only
+SECURE_HSTS_PRELOAD = _https_only
 SECURE_REFERRER_POLICY = "same-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -276,10 +276,10 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 # make the container permanently unhealthy.
 SECURE_REDIRECT_EXEMPT = [r"^healthz/?$"]
 
-SESSION_COOKIE_SECURE = HTTPS_ONLY
+SESSION_COOKIE_SECURE = _https_only
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SECURE = HTTPS_ONLY
+CSRF_COOKIE_SECURE = _https_only
 CSRF_COOKIE_SAMESITE = "Lax"
 
 X_FRAME_OPTIONS = "DENY"
@@ -308,7 +308,7 @@ ADMIN_URL = env.str("DJANGO_ADMIN_URL", default="admin/")
 # Logging
 # ---------------------------------------------------------------------------
 
-LOG_LEVEL = env.str("DJANGO_LOG_LEVEL", default="INFO").upper()
+_log_level = env.str("DJANGO_LOG_LEVEL", default="INFO").upper()
 
 LOGGING = {
     "version": 1,
@@ -337,12 +337,12 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console", "mail_admins"],
-        "level": LOG_LEVEL,
+        "level": _log_level,
     },
     "loggers": {
         # Clears the handlers Django attaches by default so records reach the
         # root handlers exactly once.
-        "django": {"handlers": [], "level": LOG_LEVEL},
+        "django": {"handlers": [], "level": _log_level},
         # Bots probing with bogus Host headers would otherwise mail the admins
         # on every scan.
         "django.security.DisallowedHost": {
