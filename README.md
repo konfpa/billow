@@ -23,9 +23,11 @@ change. Dependencies and migrations are applied on each start, so pulling a
 branch that adds either needs no rebuild. The app is on
 <http://localhost:8000>.
 
-They run as your own uid, so the database, new migrations and the compiled
-stylesheet stay editable on the host. Set `DOCKER_UID`/`DOCKER_GID` in `.env`
-and rebuild if your account is not the usual 1000.
+They run as the uid in `DOCKER_UID`/`DOCKER_GID`, defaulting to 1000, so the
+database, new migrations and the compiled stylesheet stay editable on the host.
+If your account is not the usual 1000, set both in `.env` (`id -u && id -g`) and
+run `docker compose build` — the uid is baked into the image, so `up` alone will
+not pick it up.
 
 ```bash
 docker compose exec django python manage.py createsuperuser
