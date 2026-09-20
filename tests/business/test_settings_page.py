@@ -6,7 +6,7 @@ from django.urls import reverse
 from PIL import Image
 
 from apps.business.models import Business
-from apps.business.states import State
+from apps.tax.states import State
 from tests.business.conftest import COMPLETE
 
 URL = reverse("business_settings")

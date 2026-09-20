@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 
 from apps.business.models import Business
-from apps.business.states import State
+from apps.tax.states import State
 from tests.business.conftest import PASSWORD
 
 HOME = reverse("home")

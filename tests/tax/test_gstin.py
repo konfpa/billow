@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import ValidationError
 
-from apps.business.gstin import state_code_of, validate_gstin
+from apps.tax.gstin import state_code_of, validate_gstin
 
 # A GSTIN is 2 state digits, the holder's 10-character PAN, an entity number,
 # a literal Z and a checksum character. These are real, published numbers:

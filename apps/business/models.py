@@ -4,8 +4,8 @@ from django.db import models
 from django.utils.text import capfirst
 from simple_history.models import HistoricalRecords
 
-from apps.business.gstin import state_code_of, validate_gstin
-from apps.business.states import State
+from apps.tax.gstin import state_code_of, validate_gstin
+from apps.tax.states import State
 
 # billow serves one Business, so its row is always this one. See
 # docs/adr/0002-one-business-per-deployment.md.

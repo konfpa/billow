@@ -4,7 +4,7 @@ import re
 
 from django.core.exceptions import ValidationError
 
-from apps.business.states import State
+from apps.tax.states import State
 
 # Two state digits, the holder's ten-character PAN, an entity number for the
 # holder's nth registration in that state, a literal Z, and a checksum.
