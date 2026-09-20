@@ -49,6 +49,11 @@
   --text-note--line-height: 1.5;
   --text-body: 0.875rem;
   --text-body--line-height: 1.5;
+  /* Safari on iOS zooms the page when a focused control's text is under 16px,
+     and never zooms back out. The body size is 14px, so controls take this one
+     below `sm` instead. */
+  --text-control: 1rem;
+  --text-control--line-height: 1.5;
   --text-lead: 1rem;
   --text-lead--line-height: 1.6;
   --text-title: 1.375rem;
@@ -69,9 +74,10 @@
 }
 
 @utility field {
-  @apply w-full rounded-control border border-line-strong bg-surface px-3 py-2 text-body text-ink
+  @apply w-full rounded-control border border-line-strong bg-surface px-3 py-2.5 text-control text-ink
          placeholder:text-ink-faint outline-none
-         focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft;
+         focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent-soft
+         sm:py-2 sm:text-body;
 }
 
 @utility field-invalid {
@@ -87,7 +93,7 @@
 }
 
 @utility panel-head {
-  @apply flex items-baseline justify-between gap-3 border-b border-line px-5 py-3.5;
+  @apply flex items-baseline justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5;
 }
 
 @utility btn {
@@ -102,6 +108,6 @@
 }
 
 @utility nav-item {
-  @apply flex items-center gap-2.5 rounded-control px-2.5 py-2 text-note outline-none
-         focus-visible:ring-3 focus-visible:ring-accent-soft;
+  @apply flex items-center gap-2.5 rounded-control px-2.5 py-2.5 text-note outline-none
+         focus-visible:ring-3 focus-visible:ring-accent-soft lg:py-2;
 }

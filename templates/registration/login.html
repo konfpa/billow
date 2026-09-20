@@ -7,14 +7,14 @@
   shell reduces to the wordmark and the form.
 {% endcomment %}
 {% block shell %}
-  <div class="flex min-h-screen flex-col">
-    <header class="border-b border-line bg-surface px-5 py-4">
+  <div class="flex min-h-dvh flex-col">
+    <header class="border-b border-line bg-surface px-4 py-4 sm:px-6">
       <div class="mx-auto max-w-[1100px]">
         {% include "core/wordmark.html" %}
       </div>
     </header>
 
-    <main class="flex flex-1 items-center justify-center px-5 py-12">
+    <main class="flex flex-1 items-center justify-center px-4 py-10 sm:px-6 sm:py-12">
       <div class="w-full max-w-[400px]">
         <h1 class="text-title font-semibold">Sign in to billow</h1>
         <p class="mt-2 text-note text-ink-soft">Use the email address billow knows you by.</p>
@@ -36,7 +36,7 @@
           </div>
         {% endif %}
 
-        <form method="post" action="{% url 'login' %}" class="mt-6 panel p-5">
+        <form method="post" action="{% url 'login' %}" class="mt-6 panel p-4 sm:p-5">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ next }}">
 
