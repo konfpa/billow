@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, transaction
 
 from apps.business.models import Business
-from apps.business.states import State
+from apps.tax.states import State
 
 
 @pytest.mark.django_db

@@ -2,7 +2,7 @@ import pytest
 from django.contrib.auth import get_user_model
 
 from apps.business.models import Business
-from apps.business.states import State
+from apps.tax.states import State
 
 User = get_user_model()
 
