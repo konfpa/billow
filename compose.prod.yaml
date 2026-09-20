@@ -97,16 +97,9 @@ services:
     # instead of being killed halfway through draining them.
     stop_grace_period: 45s
     healthcheck:
-      # Hits the app rather than the port: this asks Django to answer and to
-      # reach its database, which is the failure a port check cannot see.
-      # No curl in the slim base, hence python.
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).status == 200 else 1)",
-        ]
+      # Baked into the image by the prod stage; see docker/healthcheck.py for
+      # what it checks and why.
+      test: ["CMD", "python", "docker/healthcheck.py", "5"]
       interval: 15s
       timeout: 10s
       retries: 3
