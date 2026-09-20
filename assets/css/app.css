@@ -111,3 +111,9 @@
   @apply flex items-center gap-2.5 rounded-control px-2.5 py-2.5 text-note outline-none
          focus-visible:ring-3 focus-visible:ring-accent-soft lg:py-2;
 }
+
+@utility choice {
+  @apply flex cursor-pointer items-start gap-2.5 rounded-control border border-line-strong bg-surface
+         px-3 py-3 text-note text-ink has-checked:border-accent has-checked:bg-accent-soft
+         has-focus-visible:ring-3 has-focus-visible:ring-accent-soft;
+}

@@ -77,7 +77,9 @@ class BusinessForm(forms.ModelForm):
 
             # A radio group and a file picker are not text boxes, and the
             # `field` utility styles a text box.
-            if not isinstance(field.widget, forms.RadioSelect | forms.FileInput):
+            if isinstance(field.widget, forms.RadioSelect):
+                field.widget.attrs.setdefault("class", "mt-0.5 h-4 w-4 accent-accent")
+            elif not isinstance(field.widget, forms.FileInput):
                 field.widget.attrs.setdefault("class", "field")
 
         self.fields["state"].empty_label = "Choose a state"
