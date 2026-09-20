@@ -121,7 +121,8 @@ DATABASES = {
         "OPTIONS": {
             **_database.get("OPTIONS", {}),
             # Bounds a statement that would otherwise hold locks indefinitely.
-            # Migrations set their own, so this does not constrain them.
+            # It is a connection parameter, so it applies to migrations too;
+            # compose.prod.yaml sets it to 0 for the migrate service.
             "options": f"-c statement_timeout={env.int('DJANGO_STATEMENT_TIMEOUT_MS', default=30000)}",
         },
     },
