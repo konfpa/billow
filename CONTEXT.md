@@ -46,6 +46,13 @@ _Avoid_: Registered name, trading name, entity name
 The state that decides whether a supply is taxed as CGST plus SGST or as IGST.
 _Avoid_: Tax state, supply state, region
 
+**Setup gate**:
+What billow closes over itself until the Business holds every detail it
+requires today, sending every request to the setup page instead. Judged against
+what the current release requires, so a Business recorded under older rules
+becomes incomplete again when a later release asks for more.
+_Avoid_: Onboarding, wizard, first-run
+
 **GST registered**:
 Whether the Business holds a GSTIN, and so issues tax invoices rather than
 bills of supply. A Business below the registration threshold is not, and that

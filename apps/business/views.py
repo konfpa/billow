@@ -16,18 +16,19 @@ if TYPE_CHECKING:
 def business_settings(request: HttpRequest) -> HttpResponse:
     """The Business's details: read by any Operator, written by a Superuser.
 
-    An Operator who is not a Superuser is shown what appears on invoices,
-    because checking it is part of their job; the form is simply not there
-    for them, and a request that tries to write anyway is refused.
+    While billow is still incomplete this is the setup page, and only a
+    Superuser may see it at all. Once complete it is the ordinary settings
+    page: an Operator who is not a Superuser is shown what appears on
+    invoices, because checking it is part of their job; the form is simply not
+    there for them, and a request that tries to write anyway is refused.
     """
     business = Business.load()
 
+    if business.missing_for_setup() and not request.user.is_superuser:
+        raise PermissionDenied
+
     if request.method != "POST":
-        return render(
-            request,
-            "business/settings.html",
-            {"business": business, "form": BusinessForm(instance=business)},
-        )
+        return page(request, business, BusinessForm(instance=business))
 
     if not request.user.is_superuser:
         raise PermissionDenied
@@ -40,12 +41,28 @@ def business_settings(request: HttpRequest) -> HttpResponse:
     if not form.is_valid():
         # Rendered rather than redirected, so that everything already typed is
         # still on the page next to what was wrong with it.
-        return render(
-            request,
-            "business/settings.html",
-            {"business": business, "form": form},
-        )
+        return page(request, business, form)
 
     form.save()
     messages.success(request, "The Business's details are saved.")
     return redirect("business_settings")
+
+
+def page(request: HttpRequest, business: Business, form: BusinessForm) -> HttpResponse:
+    """The page, naming whatever setup is still waiting on.
+
+    What is missing is read off the stored Business rather than off the form,
+    because the question the gate asks is what billow holds, not what this
+    submission carried.
+    """
+    return render(
+        request,
+        "business/settings.html",
+        {
+            "business": business,
+            "form": form,
+            "missing": [
+                form.fields[field].label for field in business.missing_for_setup()
+            ],
+        },
+    )

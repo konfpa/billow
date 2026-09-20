@@ -84,6 +84,9 @@ MIDDLEWARE = [
     # Stamps the acting user onto historical records; must run after
     # AuthenticationMiddleware.
     "simple_history.middleware.HistoryRequestMiddleware",
+    # Holds billow shut until the Business is complete; needs the request's
+    # user, so it runs after AuthenticationMiddleware.
+    "apps.business.middleware.SetupGateMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
