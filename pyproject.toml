@@ -6,14 +6,22 @@ dependencies = [
     "django>=6.1.1",
     "django-environ>=0.14.0",
     "django-simple-history>=3.13.0",
+    "gunicorn>=26.2.0",
     "whitenoise>=6.12.0",
 ]
 
 [dependency-groups]
 dev = [
     "prek>=0.5.3",
+    "pytest>=9.1.1",
+    "pytest-django>=4.14.0",
     "ruff>=0.16.8",
 ]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+testpaths = ["tests"]
+addopts = "--strict-markers --strict-config"
 
 [tool.ruff]
 target-version = "py314"
@@ -24,6 +32,7 @@ extend-exclude = ["**/migrations/*.py"]
 select = ["ALL"]
 ignore = [
     "COM812", # conflicts with the formatter
+    "CPY001", # licence lives in LICENSE, not in every file header
     "D1",     # missing docstrings
     "D203",   # conflicts with D211
     "D213",   # conflicts with D212
@@ -35,10 +44,11 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**/*.py" = ["S101", "PLR2004", "ARG", "S105", "S106"]
-"**/test_*.py" = ["S101", "PLR2004", "ARG", "S105", "S106"]
+"**/tests/**/*.py" = ["S101", "PLR2004", "ARG", "S105", "S106", "ANN", "INP001"]
+"**/test_*.py" = ["S101", "PLR2004", "ARG", "S105", "S106", "ANN", "INP001"]
 "**/conftest.py" = ["ARG"]
-"manage.py" = ["INP001"]
+# Django's generated launcher: left as shipped upstream.
+"manage.py" = ["INP001", "ANN", "PLC0415", "TRY003", "EM101"]
 "**/settings*.py" = ["E501"]
 
 [tool.ruff.lint.isort]
