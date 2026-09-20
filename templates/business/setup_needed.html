@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Not set up yet · billow{% endblock %}
+
+{% comment %}
+  The shell is left out deliberately: every link in it leads back here, and
+  offering navigation that cannot go anywhere is a worse dead end than saying
+  so plainly.
+{% endcomment %}
+{% block shell %}
+  <main class="flex min-h-screen items-center justify-center px-5 py-10">
+    <div class="panel max-w-[46ch] p-6">
+      {% include "core/wordmark.html" %}
+      <h1 class="mt-6 text-title font-semibold">billow needs setting up</h1>
+      <p class="mt-2 text-note text-ink-soft">
+        Before billow can be used, the Business it invoices on behalf of has to be
+        recorded — the name, address and tax registration every invoice carries.
+        Only a Superuser can do that, so please ask an administrator.
+      </p>
+      <form method="post" action="{% url 'logout' %}" class="mt-6">
+        {% csrf_token %}
+        <button type="submit" class="btn">Sign out</button>
+      </form>
+    </div>
+  </main>
+{% endblock %}

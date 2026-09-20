@@ -4,12 +4,31 @@
 
 {% block content %}
   <header>
-    <p class="text-micro font-semibold uppercase text-ink-faint">Settings</p>
+    <p class="text-micro font-semibold uppercase text-ink-faint">
+      {% if missing %}Setting up{% else %}Settings{% endif %}
+    </p>
     <h1 class="mt-2 text-title font-semibold">The Business</h1>
     <p class="mt-2 max-w-[54ch] text-note text-ink-soft">
       Who billow invoices on behalf of. These details appear on every invoice it issues.
     </p>
   </header>
+
+  {% comment %}
+    Naming what is missing rather than only marking the fields: the list is
+    what lets setup be finished in one pass, and after an upgrade it is the
+    only sign that a Business complete yesterday is short of something today.
+  {% endcomment %}
+  {% if missing %}
+    <div role="status" class="mt-6 rounded-panel border border-line bg-surface px-5 py-4">
+      <p class="text-note font-medium text-ink">
+        billow cannot be used until the Business is recorded.
+      </p>
+      <p class="mt-1.5 text-note text-ink-soft">Still needed:</p>
+      <ul class="mt-1.5 list-disc pl-5 text-note text-ink">
+        {% for label in missing %}<li>{{ label }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
 
   {% if user.is_superuser %}
     <form method="post" enctype="multipart/form-data" novalidate class="mt-8 flex flex-col gap-5">
