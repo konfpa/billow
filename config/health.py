@@ -15,7 +15,8 @@ def healthz(_request: HttpRequest) -> JsonResponse:
     """Report whether the process can still serve traffic.
 
     The database round-trip is what makes this a readiness check: a process
-    that cannot reach SQLite is up but useless, and should be restarted.
+    that cannot reach Postgres is up but useless, and should be taken out of
+    rotation. The app holds no other state, so this is the whole of it.
     """
     try:
         with connections["default"].cursor() as cursor:
