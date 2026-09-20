@@ -102,6 +102,8 @@ RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 # with the `@source` lines in assets/css/app.css.
 COPY assets/ assets/
 COPY templates/ templates/
+COPY apps/ apps/
+COPY static/fonts/ static/fonts/
 
 RUN npm run build
 
@@ -170,6 +172,7 @@ COPY --from=builder /opt/venv /opt/venv
 # it serves. Nothing in this image is meant to be written at run time.
 COPY manage.py ./
 COPY config/ config/
+COPY apps/ apps/
 COPY templates/ templates/
 COPY static/ static/
 COPY --from=assets /app/static/ static/

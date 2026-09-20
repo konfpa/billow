@@ -1,0 +1,22 @@
+{% comment %}
+  The one place a confirmation or an error is shown, included by every layout
+  so that a message can never be raised onto a page with nowhere to display it.
+{% endcomment %}
+<div id="messages" class="flex flex-col gap-3 empty:hidden">
+  {% for message in messages %}
+    <div role="alert"
+         class="flex gap-3 rounded-panel border px-4 py-3 {% if message.level >= 40 %}border-danger/30 bg-danger-soft{% else %}border-good/30 bg-good-soft{% endif %}">
+      <svg viewBox="0 0 16 16" class="mt-0.5 h-4 w-4 shrink-0 {% if message.level >= 40 %}text-danger{% else %}text-good{% endif %}"
+           aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="8" cy="8" r="6"></circle>
+        {% if message.level >= 40 %}
+          <path d="M8 5v3.5" stroke-linecap="round"></path>
+          <circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"></circle>
+        {% else %}
+          <path d="M5.2 8.3l2 2 3.6-4" stroke-linecap="round" stroke-linejoin="round"></path>
+        {% endif %}
+      </svg>
+      <p class="text-note text-ink">{{ message }}</p>
+    </div>
+  {% endfor %}
+</div>
