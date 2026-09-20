@@ -100,9 +100,11 @@ TEMPLATES = [
 # Database
 # ---------------------------------------------------------------------------
 
+_database = env.db_url("DJANGO_DATABASE_URL")
+
 DATABASES = {
     "default": {
-        **env.db_url("DJANGO_DATABASE_URL"),
+        **_database,
         # Billing data warrants all-or-nothing requests: any unhandled
         # exception rolls the whole request back.
         "ATOMIC_REQUESTS": True,
@@ -114,7 +116,10 @@ DATABASES = {
         # believes in; without this the first query on it raises instead of
         # transparently reconnecting.
         "CONN_HEALTH_CHECKS": True,
+        # Merged rather than replaced: the URL's own options (sslmode,
+        # connect_timeout) are parsed into OPTIONS and would be dropped.
         "OPTIONS": {
+            **_database.get("OPTIONS", {}),
             # Bounds a statement that would otherwise hold locks indefinitely.
             # Migrations set their own, so this does not constrain them.
             "options": f"-c statement_timeout={env.int('DJANGO_STATEMENT_TIMEOUT_MS', default=30000)}",
