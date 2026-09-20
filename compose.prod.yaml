@@ -1,0 +1,130 @@
+# The production stack.
+#
+#   docker compose -f compose.prod.yaml up -d
+#
+#   migrate   brings the schema up to date, then exits
+#   django    gunicorn, started only once migrate has succeeded
+#
+# It pulls a published image rather than building one. `build:` is here so that
+# `--build` works when you are changing the image itself, but a deployment is
+# expected to run what CI published and not to compile anything on the server.
+#
+# There is no tailwind service. The stylesheet is compiled by a build stage and
+# baked into the image along with the collected static files, so there is
+# nothing to watch and nothing to write.
+#
+# There is no database service either. This stack connects to whatever
+# DJANGO_DATABASE_URL names; a Postgres on this host is reached as
+# host.docker.internal. Uploads go to the S3-compatible bucket configured in
+# .env. Nothing here is stateful and nothing here mounts a volume.
+#
+# The app terminates no TLS and answers no name. It publishes to the loopback
+# interface only, and a proxy on this host forwards to it; that proxy is what
+# holds the certificate, sets X-Forwarded-Proto, and must strip any copy of that
+# header a client sent, since settings.py trusts it.
+
+name: billow-prod
+
+# Everything the two services agree on. They run the same image with the same
+# configuration and differ only in what they execute and how long they live.
+x-app: &app
+  # No default for the repository: an image name is per-app, and a copy of this
+  # template that forgot to set it should fail here rather than deploy under the
+  # name of whichever app it was copied from.
+  image: ${DOCKER_IMAGE:?set DOCKER_IMAGE in .env, e.g. ghcr.io/konfpa/billow}:${DOCKER_IMAGE_TAG:-latest}
+  build:
+    context: .
+    target: prod
+  env_file:
+    # Required, unlike in development: DJANGO_SECRET_KEY has no default outside
+    # DEBUG and the app refuses to start without it.
+    #
+    # format: raw stops compose expanding `$` inside the values. Without it a
+    # secret key or a mail password containing a `$` is silently truncated, and
+    # the failure surfaces later as sessions that will not validate.
+    - path: .env
+      required: true
+      format: raw
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  # PID 1 is gunicorn's master, which reaps its own workers but nothing else.
+  # This puts a real init above it so that anything reparented to PID 1 is
+  # collected instead of accumulating as zombies for the life of the container.
+  init: true
+  read_only: true
+  tmpfs:
+    # The only writable paths in the container, and both are memory that does
+    # not survive a restart. /tmp because the standard library assumes one
+    # exists; /dev/shm because gunicorn's worker heartbeat lives there.
+    - /tmp:size=64m,mode=1777
+    - /dev/shm:size=64m
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    # Without this the log file grows without limit and eventually fills the
+    # disk, taking the database and everything else on the host with it.
+    driver: json-file
+    options:
+      max-size: ${DOCKER_LOG_MAX_SIZE:-10m}
+      max-file: ${DOCKER_LOG_MAX_FILE:-3}
+
+services:
+  migrate:
+    <<: *app
+    # Runs to completion and stays exited. `restart: no` is what makes that
+    # true: under any other policy a container that exits 0 is started again,
+    # and this one would migrate in a loop.
+    restart: "no"
+    command: python manage.py migrate --noinput
+
+  django:
+    <<: *app
+    depends_on:
+      migrate:
+        # Not service_started. The schema has to be in place before the first
+        # request, and a worker booting against a database it is a migration
+        # behind fails in ways that read like application bugs.
+        condition: service_completed_successfully
+    ports:
+      # Loopback only. Dropping the address here would publish the app on every
+      # interface of the host, in front of the proxy rather than behind it, with
+      # no TLS and with SECURE_PROXY_SSL_HEADER trusting whatever a client sends.
+      - "127.0.0.1:${DOCKER_HOST_PORT:-8000}:8000"
+    restart: unless-stopped
+    # Above gunicorn's graceful_timeout, so a deploy drains in-flight requests
+    # instead of being killed halfway through draining them.
+    stop_grace_period: 45s
+    healthcheck:
+      # Hits the app rather than the port: this asks Django to answer and to
+      # reach its database, which is the failure a port check cannot see.
+      # No curl in the slim base, hence python.
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).status == 200 else 1)",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          # A ceiling, not a target. Its job is to make a runaway worker the
+          # container's problem rather than the host's: without it a leak takes
+          # down everything else on the machine before it takes down this.
+          cpus: ${DOCKER_CPU_LIMIT:-2.0}
+          memory: ${DOCKER_MEMORY_LIMIT:-1g}
+# No volumes, deliberately. This stack is stateless: the database is a Postgres
+# server named by DJANGO_DATABASE_URL and the uploads are in object storage, so
+# both containers can be destroyed and recreated with nothing to migrate and
+# nothing to back up here. What needs backing up is the Postgres server and the
+# bucket, neither of which this file manages.

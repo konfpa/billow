@@ -1,0 +1,38 @@
+# Everything here is either host-specific, generated, or secret. Excluding it
+# keeps the build context small, the layer cache stable, and secrets out of the
+# image and its history.
+
+# Host-built, for the host's platform and Python.
+.venv/
+node_modules/
+
+# Generated. The stylesheet is produced by the tailwind container (in
+# development) or by the assets build stage; staticfiles by collectstatic.
+static/css/app.css
+staticfiles/
+
+# Secrets. The containers read their configuration from the environment and from
+# the bind-mounted working tree at run time, never from a baked-in copy.
+.env
+.env.*
+
+# Local development state. The deployed image is stateless: its database is a
+# Postgres server elsewhere and its uploads are in object storage.
+media/
+
+# Caches and metadata that would invalidate layers without changing behaviour.
+.git/
+.github/
+.ruff_cache/
+.pytest_cache/
+__pycache__/
+*.py[codz]
+
+# Not part of what serves requests.
+AGENTS.md
+CLAUDE.md
+LICENSE
+README.md
+compose*.yaml
+tests/
+.pre-commit-config.yaml

@@ -1,0 +1,97 @@
+# Builds the production image and publishes it to this repository's own GHCR
+# package, on a version tag.
+#
+# Nothing here names the app. The image is `ghcr.io/<this repository>`, derived
+# at run time, so it publishes under its own name with no edit to this file.
+#
+# The package inherits the repository's visibility, so a private repository
+# publishes a private package. Pulling one on a server therefore needs
+# credentials.
+
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  # One publish per ref. A second push while the first is still building
+  # cancels it, because the older image would only be overwritten anyway.
+  group: publish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # A tag is what deployments pin to, and an image published from a broken
+  # commit is worse than no image: it cannot be unpublished from whatever has
+  # already pulled it. The same checks CI runs on every pull request run again
+  # here, and the build below only starts if they pass.
+  quality:
+    uses: ./.github/workflows/quality.yml
+
+  publish:
+    needs: quality
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      # The one addition to the default read-only token. It is what lets
+      # GITHUB_TOKEN push to GHCR, and it removes any need for a personal
+      # access token stored as a secret.
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve the image name
+        id: image
+        # GHCR rejects an uppercase path, and an organization or user name is
+        # free to contain capitals, so it is lowercased rather than assumed.
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          # A v1.2.3 tag publishes 1.2.3 and 1.2, so a deployment can pin as
+          # tightly as it wants, and moves `latest` to it — which is what
+          # compose.prod.yaml runs when DOCKER_IMAGE_TAG is unset. The full
+          # commit sha is always published too, and is the only tag guaranteed
+          # never to move under a running deployment.
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # linux/amd64 only. Adding linux/arm64 here works, but with no arm
+          # runner it is emulated under QEMU and takes roughly an order of
+          # magnitude longer, so it is worth turning on when something actually
+          # deploys to arm and not before.
+          platforms: linux/amd64
+          # Layer cache in the Actions cache. The dependency and npm layers are
+          # the expensive ones and change rarely, so most builds reuse both.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
