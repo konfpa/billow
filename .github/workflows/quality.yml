@@ -5,10 +5,7 @@ on:
 
 jobs:
   test:
-    # Deliberately free of the matrix version: this name becomes the required
-    # status check context, and bumping Python must not silently retire the
-    # rule that guards main.
-    name: Test
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
 
     # Everything here only reads the checkout. Spelling that out keeps the
@@ -76,3 +73,26 @@ jobs:
         env:
           DJANGO_DATABASE_URL: postgres://postgres:postgres@localhost:5432/billow_test
         run: uv run pytest
+
+  # The one check `main` requires, and the only job here whose name is fixed.
+  # A matrix job cannot be it: GitHub appends the matrix values to the job
+  # name whatever `name` says, so every required context would carry a Python
+  # version and bumping that version would silently retire the rule guarding
+  # the branch. This job has no matrix, so its name is its own.
+  gate:
+    name: Test
+    needs: test
+    # `needs` alone would skip this job when the suite fails, and a skipped
+    # check reports neutral, which GitHub counts as satisfying the rule. It
+    # has to run in order to fail.
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Check the suite passed on every Python version
+        # Covers failure and cancellation alike: anything other than success
+        # across the whole matrix is not a green branch.
+        if: needs.test.result != 'success'
+        run: |
+          echo "Test matrix result: ${{ needs.test.result }}"
+          exit 1
