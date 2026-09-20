@@ -53,6 +53,8 @@ ignore = [
 "manage.py" = ["INP001", "ANN", "PLC0415", "TRY003", "EM101"]
 # Read by gunicorn as a file path, never imported as a module.
 "docker/gunicorn.conf.py" = ["INP001"]
+# Run by docker as a file path, never imported as a module.
+"docker/healthcheck.py" = ["INP001"]
 "**/settings*.py" = ["E501"]
 
 [tool.ruff.lint.isort]

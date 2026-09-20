@@ -173,7 +173,7 @@ COPY config/ config/
 COPY templates/ templates/
 COPY static/ static/
 COPY --from=assets /app/static/ static/
-COPY docker/gunicorn.conf.py docker/
+COPY docker/gunicorn.conf.py docker/healthcheck.py docker/
 
 # This image holds no state and mounts no volume. The database is a Postgres
 # server elsewhere and the uploads are in object storage, so there is nothing
