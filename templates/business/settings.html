@@ -76,7 +76,7 @@
       <section class="panel">
         <div class="panel-head"><h2 class="text-note font-semibold">Tax registration</h2></div>
         <div class="flex flex-col gap-5 p-4 sm:p-5">
-          <fieldset>
+          <fieldset class="peer">
             <legend class="lbl">{{ form.is_gst_registered.label }}</legend>
             <div class="grid gap-2.5 sm:grid-cols-2">
               {% for choice in form.is_gst_registered %}
@@ -90,7 +90,18 @@
               <p class="mt-1.5 text-note text-danger">{{ error }}</p>
             {% endfor %}
           </fieldset>
-          {% include "business/field.html" with field=form.gstin %}
+          {% comment %}
+            The GSTIN asks a question that only a registered Business can
+            answer, so answering No puts it away. CSS rather than script:
+            the answer is already in the DOM as a checked radio, and a field
+            that needs JavaScript to appear is a field that cannot be filled
+            in when JavaScript fails. It stays put while it carries an error,
+            because the model raises "must be blank" onto this field, and a
+            complaint nobody can see is a form that will not save.
+          {% endcomment %}
+          <div {% if not form.gstin.errors %}class="peer-has-[input[value=False]:checked]:hidden"{% endif %}>
+            {% include "business/field.html" with field=form.gstin %}
+          </div>
           <div class="grid gap-5 sm:grid-cols-2">
             {% include "business/field.html" with field=form.pan %}
             {% include "business/field.html" with field=form.cin %}
