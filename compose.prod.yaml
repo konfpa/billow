@@ -77,6 +77,15 @@ services:
     # true: under any other policy a container that exits 0 is started again,
     # and this one would migrate in a loop.
     restart: "no"
+    # A deliberate override, not a default: `environment:` outranks the
+    # `env_file:` above, so this wins over any DJANGO_STATEMENT_TIMEOUT_MS in
+    # .env. The timeout settings.py sets is a libpq connection parameter and
+    # applies to migrations like any other statement; an index build or a
+    # backfill that outruns it aborts, migrate exits non-zero, and the
+    # service_completed_successfully below then keeps django from ever
+    # starting. 0 disables it for this container only.
+    environment:
+      DJANGO_STATEMENT_TIMEOUT_MS: 0
     command: python manage.py migrate --noinput
 
   django:
