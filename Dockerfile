@@ -104,6 +104,7 @@ COPY assets/ assets/
 COPY templates/ templates/
 COPY apps/ apps/
 COPY static/fonts/ static/fonts/
+COPY static/js/ static/js/
 
 RUN npm run build
 

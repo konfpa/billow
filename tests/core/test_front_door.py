@@ -1,7 +1,6 @@
-from types import SimpleNamespace
-
 import pytest
 from django.contrib import messages
+from django.contrib.messages.storage.base import Message
 from django.template.loader import render_to_string
 from django.urls import reverse
 
@@ -112,7 +111,7 @@ def test_every_page_carries_the_same_navigation(client, signed_in):
 def render_message(level, text):
     return render_to_string(
         "core/messages.html",
-        {"messages": [SimpleNamespace(level=level, __str__=lambda self: text)]},
+        {"messages": [Message(level, text)]},
     )
 
 
@@ -123,8 +122,10 @@ def test_a_confirmation_is_shown_where_messages_live():
 def test_something_to_act_on_is_not_dressed_as_a_confirmation():
     warning = render_message(messages.WARNING, "Two invoices are overdue.")
 
-    assert "bg-danger-soft" in warning
-    assert "bg-good-soft" not in warning
+    assert 'data-lucide="alert-triangle"' in warning
+    assert "text-amber-700" in warning
+    assert "check-circle-2" not in warning
+    assert "text-emerald-600" not in warning
 
 
 def test_nothing_is_rendered_when_there_is_nothing_to_say():
