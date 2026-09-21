@@ -3,10 +3,10 @@ from django.contrib.auth import get_user_model
 
 from apps.business.models import Business
 from apps.tax.states import State
+from tests.conftest import PASSWORD
 
 User = get_user_model()
 
-PASSWORD = "a-perfectly-fine-password"
 
 COMPLETE = {
     "name": "Umbrella Trading",
@@ -41,14 +41,5 @@ def superuser(db):
     return User.objects.create_superuser(
         email="priya@example.com",
         name="Priya Nair",
-        password=PASSWORD,
-    )
-
-
-@pytest.fixture
-def operator(db):
-    return User.objects.create_user(
-        email="akshay@example.com",
-        name="Akshay Prabhu",
         password=PASSWORD,
     )

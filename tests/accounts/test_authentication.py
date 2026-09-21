@@ -1,7 +1,7 @@
 import pytest
 from django.contrib.auth import authenticate
 
-from tests.accounts.conftest import PASSWORD
+from tests.conftest import PASSWORD
 
 
 @pytest.mark.django_db

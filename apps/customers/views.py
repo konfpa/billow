@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from apps.core.access import requires
 from apps.customers.forms import CustomerForm
 from apps.customers.models import Customer
 
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
     from django.http import HttpRequest, HttpResponse
 
 
-@login_required
+@requires("customers.view_customer")
 def customer_directory(request: HttpRequest) -> HttpResponse:
     """Everyone billow can invoice, or — asked for — everyone archived.
 
@@ -73,7 +74,7 @@ def record_customer(request: HttpRequest) -> HttpResponse:
     return redirect("customer_directory")
 
 
-@login_required
+@requires("customers.view_customer")
 def customer_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """What is on file about a Customer, as an invoice to them will carry it."""
     customer = get_object_or_404(Customer.including_archived, pk=pk)

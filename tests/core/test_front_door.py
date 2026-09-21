@@ -4,7 +4,7 @@ from django.contrib.messages.storage.base import Message
 from django.template.loader import render_to_string
 from django.urls import reverse
 
-from tests.core.conftest import PASSWORD
+from tests.conftest import PASSWORD
 
 
 @pytest.mark.django_db

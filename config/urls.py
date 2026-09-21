@@ -10,6 +10,8 @@ from django.urls import include, path
 
 from config.health import healthz
 
+handler403 = "apps.core.access.permission_denied"
+
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
     path(settings.ADMIN_URL, admin.site.urls),

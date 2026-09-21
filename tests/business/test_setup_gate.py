@@ -3,7 +3,7 @@ from django.urls import reverse
 
 from apps.business.models import Business
 from apps.tax.states import State
-from tests.business.conftest import PASSWORD
+from tests.conftest import PASSWORD
 
 HOME = reverse("home")
 SETTINGS = reverse("business_settings")
