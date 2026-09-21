@@ -14,10 +14,17 @@
     <a href="{% url 'record_customer' %}" class="btn">New Customer</a>
   </header>
 
+  <nav class="mt-6 flex flex-wrap items-center gap-4 text-note">
+    <a href="{% url 'customer_directory' %}"
+       class="{% if showing_archived %}text-ink-soft hover:underline{% else %}font-semibold text-ink{% endif %}">On file</a>
+    <a href="{% url 'customer_directory' %}?show=archived"
+       class="{% if showing_archived %}font-semibold text-ink{% else %}text-ink-soft hover:underline{% endif %}">Archived</a>
+  </nav>
+
   {% if customers %}
-    <section class="panel mt-8">
+    <section class="panel mt-6">
       <div class="panel-head">
-        <h2 class="text-note font-semibold">On file</h2>
+        <h2 class="text-note font-semibold">{% if showing_archived %}Archived{% else %}On file{% endif %}</h2>
         <p class="text-micro uppercase text-ink-faint">{{ customers|length }}</p>
       </div>
       <ul>
@@ -38,11 +45,18 @@
       </ul>
     </section>
   {% else %}
-    <section class="panel mt-8 p-4 sm:p-5">
-      <h2 class="text-note font-semibold">Nobody on file yet</h2>
-      <p class="mt-1.5 max-w-[54ch] text-note text-ink-soft">
-        Record the first Customer and they will be here, ready to invoice.
-      </p>
+    <section class="panel mt-6 p-4 sm:p-5">
+      {% if showing_archived %}
+        <h2 class="text-note font-semibold">Nobody archived</h2>
+        <p class="mt-1.5 max-w-[54ch] text-note text-ink-soft">
+          A Customer who stops buying is archived rather than deleted, and waits here in case they return.
+        </p>
+      {% else %}
+        <h2 class="text-note font-semibold">Nobody on file yet</h2>
+        <p class="mt-1.5 max-w-[54ch] text-note text-ink-soft">
+          Record the first Customer and they will be here, ready to invoice.
+        </p>
+      {% endif %}
     </section>
   {% endif %}
 {% endblock %}
