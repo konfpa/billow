@@ -53,10 +53,12 @@
               </button>
             </form>
           {% endif %}
+          {% if perms.customers.change_customer %}
           <a href="{% url 'edit_customer' customer.pk %}"
              class="inline-flex h-9 items-center gap-2 rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
             <i data-lucide="pencil" class="size-4"></i>Edit
           </a>
+          {% endif %}
         </div>
       </div>
     </div>
