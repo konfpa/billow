@@ -20,21 +20,35 @@ def customer_directory(request: HttpRequest) -> HttpResponse:
     inside the one it was typed into.
     """
     showing_archived = request.GET.get("show") == "archived"
-    customers = (
+    everyone = (
         Customer.including_archived.archived()
         if showing_archived
         else Customer.objects.all()
     )
 
     query = request.GET.get("q", "").strip()
-    if query:
-        customers = customers.matching(query)
+    customers = everyone.matching(query) if query else everyone
+
+    # Which nothing this is gets decided here rather than in the template,
+    # where every one of them is just an empty list. A search that matches
+    # nothing is always a no-match, even over an empty list, since whoever
+    # was searched for may be on the other side of archiving.
+    if customers:
+        empty = None
+    elif query:
+        empty = "customers/empty/no_match.html"
+    elif showing_archived:
+        empty = "customers/empty/nobody_archived.html"
+    else:
+        empty = "customers/empty/nobody_on_file.html"
 
     return render(
         request,
         "customers/directory.html",
         {
             "customers": customers,
+            "total": everyone.count(),
+            "empty": empty,
             "showing_archived": showing_archived,
             "query": query,
         },

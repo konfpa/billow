@@ -1,0 +1,23 @@
+{% comment %}
+  konspec empty-state/no-results, without its own search toolbar: the search
+  is in the page's band. No create here, as the Customer may well exist.
+{% endcomment %}
+<div data-kui="empty-state/no-results" class="rounded-xl border border-zinc-300 bg-white">
+  <div class="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
+    <span class="flex size-10 items-center justify-center rounded-full bg-zinc-200 ring-1 ring-inset ring-zinc-300">
+      <i data-lucide="search-x" class="size-5 text-zinc-600"></i>
+    </span>
+    <h2 class="mt-3 text-[16px]/6 font-semibold">No Customer matches “{{ query }}”</h2>
+    <p class="mt-1 max-w-sm text-[13px]/5 text-zinc-600">
+      {% if showing_archived %}
+        Nobody archived has that name or GSTIN. They may still be <a href="{% url 'customer_directory' %}?q={{ query|urlencode }}" class="font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">on file</a>.
+      {% else %}
+        Nobody on file has that name or GSTIN. They may be <a href="{% url 'customer_directory' %}?show=archived&amp;q={{ query|urlencode }}" class="font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">archived</a>.
+      {% endif %}
+    </p>
+    <a href="{% url 'customer_directory' %}{% if showing_archived %}?show=archived{% endif %}"
+       class="mt-4 inline-flex h-9 items-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-100 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      Clear the search
+    </a>
+  </div>
+</div>
