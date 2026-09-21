@@ -29,8 +29,9 @@ delivery, which belongs to a single supply rather than to the Customer.
 _Avoid_: Billing address, registered address, primary address
 
 **Archived**:
-A Customer withdrawn from everyday use: absent from the pickers an Operator
-chooses from, but still named by every invoice already issued to them. Distinct
+A Customer or Item withdrawn from everyday use: absent from the pickers an
+Operator chooses from, but still named by every invoice and stock movement
+that already refers to it. Distinct
 from Deactivated, which is about a User's ability to authenticate.
 _Avoid_: Deleted, inactive, disabled, hidden
 
@@ -95,3 +96,87 @@ An invoice raised against no Customer at all, for a walk-in buyer nobody
 records. Distinct from a sale to an Unregistered customer, who is recorded and
 can be invoiced again.
 _Avoid_: Walk-in customer, cash sale, anonymous customer, guest
+
+**Item**:
+One thing the Business sells, described once so it can be invoiced and
+stocked without retyping: a name, whether it is goods or a service, its HSN or
+SAC code and its GST rate. A chrome and a matte-black finish of the same tap
+are two Items, because each is sold, priced and counted on its own.
+_Avoid_: Product, article, SKU, stock item
+
+**Goods**:
+An Item that is a physical thing, classified by an HSN code and counted in
+stock.
+_Avoid_: Product, material, merchandise
+
+**Service**:
+An Item that is work rather than a thing, such as fitting or delivery,
+classified by a SAC code and never counted in stock.
+_Avoid_: Labour, charge, job
+
+**One-off line**:
+An invoice line typed straight onto the invoice with its own name, code, rate
+and price, for something the Business has no Item for. It leaves the catalogue
+untouched.
+_Avoid_: Misc item, ad hoc item, custom line, free-text line
+
+**Stock unit**:
+The one unit an Item's stock is counted in, such as feet for a pipe bought by
+the piece. Every other unit the Item is bought or sold in is defined once, as a
+fixed rate against it, so any unit converts to any other through it.
+_Avoid_: Base unit, primary unit, UOM
+
+**Supplier**:
+A party the Business buys stock from. Distinct from a Customer even when one
+firm is both, because each side keeps its own ledger.
+_Avoid_: Vendor, seller, party
+
+**Purchase**:
+A Supplier's bill recorded in billow, whose lines bring Goods into stock at a
+cost.
+_Avoid_: Purchase bill, GRN, inward, stock-in
+
+**Opening stock**:
+The quantity and cost of each Item on hand on the day billow starts counting
+stock, entered once rather than disguised as a Purchase from nobody.
+_Avoid_: Initial stock, stock-take, balance brought forward
+
+**Stock start date**:
+The date the Business begins counting stock, recorded by the Business rather
+than fixed by billow. Invoices and Purchases before it move no stock; Opening
+stock is counted as of it.
+_Avoid_: Go-live date, cut-over, inventory start
+
+**Stock movement**:
+A recorded change to how much of an Item is on hand: Opening stock, a
+Purchase, a sale, a return or a Stock adjustment. Stock on hand is the sum of
+an Item's movements and is never entered directly.
+_Avoid_: Transaction, stock entry, ledger entry
+
+**Stock adjustment**:
+A Stock movement with a stated reason, such as damage, wastage or a recount,
+for a change no Purchase, sale or return explains.
+_Avoid_: Correction, write-off, stock edit
+
+**Category**:
+Where an Item sits in the Business's catalogue, at most two levels deep, such
+as Fittings › Elbow. Used to find and filter Items; it decides nothing about
+tax or price.
+_Avoid_: Group, class, family, department
+
+**Brand**:
+The maker an Item is sold under, such as Jaquar or Astral. Used to find and
+filter Items.
+_Avoid_: Manufacturer, make, company
+
+**Item code**:
+The short code every Item carries, assigned by billow unless the Operator gives
+one, and the one printed on the Business's own labels. Distinct from a maker's
+barcode, which an Item may also answer to when scanned.
+_Avoid_: SKU, barcode, product code, part number
+
+**MRP**:
+The maximum retail price printed on packaged Goods, which no sale may exceed.
+Distinct from the selling price, which is what the Business actually charges
+and is usually lower.
+_Avoid_: List price, retail price, sticker price
