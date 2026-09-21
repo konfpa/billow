@@ -5,7 +5,7 @@ from apps.business.models import Business
 from apps.customers.models import Customer
 from apps.tax.states import State
 from tests.business.conftest import COMPLETE
-from tests.conftest import PASSWORD
+from tests.conftest import PASSWORD, role
 
 User = get_user_model()
 
@@ -66,3 +66,10 @@ def superuser(db):
         name="Priya Nair",
         password=PASSWORD,
     )
+
+
+@pytest.fixture
+def looker(powerless):
+    """A User who may read Customers and do nothing else to them."""
+    powerless.groups.add(role("Looker", "customers.view_customer"))
+    return powerless

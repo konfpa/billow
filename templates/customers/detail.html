@@ -38,20 +38,22 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          {% if customer.is_archived %}
-            <form method="post" action="{% url 'restore_customer' customer.pk %}">
-              {% csrf_token %}
-              <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
-                <i data-lucide="archive-restore" class="size-4 text-zinc-600"></i>Restore
-              </button>
-            </form>
-          {% else %}
-            <form method="post" action="{% url 'archive_customer' customer.pk %}">
-              {% csrf_token %}
-              <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
-                <i data-lucide="archive" class="size-4 text-zinc-600"></i>Archive
-              </button>
-            </form>
+          {% if perms.customers.archive_customer %}
+            {% if customer.is_archived %}
+              <form method="post" action="{% url 'restore_customer' customer.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+                  <i data-lucide="archive-restore" class="size-4 text-zinc-600"></i>Restore
+                </button>
+              </form>
+            {% else %}
+              <form method="post" action="{% url 'archive_customer' customer.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+                  <i data-lucide="archive" class="size-4 text-zinc-600"></i>Archive
+                </button>
+              </form>
+            {% endif %}
           {% endif %}
           {% if perms.customers.change_customer %}
           <a href="{% url 'edit_customer' customer.pk %}"
