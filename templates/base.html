@@ -190,10 +190,18 @@
     </header>
 
     <main id="kon-main" class="min-h-0 flex-1 overflow-auto">
+      {% comment %}
+        A page with a page-header band overrides main: the band runs edge to
+        edge as main's first child, and only the body below it takes the
+        gutter. It includes core/messages.html at the top of that body, where
+        konspec puts a page's notices, under the band rather than above it.
+      {% endcomment %}
+      {% block main %}
       <div class="mx-auto max-w-[1600px] space-y-4 p-4 pb-16 lg:p-6">
         {% include "core/messages.html" %}
         <div>{% block content %}{% endblock %}</div>
       </div>
+      {% endblock %}
     </main>
   </div>
 </div>

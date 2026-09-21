@@ -2,78 +2,113 @@
 
 {% block title %}Customers · billow{% endblock %}
 
-{% block content %}
-  <header class="flex flex-wrap items-start justify-between gap-4">
-    <div>
-      <p class="text-micro font-semibold uppercase text-ink-faint">Directory</p>
-      <h1 class="mt-2 text-title font-semibold">Customers</h1>
-      <p class="mt-2 max-w-[54ch] text-note text-ink-soft">
-        Everyone billow invoices. A Customer is one billing party: one GSTIN, or one unregistered person.
-      </p>
+{% block main %}
+{% comment %}
+  konspec index-page: the band is page-header with the search form and the
+  On file / Archived tabs, and the body is the register panel. The tabs are
+  tabs/django, links rather than a tablist, since each one is a page load.
+{% endcomment %}
+<div data-kui="index-page/django" class="text-zinc-900">
+
+  <header class="border-b border-zinc-200 bg-white">
+    <div class="mx-auto max-w-[1600px] px-4 pt-4 lg:px-6">
+
+      <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div class="min-w-0">
+          <h1 class="text-[24px]/7 font-semibold tracking-tight">Customers</h1>
+          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">
+            {% if query %}{{ customers|length }} of {{ total }}{% else %}{{ total }}{% endif %}
+            {% if showing_archived %}archived{% else %}on file{% endif %}{% if query %} match{{ customers|length|pluralize:"es," }} “{{ query }}”{% endif %}
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <a href="{% url 'record_customer' %}"
+             class="flex items-center gap-2 rounded-lg bg-zinc-700 px-3.5 py-2 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+            <i data-lucide="plus" class="size-4"></i>New Customer
+          </a>
+        </div>
+      </div>
+
+      <form method="get" action="{% url 'customer_directory' %}" role="search" class="mt-4 flex flex-col gap-2 md:flex-row md:items-center">
+        <div class="md:max-w-sm md:flex-1">
+          <label for="customer-search" class="sr-only">Search by name or GSTIN</label>
+          <div class="flex items-center rounded-lg border border-zinc-200 bg-white focus-within:border-zinc-700 focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-zinc-700/15">
+            <i data-lucide="search" class="ml-3 size-4 shrink-0 text-zinc-600"></i>
+            <input id="customer-search" type="search" name="q" value="{{ query }}" enterkeyhint="search"
+                   autocomplete="off" spellcheck="false" placeholder="Search by name or GSTIN"
+                   class="w-full min-w-0 bg-transparent px-2 py-2 text-[13px]/5 outline-none placeholder:text-zinc-500">
+          </div>
+        </div>
+        {% if showing_archived %}<input type="hidden" name="show" value="archived">{% endif %}
+        <button type="submit" class="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px]/5 font-medium hover:bg-zinc-100 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15 md:shrink-0">Search</button>
+      </form>
+
+      {% comment %}
+        The nav's own border-b is left off and its row's -mb-px lands on the
+        band's border instead, as page-header joins tabs to its bottom edge.
+      {% endcomment %}
+      <nav data-kui="tabs/django" aria-label="Customer lists" class="mt-4">
+        <div class="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <a href="{% url 'customer_directory' %}"
+             {% if not showing_archived %}aria-current="page"{% endif %}
+             class="shrink-0 whitespace-nowrap rounded-t border-b-2 pb-2.5 text-[13px]/5 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-zinc-700/15 {% if not showing_archived %}border-zinc-900 font-semibold text-zinc-900{% else %}border-transparent text-zinc-600 hover:text-zinc-900{% endif %}">
+            On file
+          </a>
+          <a href="{% url 'customer_directory' %}?show=archived"
+             {% if showing_archived %}aria-current="page"{% endif %}
+             class="shrink-0 whitespace-nowrap rounded-t border-b-2 pb-2.5 text-[13px]/5 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-zinc-700/15 {% if showing_archived %}border-zinc-900 font-semibold text-zinc-900{% else %}border-transparent text-zinc-600 hover:text-zinc-900{% endif %}">
+            Archived
+          </a>
+        </div>
+      </nav>
     </div>
-    <a href="{% url 'record_customer' %}" class="btn">New Customer</a>
   </header>
 
-  <nav class="mt-6 flex flex-wrap items-center gap-4 text-note">
-    <a href="{% url 'customer_directory' %}"
-       class="{% if showing_archived %}text-ink-soft hover:underline{% else %}font-semibold text-ink{% endif %}">On file</a>
-    <a href="{% url 'customer_directory' %}?show=archived"
-       class="{% if showing_archived %}font-semibold text-ink{% else %}text-ink-soft hover:underline{% endif %}">Archived</a>
-  </nav>
+  <div class="mx-auto max-w-[1600px] space-y-4 px-4 py-5 lg:px-6">
+    {% include "core/messages.html" %}
 
-  <form method="get" action="{% url 'customer_directory' %}" role="search" class="mt-4 flex gap-2">
-    {% if showing_archived %}<input type="hidden" name="show" value="archived">{% endif %}
-    <label for="customer-search" class="sr-only">Search by name or GSTIN</label>
-    <input type="search" id="customer-search" name="q" value="{{ query }}"
-           placeholder="Search by name or GSTIN" class="field sm:max-w-sm">
-    <button type="submit" class="btn-quiet">Search</button>
-  </form>
+    {% if empty %}
+      {% include empty %}
+    {% else %}
+      <div data-kui="table/linked-rows" class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+        <table class="hidden w-full text-[13px]/5 md:table">
+          <thead>
+            <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-[11px]/4 font-medium tracking-wider text-zinc-600 uppercase">
+              <th scope="col" class="px-4 py-2.5 font-medium">Customer</th>
+              <th scope="col" class="px-4 py-2.5 font-medium">GSTIN</th>
+              <th scope="col" class="px-4 py-2.5 font-medium">City</th>
+              <th scope="col" class="px-4 py-2.5 font-medium">State</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for customer in customers %}
+              <tr class="relative border-b border-zinc-100 last:border-0 hover:bg-zinc-100 has-[a:focus-visible]:bg-zinc-100">
+                <td class="px-4 py-2 font-medium">
+                  <a href="{% url 'edit_customer' customer.pk %}" class="underline underline-offset-2 after:absolute after:inset-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ customer.name }}</a>
+                </td>
+                <td class="px-4 py-2 tabular-nums">{% if customer.is_registered %}{{ customer.gstin }}{% else %}<span class="text-zinc-600">Unregistered</span>{% endif %}</td>
+                <td class="px-4 py-2">{{ customer.city }}</td>
+                <td class="px-4 py-2">{{ customer.get_state_display }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
 
-  {% if customers %}
-    <section class="panel mt-6">
-      <div class="panel-head">
-        <h2 class="text-note font-semibold">{% if showing_archived %}Archived{% else %}On file{% endif %}</h2>
-        <p class="text-micro uppercase text-ink-faint">{{ customers|length }}</p>
-      </div>
-      <ul>
-        {% for customer in customers %}
-          <li class="border-t border-line first:border-t-0">
-            <a href="{% url 'edit_customer' customer.pk %}"
-               class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3.5 hover:bg-canvas sm:px-5">
-              <div class="min-w-0">
-                <p class="text-note font-medium text-ink">{{ customer.name }}</p>
-                <p class="text-note text-ink-faint">{{ customer.city }}, {{ customer.get_state_display }}</p>
+        <ul class="divide-y divide-zinc-100 md:hidden">
+          {% for customer in customers %}
+            <li class="relative hover:bg-zinc-100 has-[a:focus-visible]:bg-zinc-100">
+              <div class="px-4 py-3">
+                <div class="flex items-baseline justify-between gap-3">
+                  <a href="{% url 'edit_customer' customer.pk %}" class="text-[14px]/5 font-medium underline underline-offset-2 after:absolute after:inset-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ customer.name }}</a>
+                  <span class="shrink-0 text-[14px]/5 tabular-nums">{% if customer.is_registered %}{{ customer.gstin }}{% else %}<span class="text-zinc-600">Unregistered</span>{% endif %}</span>
+                </div>
+                <p class="mt-0.5 text-[13px]/5 text-zinc-600">{{ customer.city }} · {{ customer.get_state_display }}</p>
               </div>
-              <p class="text-note text-ink-soft">
-                {% if customer.is_registered %}{{ customer.gstin }}{% else %}Unregistered{% endif %}
-              </p>
-            </a>
-          </li>
-        {% endfor %}
-      </ul>
-    </section>
-  {% else %}
-    <section class="panel mt-6 p-4 sm:p-5">
-      {% if query %}
-        <h2 class="text-note font-semibold">No Customer matches “{{ query }}”</h2>
-        <p class="mt-1.5 max-w-[54ch] text-note text-ink-soft">
-          {% if showing_archived %}
-            Nobody archived has that name or GSTIN. They may still be <a href="{% url 'customer_directory' %}?q={{ query|urlencode }}" class="underline">on file</a>.
-          {% else %}
-            Nobody on file has that name or GSTIN. They may be <a href="{% url 'customer_directory' %}?show=archived&amp;q={{ query|urlencode }}" class="underline">archived</a>.
-          {% endif %}
-        </p>
-      {% elif showing_archived %}
-        <h2 class="text-note font-semibold">Nobody archived</h2>
-        <p class="mt-1.5 max-w-[54ch] text-note text-ink-soft">
-          A Customer who stops buying is archived rather than deleted, and waits here in case they return.
-        </p>
-      {% else %}
-        <h2 class="text-note font-semibold">Nobody on file yet</h2>
-        <p class="mt-1.5 max-w-[54ch] text-note text-ink-soft">
-          Record the first Customer and they will be here, ready to invoice.
-        </p>
-      {% endif %}
-    </section>
-  {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

@@ -250,3 +250,31 @@ def test_one_company_registered_in_two_states_is_two_customers(
 
     assert Customer.objects.count() == 2
     assert KARNATAKA_GSTIN in page
+
+
+@pytest.mark.django_db
+def test_an_empty_directory_says_nobody_is_on_file(client, signed_in):
+    page = client.get(DIRECTORY).content.decode()
+
+    assert "Nobody on file yet" in page
+    assert "Nobody archived" not in page
+
+
+@pytest.mark.django_db
+def test_an_empty_archive_says_nobody_is_archived(client, signed_in, customer):
+    page = client.get(DIRECTORY, {"show": "archived"}).content.decode()
+
+    assert "Nobody archived" in page
+    assert "Nobody on file yet" not in page
+
+
+@pytest.mark.django_db
+def test_a_search_of_the_archived_matching_nothing_points_to_those_on_file(
+    client,
+    signed_in,
+):
+    page = client.get(DIRECTORY, {"show": "archived", "q": "Kapoor"}).content.decode()
+
+    assert "No Customer matches “Kapoor”" in page
+    assert "in case they return" not in page
+    assert f'href="{DIRECTORY}?q=Kapoor"' in page
