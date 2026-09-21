@@ -1,0 +1,98 @@
+{% comment %}
+  The Business section for an Operator who is not a Superuser: what appears
+  on invoices, to check and not to change. The form is absent rather than
+  disabled — a disabled form is an invitation that ends in a refusal — and the
+  values are form-page/readonly's <dl>, in the same blocks and order as the
+  form a Superuser sees.
+{% endcomment %}
+<div>
+  <div class="px-5 py-4">
+    <h3 class="text-[13px]/5 font-semibold">Name</h3>
+    <dl class="mt-3 grid gap-4 text-[13px]/5 sm:grid-cols-2">
+      <div>
+        <dt class="text-zinc-600">Name on invoices</dt>
+        <dd class="mt-0.5 text-[14px]/5 font-medium">{{ business.invoice_name|default:"Not set up yet" }}</dd>
+      </div>
+      {% if business.legal_name %}
+        <div>
+          <dt class="text-zinc-600">Trades as</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium">{{ business.name }}</dd>
+        </div>
+      {% endif %}
+    </dl>
+  </div>
+
+  <div class="border-t border-zinc-100 px-5 py-4">
+    <h3 class="text-[13px]/5 font-semibold">Address</h3>
+    <dl class="mt-3 grid gap-4 text-[13px]/5 sm:grid-cols-2">
+      <div class="sm:col-span-2">
+        <dt class="text-zinc-600">Address</dt>
+        <dd class="mt-0.5 text-[14px]/5">
+          {{ business.address_line_1 }}{% if business.address_line_2 %}, {{ business.address_line_2 }}{% endif %}<br>
+          {{ business.city }} <span class="tabular-nums">{{ business.postal_code }}</span>
+        </dd>
+      </div>
+      <div>
+        <dt class="text-zinc-600">State</dt>
+        <dd class="mt-0.5 text-[14px]/5 font-medium">{{ business.get_state_display|default:"—" }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="border-t border-zinc-100 px-5 py-4">
+    <h3 class="text-[13px]/5 font-semibold">Tax registration</h3>
+    <dl class="mt-3 grid gap-4 text-[13px]/5 sm:grid-cols-2">
+      <div class="sm:col-span-2">
+        <dt class="text-zinc-600">GST</dt>
+        <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">
+          {% if business.is_gst_registered %}Registered · {{ business.gstin }}
+          {% elif business.is_gst_registered is False %}Not registered
+          {% else %}Not answered yet{% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-zinc-600">PAN</dt>
+        <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{{ business.pan|default:"—" }}</dd>
+      </div>
+      <div>
+        <dt class="text-zinc-600">CIN</dt>
+        <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{{ business.cin|default:"—" }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="border-t border-zinc-100 px-5 py-4">
+    <h3 class="text-[13px]/5 font-semibold">Contact</h3>
+    <dl class="mt-3 grid gap-4 text-[13px]/5 sm:grid-cols-2">
+      <div>
+        <dt class="text-zinc-600">Email</dt>
+        <dd class="mt-0.5 break-words text-[14px]/5 font-medium">{{ business.email|default:"—" }}</dd>
+      </div>
+      <div>
+        <dt class="text-zinc-600">Phone</dt>
+        <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{{ business.phone|default:"—" }}</dd>
+      </div>
+      <div class="sm:col-span-2">
+        <dt class="text-zinc-600">Website</dt>
+        <dd class="mt-0.5 break-words text-[14px]/5 font-medium">{{ business.website|default:"—" }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="border-t border-zinc-100 px-5 py-4">
+    <h3 class="text-[13px]/5 font-semibold">Logo</h3>
+    <div class="mt-3">
+      {% if business.logo %}
+        <div class="relative flex aspect-4/3 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200">
+          <img src="{{ business.logo.url }}" alt="The Business's logo" class="absolute inset-0 size-full bg-white object-contain p-1.5">
+        </div>
+      {% else %}
+        <p class="text-[13px]/5 text-zinc-600">No logo. Invoices carry the name alone.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="border-t border-zinc-200 bg-zinc-100 px-5 py-3">
+    <p class="text-[12px]/4 tabular-nums text-zinc-600">Only a Superuser changes these details.</p>
+  </div>
+</div>

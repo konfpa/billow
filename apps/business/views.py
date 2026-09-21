@@ -64,5 +64,6 @@ def settings_page(
             "business": business,
             "form": form,
             "missing": business.what_setup_still_needs(),
+            "last_change": business.history.first() if business.pk else None,
         },
     )

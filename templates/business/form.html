@@ -1,0 +1,145 @@
+{% comment %}
+  The Business section's form, for a Superuser: the error summary, one h3 block
+  per group of fields divided the way settings-page divides blocks inside a
+  card, and the section footer carrying Discard and a Save that names the
+  section. The footer is inside the form so its Save submits it.
+
+  The summary is alert/form-errors, as on the Customer pages: the page is a
+  failed POST re-rendered, so formErrors moves focus to it. A radio group has
+  no id of its own, so its entry links to the first option.
+{% endcomment %}
+<form method="post" enctype="multipart/form-data" novalidate x-ref="form" @input="arm" @change="arm" @submit="send">
+  {% csrf_token %}
+
+  <div class="px-5 py-4">
+    {% if form.errors %}
+      <div class="mb-4">
+        <div data-kui="alert/form-errors" role="alert" tabindex="-1" x-data="formErrors"
+             class="rounded-lg border border-zinc-300 bg-white px-4 py-3 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+          <div class="flex items-start gap-3">
+            <i data-lucide="alert-circle" class="mt-0.5 size-4 shrink-0 text-red-600"></i>
+            <div class="min-w-0">
+              {% with count=form.invalid_fields|length %}
+                <p class="text-[13px]/5 font-medium">The Business was not saved{% if count %} — <span class="tabular-nums">{{ count }}</span> field{{ count|pluralize:" needs,s need" }} attention{% endif %}.</p>
+              {% endwith %}
+              <ul class="mt-2 space-y-1 text-[12px]/4 text-zinc-600">
+                {% for error in form.non_field_errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+                {% for field in form.invalid_fields %}
+                  <li>
+                    <a href="#{% if field.id_for_label %}{{ field.id_for_label }}{% else %}{{ field.auto_id }}_0{% endif %}" class="font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ field.label }}</a>
+                    — {{ field.errors.0 }}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <p class="text-[12px]/4 text-zinc-600">
+      Every field is required unless its label says <span class="font-medium text-zinc-900">Optional</span>.
+    </p>
+
+    <h3 class="mt-4 text-[13px]/5 font-semibold">Name</h3>
+    <p class="mt-0.5 text-[12px]/4 text-zinc-500">How the Business is named on an invoice.</p>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+      {% include "forms/field.html" with field=form.name field_class="sm:col-span-2" %}
+      {% include "forms/field.html" with field=form.legal_name field_class="sm:col-span-2" %}
+    </div>
+  </div>
+
+  <div class="border-t border-zinc-100 px-5 py-4">
+    <h3 class="text-[13px]/5 font-semibold">Address</h3>
+    <p class="mt-0.5 text-[12px]/4 text-zinc-500">The place of supply. Its state decides how an invoice is taxed.</p>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+      {% include "forms/field.html" with field=form.address_line_1 field_class="sm:col-span-2" %}
+      {% include "forms/field.html" with field=form.address_line_2 field_class="sm:col-span-2" %}
+      {% include "forms/field.html" with field=form.city %}
+      {% include "forms/field.html" with field=form.postal_code %}
+      {% include "forms/field.html" with field=form.state %}
+    </div>
+  </div>
+
+  <div class="border-t border-zinc-100 px-5 py-4">
+    <h3 class="text-[13px]/5 font-semibold">Tax registration</h3>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+      {% comment %}
+        konspec radio/conditional: the GSTIN sits under the answer that asks
+        for it. Shown by CSS rather than x-show, because the answer is already
+        in the DOM as a checked radio and a field that needs JavaScript to
+        appear cannot be filled in when JavaScript fails. gstAnswer disables it
+        while hidden, so a GSTIN typed before answering No does not travel
+        with the POST. It stays open while it carries an error, because the
+        model raises "must be blank" onto it, and a complaint nobody can see
+        is a form that will not save.
+      {% endcomment %}
+      <fieldset data-kui="radio/conditional" class="group/gst sm:col-span-2" x-data="gstAnswer" @change="read">
+        <legend class="mb-2 text-[13px]/5 font-medium">{{ form.is_gst_registered.label }}</legend>
+        <div class="space-y-2">
+          {% for choice in form.is_gst_registered %}
+            <div>
+              <label class="flex items-start gap-2.5 text-[14px]/5">
+                {{ choice.tag }}<span>{{ choice.choice_label }}</span>
+              </label>
+              {% if choice.data.value == "True" %}
+                <div class="{% if not form.gstin.errors %}hidden group-has-[input[value=True]:checked]/gst:block {% endif %}mt-2 ml-[26px] border-l-2 border-zinc-200 pl-4">
+                  {% include "forms/field.html" with field=form.gstin field_class="max-w-sm" optional_class="hidden" %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        {% if form.is_gst_registered.errors %}
+          <p class="mt-2 flex items-start gap-1.5 text-[12px]/4 font-medium text-red-600">
+            <i data-lucide="alert-circle" class="mt-0.5 size-3.5 shrink-0"></i>{{ form.is_gst_registered.errors.0 }}
+          </p>
+        {% endif %}
+      </fieldset>
+      {% include "forms/field.html" with field=form.pan %}
+      {% include "forms/field.html" with field=form.cin %}
+    </div>
+  </div>
+
+  <div class="border-t border-zinc-100 px-5 py-4">
+    <h3 class="text-[13px]/5 font-semibold">Contact</h3>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+      {% include "forms/field.html" with field=form.email %}
+      {% include "forms/field.html" with field=form.phone %}
+      {% include "forms/field.html" with field=form.website field_class="sm:col-span-2" %}
+    </div>
+  </div>
+
+  <div class="border-t border-zinc-100 px-5 py-4">
+    <h3 id="logo-h" class="flex items-baseline gap-2 text-[13px]/5 font-semibold">
+      Logo <span aria-hidden="true" class="font-normal text-zinc-500">Optional</span>
+    </h3>
+    <p class="mt-0.5 text-[12px]/4 text-zinc-500">Printed at the head of every invoice.</p>
+    <div class="mt-3">
+      {% include "business/logo.html" %}
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 bg-zinc-100 px-5 py-3">
+    <p role="status" class="text-[12px]/4 tabular-nums text-zinc-600">
+      <span x-show="clean">
+        {% if last_change %}
+          Last changed {{ last_change.history_date|date:"d M Y, H:i" }}{% if last_change.history_user %} by {{ last_change.history_user.get_full_name }}{% endif %}
+        {% else %}
+          Not recorded yet.
+        {% endif %}
+      </span>
+      <span x-show="dirty" x-cloak class="flex items-center gap-1.5 font-medium text-zinc-900">
+        <i data-lucide="pencil" class="size-3.5 shrink-0 text-zinc-600"></i>Unsaved changes in this section
+      </span>
+    </p>
+    <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <a href="{% url 'business_settings' %}" @click="drop"
+         class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent px-4 text-[13px]/5 font-medium text-zinc-900 hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Discard</a>
+      <button type="submit"
+              class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Save business details</button>
+    </div>
+  </div>
+</form>
