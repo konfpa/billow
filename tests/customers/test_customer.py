@@ -37,7 +37,7 @@ def test_a_customer_holding_no_gstin_is_unregistered(customer):
 def test_the_absence_of_a_gstin_is_the_whole_distinction(db):
     unregistered = Customer.objects.create(
         name="Anita Desai",
-        address_line_1="4 Ashok Marg",
+        address="4 Ashok Marg",
         city="Jaipur",
         postal_code="302001",
         state="08",
@@ -111,10 +111,8 @@ def test_a_customer_is_not_a_duplicate_of_itself(customer):
 def test_raw_sql_cannot_write_a_second_customer_on_one_registration(customer):
     with pytest.raises(IntegrityError), transaction.atomic(), connection.cursor() as c:
         c.execute(
-            "INSERT INTO customers_customer (name, legal_name, address_line_1,"
-            " address_line_2, city, postal_code, state, gstin, email, phone,"
-            " created_at, updated_at)"
-            " SELECT name, legal_name, address_line_1, address_line_2, city,"
-            " postal_code, state, gstin, email, phone, created_at, updated_at"
-            " FROM customers_customer",
+            "INSERT INTO customers_customer (name, legal_name, address, city,"
+            " postal_code, state, gstin, email, phone, created_at, updated_at)"
+            " SELECT name, legal_name, address, city, postal_code, state, gstin,"
+            " email, phone, created_at, updated_at FROM customers_customer",
         )

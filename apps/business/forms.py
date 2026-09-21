@@ -39,8 +39,7 @@ class BusinessForm(StyledForm):
         fields = (
             "name",
             "legal_name",
-            "address_line_1",
-            "address_line_2",
+            "address",
             "city",
             "postal_code",
             "state",
@@ -61,8 +60,6 @@ class BusinessForm(StyledForm):
         labels = {
             "name": "Name",
             "legal_name": "Legal name",
-            "address_line_1": "Address",
-            "address_line_2": "Address, continued",
         }
         help_texts = {
             "legal_name": (

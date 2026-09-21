@@ -114,7 +114,7 @@ def test_the_setup_page_names_what_is_missing(client, superuser, half_a_business
     response = client.get(SETTINGS)
 
     assert set(response.context["missing"]) == {
-        "Address line 1",
+        "Address",
         "City",
         "Postal code",
         "GST registered",

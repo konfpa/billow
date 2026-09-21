@@ -24,8 +24,7 @@ class CustomerAdmin(SimpleHistoryAdmin):
     fields = (
         "name",
         "legal_name",
-        "address_line_1",
-        "address_line_2",
+        "address",
         "city",
         "postal_code",
         "state",

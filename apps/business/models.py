@@ -4,6 +4,7 @@ from django.db import models
 from django.utils.text import capfirst
 from simple_history.models import HistoricalRecords
 
+from apps.core.fields import AddressField
 from apps.tax.gstin import validate_gstin, validate_gstin_matches_state
 from apps.tax.states import State
 
@@ -19,7 +20,7 @@ class Business(models.Model):
     # instead. See docs/adr/0004-required-is-validation-not-schema.md.
     REQUIRED_FOR_SETUP = (
         "name",
-        "address_line_1",
+        "address",
         "city",
         "postal_code",
         "state",
@@ -37,8 +38,7 @@ class Business(models.Model):
         help_text="The registered name a tax invoice must carry, if it differs.",
     )
 
-    address_line_1 = models.CharField(max_length=255, blank=True)
-    address_line_2 = models.CharField(max_length=255, blank=True)
+    address = AddressField(blank=True)
     city = models.CharField(max_length=128, blank=True)
     postal_code = models.CharField(
         max_length=6,

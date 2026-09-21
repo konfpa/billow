@@ -28,7 +28,7 @@
       <div class="sm:col-span-2">
         <dt class="text-zinc-600">Address</dt>
         <dd class="mt-0.5 text-[14px]/5">
-          {{ business.address_line_1 }}{% if business.address_line_2 %}, {{ business.address_line_2 }}{% endif %}<br>
+          {{ business.address|linebreaksbr }}<br>
           {{ business.city }} <span class="tabular-nums">{{ business.postal_code }}</span>
         </dd>
       </div>
