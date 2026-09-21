@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -123,7 +122,7 @@ def edit_customer(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("customer_detail", pk=pk)
 
 
-@login_required
+@requires("customers.archive_customer")
 @require_POST
 def archive_customer(request: HttpRequest, pk: int) -> HttpResponse:
     """Withdraw a Customer who has stopped buying from the directory."""
@@ -134,7 +133,7 @@ def archive_customer(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("customer_detail", pk=pk)
 
 
-@login_required
+@requires("customers.archive_customer")
 @require_POST
 def restore_customer(request: HttpRequest, pk: int) -> HttpResponse:
     """Bring back a Customer who returned, as the record they always were."""

@@ -18,13 +18,6 @@ def detail_page(customer):
     return reverse("customer_detail", args=[customer.pk])
 
 
-@pytest.fixture
-def looker(powerless):
-    """A User who may read Customers and do nothing else to them."""
-    powerless.groups.add(role("Looker", "customers.view_customer"))
-    return powerless
-
-
 @pytest.mark.django_db
 def test_without_add_customer_recording_is_refused(client, business, looker):
     client.force_login(looker)

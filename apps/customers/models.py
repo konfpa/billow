@@ -117,6 +117,9 @@ class Customer(models.Model):
 
     class Meta:
         ordering = ("name",)
+        # Apart from change_customer, so fixing an address does not also
+        # let someone withdraw a Customer from invoicing. Covers restoring.
+        permissions = [("archive_customer", "Can archive customer")]
         constraints = [
             # One registration is one Customer, made structural so that a
             # `loaddata`, a `bulk_create` or raw SQL cannot put a second
