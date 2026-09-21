@@ -66,6 +66,19 @@ def test_a_failed_sign_in_does_not_say_which_half_was_wrong(client, operator):
 
 
 @pytest.mark.django_db
+def test_a_failed_sign_in_keeps_the_address_and_says_so_once(client, operator):
+    response = client.post(
+        reverse("login"),
+        {"username": "akshay@example.com", "password": "not-the-password"},
+    )
+    page = response.content.decode()
+
+    assert page.count("Those details do not match an account.") == 1
+    assert 'value="akshay@example.com"' in page
+    assert "not-the-password" not in page
+
+
+@pytest.mark.django_db
 def test_an_operator_is_returned_to_the_page_they_asked_for(client, operator):
     response = client.post(
         f"{reverse('login')}?next={reverse('home')}",

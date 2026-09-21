@@ -174,6 +174,72 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
+  // konspec auth-page/signin and auth-page/failed. The page renders the
+  // alert only after a failed attempt, so its presence is the failed state.
+  Alpine.data("signIn", () => ({
+    show: false,
+    busy: false,
+    failed: false,
+    edited: false,
+
+    // A role="alert" present at first paint announces nothing, so on a
+    // server-rendered failure moving focus to it is the announcement.
+    init() {
+      this.failed = Boolean(this.$refs.err);
+      if (this.failed) this.$nextTick(() => this.$refs.err.focus());
+    },
+
+    reveal() {
+      this.show = !this.show;
+    },
+
+    submitting() {
+      this.busy = true;
+    },
+
+    edit() {
+      this.edited = true;
+    },
+
+    get concealed() {
+      return !this.show;
+    },
+
+    get passwordType() {
+      return this.show ? "text" : "password";
+    },
+
+    get revealLabel() {
+      return this.show ? "Hide password" : "Show password";
+    },
+
+    get revealStatus() {
+      return this.show ? "Password is visible" : "";
+    },
+
+    get idleLabel() {
+      return this.busy ? "invisible" : "";
+    },
+
+    get busyLabel() {
+      return this.busy ? "" : "invisible";
+    },
+
+    get bad() {
+      return this.failed && !this.edited;
+    },
+
+    get invalid() {
+      return this.bad ? "true" : "false";
+    },
+
+    get fieldEdge() {
+      return this.bad
+        ? "border-red-600 focus-within:outline-red-600/15"
+        : "border-zinc-200 focus-within:border-zinc-700 focus-within:outline-zinc-700/15";
+    },
+  }));
+
   Alpine.data("dismissible", () => ({
     show: true,
 
