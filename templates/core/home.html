@@ -18,6 +18,7 @@
       <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% now "l d M Y" %} · signed in as {{ user.email }}</p>
     </div>
 
+    {% if perms.customers.view_customer %}
     <div class="grid items-start gap-3 sm:grid-cols-2">
       <section data-kui="card/default" aria-labelledby="home-customers-h" class="min-w-0 overflow-hidden rounded-xl border border-zinc-300 bg-white">
         <div class="border-b border-zinc-200 px-5 py-3.5">
@@ -39,5 +40,8 @@
         </div>
       </section>
     </div>
+    {% else %}
+    {% include "core/empty/no_work.html" %}
+    {% endif %}
   </div>
 {% endblock %}
