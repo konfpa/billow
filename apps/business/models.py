@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.text import capfirst
 from simple_history.models import HistoricalRecords
 
-from apps.tax.gstin import state_code_of, validate_gstin
+from apps.tax.gstin import validate_gstin, validate_gstin_matches_state
 from apps.tax.states import State
 
 # billow serves one Business, so its row is always this one. See
@@ -171,6 +171,4 @@ class Business(models.Model):
             msg = "Remove the GSTIN, or say that the Business is GST registered."
             raise ValidationError({"gstin": msg})
 
-        if self.gstin and self.state and state_code_of(self.gstin) != self.state:
-            msg = "That GSTIN was issued in a different state to the one chosen."
-            raise ValidationError({"gstin": msg})
+        validate_gstin_matches_state(self.gstin, self.state)

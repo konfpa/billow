@@ -49,3 +49,16 @@ def validate_gstin(gstin: str) -> None:
     if gstin[-1] != checksum_of(gstin):
         msg = "That GSTIN fails its checksum, so a character is wrong."
         raise ValidationError(msg, code="gstin_checksum")
+
+
+def validate_gstin_matches_state(gstin: str, state: str) -> None:
+    """Refuse a GSTIN issued somewhere other than the state on the record.
+
+    Kept apart from `validate_gstin`, which judges a GSTIN on its own: this
+    rule needs the state beside it, so only a holder of both can ask. The
+    refusal is raised against the GSTIN because the state was chosen from a
+    list and the GSTIN was typed.
+    """
+    if gstin and state and state_code_of(gstin) != state:
+        msg = "That GSTIN was issued in a different state to the one chosen."
+        raise ValidationError({"gstin": msg})
