@@ -1,4 +1,4 @@
-{% load static %}<!doctype html>
+{% load static ui %}<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -6,36 +6,198 @@
     <title>{% block title %}billow{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     {% comment %}
-      All deferred, so none blocks the first paint and both have run by
-      DOMContentLoaded, which is what Alpine waits for before it walks the
-      page. htmx comes first only so that its own attributes are processed
-      before Alpine starts initialising components over the same markup, and
-      billow's own components are registered before Alpine looks for them.
+      All deferred, so they run in this order by DOMContentLoaded, which is
+      what Alpine waits for. Alpine's plugins and billow's own components have
+      to be registered before Alpine core starts, so core comes last.
     {% endcomment %}
     <script src="{% static 'js/htmx.min.js' %}" defer></script>
+    <script src="{% static 'js/lucide.min.js' %}" defer></script>
+    <script src="{% static 'js/alpine-focus.min.js' %}" defer></script>
+    <script src="{% static 'js/alpine-collapse.min.js' %}" defer></script>
     <script src="{% static 'js/app.js' %}" defer></script>
     <script src="{% static 'js/alpine.min.js' %}" defer></script>
   </head>
   <body class="bg-canvas font-sans text-body text-ink antialiased">
     {% block shell %}
-      <div class="flex min-h-dvh flex-col lg:flex-row">
-        {% include "core/rail.html" %}
+    {% with current=request.resolver_match.url_name %}
+<div data-kui="app-shell/default" class="relative flex h-screen overflow-hidden bg-stone-100 [.canvas-zinc_&]:bg-zinc-100 text-[14px]/5 text-zinc-900"
+     x-data="appShell"
+     @keydown.escape.window="closeNav"
+     @keydown.window="shortcut">
 
-        <main class="min-w-0 flex-1">
-          {% comment %}
-            A flex gap rather than a margin on either side: the messages
-            include renders nothing at all when there is nothing to say, and
-            nothing is not a flex item, so the gap disappears with it. A margin
-            would have to be cancelled from the outside, which is what an
-            `empty:` variant tries and fails to do over a template's
-            whitespace.
-          {% endcomment %}
-          <div class="mx-auto flex max-w-[760px] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
-            {% include "core/messages.html" %}
-            <div>{% block content %}{% endblock %}</div>
+  <a href="#kon-main" class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-60 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-[13px]/5 focus:font-medium focus:outline-3 focus:outline-offset-2 focus:outline-zinc-700/15">Skip to content</a>
+
+  <aside x-cloak x-ref="rail" id="kon-sidebar"
+         aria-label="Sections"
+         x-trap.noscroll="trapped"
+         :role="railRole"
+         :aria-modal="railModal"
+         class="absolute inset-y-0 left-0 z-40 flex w-full shrink-0 sm:w-72 flex-col overflow-hidden border-r border-zinc-200 bg-white shadow-lg transition-[width,transform] duration-200 ease-out lg:static lg:shadow-none print:hidden"
+         :class="railClass">
+
+    <div class="flex h-14 shrink-0 items-center gap-2.5 overflow-hidden px-3">
+      <span class="flex shrink-0 items-center justify-center" :class="brandBox">
+        <span class="flex size-8 items-center justify-center rounded-lg bg-zinc-700 text-white" :class="brandWell">
+          <svg viewBox="0 0 20 20" class="size-[18px]" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7">
+            <rect x="2.5" y="2.5" width="15" height="15" rx="4"></rect>
+            <path d="M6.5 12.5c2.2 0 2.2-5 4.4-5s2.2 5 2.6 5" stroke-linecap="round"></path>
+          </svg>
+        </span>
+      </span>
+      <span class="min-w-0 flex-1 truncate text-[15px]/6 font-semibold tracking-tight transition-opacity duration-150" :class="fade">billow</span>
+      <button type="button" @click="closeNav" aria-label="Close navigation"
+              class="-mr-1 flex size-9 shrink-0 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15 lg:hidden">
+        <i data-lucide="x" class="size-5"></i>
+      </button>
+    </div>
+
+    <div class="px-3 pb-3">
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="New Customer" href="{% url 'record_customer' %}"
+         class="flex h-10 w-full items-center gap-2.5 overflow-hidden rounded-lg bg-zinc-700 px-1.5 text-[13px]/5 font-medium whitespace-nowrap text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+        <span class="flex w-8 shrink-0 items-center justify-center"><i data-lucide="plus" class="size-[18px]"></i></span>
+        <span class="min-w-0 flex-1 truncate text-left transition-opacity duration-150" :class="fade">New Customer</span>
+      </a>
+    </div>
+
+    <nav aria-label="Main" class="min-h-0 flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-3 pb-3">
+      <p class="overflow-hidden px-1.5 pt-2 pb-1 text-[11px]/4 font-semibold tracking-wider whitespace-nowrap text-zinc-500 uppercase">
+        <span class="relative block">
+          <span class="block transition-opacity duration-150" :class="fade">Billing</span>
+          <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-zinc-200 opacity-0 transition-opacity duration-150" :class="rule"></span>
+        </span>
+      </p>
+
+      {% if current == "home" %}
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Home" href="{% url 'home' %}" aria-current="page"
+         class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg bg-zinc-200 px-1.5 text-[13px]/5 font-medium whitespace-nowrap text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      {% else %}
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Home" href="{% url 'home' %}"
+         class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-1.5 text-[13px]/5 whitespace-nowrap text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      {% endif %}
+        <span class="flex w-8 shrink-0 items-center justify-center"><i data-lucide="house" class="size-[18px]"></i></span>
+        <span class="min-w-0 flex-1 truncate transition-opacity duration-150" :class="fade">Home</span>
+      </a>
+
+      {% comment %}
+        Recording and correcting a Customer are pages of their own, so the
+        directory is the current item for all three.
+      {% endcomment %}
+      {% if current == "customer_directory" or current == "record_customer" or current == "edit_customer" %}
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Customers" href="{% url 'customer_directory' %}" aria-current="page"
+         class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg bg-zinc-200 px-1.5 text-[13px]/5 font-medium whitespace-nowrap text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      {% else %}
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Customers" href="{% url 'customer_directory' %}"
+         class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-1.5 text-[13px]/5 whitespace-nowrap text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      {% endif %}
+        <span class="flex w-8 shrink-0 items-center justify-center"><i data-lucide="users" class="size-[18px]"></i></span>
+        <span class="min-w-0 flex-1 truncate transition-opacity duration-150" :class="fade">Customers</span>
+      </a>
+
+      {% comment %}
+        Invoices has no model, view or URL yet. It is shown so billow is honest
+        about what is coming, and inert so it is honest about what is not here.
+      {% endcomment %}
+      <span @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Invoices · later"
+            role="link" aria-disabled="true" tabindex="0" aria-describedby="nav-invoices-later"
+            class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-1.5 text-[13px]/5 whitespace-nowrap text-zinc-500 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+        <span class="flex w-8 shrink-0 items-center justify-center"><i data-lucide="receipt-text" class="size-[18px]"></i></span>
+        <span class="min-w-0 flex-1 truncate transition-opacity duration-150" :class="fade">Invoices</span>
+        <span id="nav-invoices-later" class="shrink-0 text-[11px]/4 tracking-wider text-zinc-500 uppercase transition-opacity duration-150" :class="fade">Later</span>
+      </span>
+
+      <p class="overflow-hidden px-1.5 pt-4 pb-1 text-[11px]/4 font-semibold tracking-wider whitespace-nowrap text-zinc-500 uppercase">
+        <span class="relative block">
+          <span class="block transition-opacity duration-150" :class="fade">Settings</span>
+          <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-zinc-200 opacity-0 transition-opacity duration-150" :class="rule"></span>
+        </span>
+      </p>
+
+      {% if current == "business_settings" %}
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Business" href="{% url 'business_settings' %}" aria-current="page"
+         class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg bg-zinc-200 px-1.5 text-[13px]/5 font-medium whitespace-nowrap text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      {% else %}
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Business" href="{% url 'business_settings' %}"
+         class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-1.5 text-[13px]/5 whitespace-nowrap text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      {% endif %}
+        <span class="flex w-8 shrink-0 items-center justify-center"><i data-lucide="building-2" class="size-[18px]"></i></span>
+        <span class="min-w-0 flex-1 truncate transition-opacity duration-150" :class="fade">Business</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div x-show="tipOn" x-cloak aria-hidden="true"
+       :style="tipStyle"
+       class="pointer-events-none fixed z-50 -translate-y-1/2 rounded-md bg-zinc-900 px-2 py-1 text-[11px]/4 whitespace-nowrap text-white"
+       x-text="tip"></div>
+
+  <div x-show="nav" x-cloak @click="closeNav" class="absolute inset-0 z-30 hidden bg-zinc-900/40 sm:block lg:hidden print:hidden"></div>
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <header class="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-3 lg:gap-3 lg:px-5 print:hidden">
+
+      {% comment %}
+        One control, two jobs: it opens the off-canvas sheet below lg and
+        collapses the rail above it, which is why it is never hidden.
+      {% endcomment %}
+      <button type="button" @click="toggle" x-ref="ham"
+              :aria-expanded="expanded"
+              aria-controls="kon-sidebar"
+              :aria-label="toggleLabel"
+              :title="toggleTitle"
+              class="-ml-1 flex size-9 shrink-0 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+        <i data-lucide="menu" class="size-5"></i>
+      </button>
+
+      <div class="ml-auto flex items-center gap-1.5 lg:gap-2">
+        <div class="relative"
+             x-data="accountMenu"
+             @click.outside="dismiss"
+             @keydown.escape="escape">
+          <button type="button" x-ref="trigger" @click="toggle"
+                  @keydown.arrow-down.prevent="showFirst" @keydown.arrow-up.prevent="showLast"
+                  :aria-expanded="open" aria-haspopup="true" aria-label="Account — {{ user.get_full_name }}"
+                  class="flex size-8 items-center justify-center rounded-full bg-zinc-200 text-[11px]/4 font-semibold text-zinc-900 ring-1 ring-inset ring-zinc-300 hover:bg-zinc-300 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ user.get_full_name|initials }}</button>
+
+          <div x-ref="panel" x-show="open" x-cloak
+               @keydown.arrow-down.prevent="next" @keydown.arrow-up.prevent="prev"
+               @keydown.home.prevent="toFirst" @keydown.end.prevent="toLast"
+               @keydown.tab="dismiss"
+               class="absolute right-0 z-40 mt-1 w-64 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
+
+            <div class="flex items-start gap-2.5 px-3 py-2">
+              <span aria-hidden="true" class="flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[13px]/5 font-medium text-zinc-700 ring-1 ring-inset ring-zinc-300">{{ user.get_full_name|initials }}</span>
+              <div class="min-w-0">
+                <p class="truncate text-[13px]/5 font-medium">{{ user.get_full_name }}</p>
+                <p class="truncate text-[12px]/4 text-zinc-500">{{ user.email }}</p>
+                <p class="mt-0.5 truncate text-[12px]/4 text-zinc-500">{% if user.is_superuser %}Superuser{% else %}Operator{% endif %}</p>
+              </div>
+            </div>
+
+            <div role="separator" class="my-1 h-px bg-zinc-100"></div>
+
+            <div x-ref="menu" role="menu" aria-label="Account">
+              <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" role="menuitem" tabindex="-1"
+                        class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]/5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-2 focus:-outline-offset-2 focus:outline-zinc-700">
+                  <i data-lucide="log-out" class="size-4 text-zinc-600"></i>Sign out
+                </button>
+              </form>
+            </div>
           </div>
-        </main>
+        </div>
       </div>
+    </header>
+
+    <main id="kon-main" class="min-h-0 flex-1 overflow-auto">
+      <div class="mx-auto max-w-[1600px] space-y-4 p-4 pb-16 lg:p-6">
+        {% include "core/messages.html" %}
+        <div>{% block content %}{% endblock %}</div>
+      </div>
+    </main>
+  </div>
+</div>
+    {% endwith %}
     {% endblock %}
   </body>
 </html>

@@ -2,31 +2,21 @@
   The one place a confirmation or an error is shown, included by every layout
   so that a message can never be raised onto a page with nowhere to display it.
 
-  Django's levels are banded rather than tested one by one: anything at WARNING
-  or above is something the Operator has to act on, and everything below it is
-  billow confirming what already happened.
-{% endcomment %}
+  No role="alert": these render with a page the browser has just loaded, and a
+  live role on markup present at first paint announces nothing.
+{% endcomment %}{% load ui %}
 {% if messages %}
-  <div id="messages" class="flex flex-col gap-3">
-    {% for message in messages %}
-      {% if message.level >= 30 %}
-        <div role="alert" class="flex gap-3 rounded-panel border border-danger/30 bg-danger-soft px-4 py-3">
-          <svg viewBox="0 0 16 16" class="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
-            <circle cx="8" cy="8" r="6"></circle>
-            <path d="M8 5v3.5" stroke-linecap="round"></path>
-            <circle cx="8" cy="11" r=".7" fill="currentColor" stroke="none"></circle>
-          </svg>
-          <p class="text-note text-ink">{{ message }}</p>
-        </div>
-      {% else %}
-        <div role="status" class="flex gap-3 rounded-panel border border-good/30 bg-good-soft px-4 py-3">
-          <svg viewBox="0 0 16 16" class="mt-0.5 h-4 w-4 shrink-0 text-good" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
-            <circle cx="8" cy="8" r="6"></circle>
-            <path d="M5.2 8.3l2 2 3.6-4" stroke-linecap="round" stroke-linejoin="round"></path>
-          </svg>
-          <p class="text-note text-ink">{{ message }}</p>
-        </div>
-      {% endif %}
-    {% endfor %}
+<div id="messages" class="space-y-2">
+  {% for message in messages %}
+  <div data-kui="alert/django" x-data="dismissible" x-show="show" x-cloak
+       class="flex items-start gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3">
+    <i data-lucide="{{ message.tags|message_icon }}" class="mt-0.5 size-4 shrink-0 {{ message.tags|message_tone }}"></i>
+    <p class="min-w-0 flex-1 text-[13px]/5 font-medium">{{ message }}</p>
+    <button type="button" @click="dismiss" aria-label="Dismiss"
+            class="-mr-1 -mt-1 flex size-7 shrink-0 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      <i data-lucide="x" class="size-4"></i>
+    </button>
   </div>
+  {% endfor %}
+</div>
 {% endif %}

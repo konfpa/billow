@@ -10,6 +10,10 @@ Issues live in GitHub Issues on `konfpa/billow`, managed via the `gh` CLI. See `
 
 Default canonical labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
 
+### UI
+
+Every template, CSS class and Alpine component uses the konspec-ui design system. Read `docs/agents/ui.md` before touching any of them.
+
 ### Domain docs
 
 Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
