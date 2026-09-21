@@ -1,26 +1,29 @@
 from typing import TYPE_CHECKING
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 
 from apps.business.forms import BusinessForm
 from apps.business.models import Business
+from apps.core.access import MissingPermission, requires
 
 if TYPE_CHECKING:
     from django.http import HttpRequest, HttpResponse
 
+CHANGE_BUSINESS = "business.change_business"
 
-@login_required
+
+@requires("business.view_business")
 def business_settings(request: HttpRequest) -> HttpResponse:
-    """The Business's details: read by any Operator, written by a Superuser.
+    """The Business's details: read with view_business, written with change_business.
 
     While billow is still incomplete this is the setup page, and only a
-    Superuser may see it at all. Once complete it is the ordinary settings
-    page: an Operator who is not a Superuser is shown what appears on
-    invoices, because checking it is part of their job; the form is simply not
-    there for them, and a request that tries to write anyway is refused.
+    Superuser may see it at all, whatever Roles anyone else holds. Once
+    complete it is the ordinary settings page: an Operator who may read but
+    not change the Business is shown what appears on invoices, the form is
+    simply not there for them, and a request that tries to write anyway is
+    refused.
     """
     business = Business.load()
 
@@ -30,8 +33,8 @@ def business_settings(request: HttpRequest) -> HttpResponse:
     if request.method != "POST":
         return settings_page(request, business, BusinessForm(instance=business))
 
-    if not request.user.is_superuser:
-        raise PermissionDenied
+    if not request.user.has_perm(CHANGE_BUSINESS):
+        raise MissingPermission(CHANGE_BUSINESS)
 
     # Bound to its own instance: a form that fails validation still writes
     # what it could clean onto the instance it holds, and `business` is what

@@ -7,15 +7,9 @@ from PIL import Image
 
 from apps.business.models import Business
 from apps.tax.states import State
-from tests.business.conftest import COMPLETE
+from tests.business.conftest import submitted
 
 URL = reverse("business_settings")
-
-
-def submitted(**changes):
-    """What the form posts: the complete Business, with anything changed."""
-    posted = {**COMPLETE, "is_gst_registered": "True", **changes}
-    return {key: value for key, value in posted.items() if value is not None}
 
 
 def an_image(name="logo.png"):
