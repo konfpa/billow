@@ -23,6 +23,14 @@ REGISTERED = {
     "phone": "+91 22 5555 0199",
 }
 
+# The same PAN registered in a second state, which is a second Customer.
+KARNATAKA_GSTIN = "29AAPFU0939F1ZR"
+
+
+def submitted(**changes):
+    """What the form posts: a complete Customer, with anything changed."""
+    return {**REGISTERED, **changes}
+
 
 @pytest.fixture
 def operator(db):

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}New Customer · billow{% endblock %}
+{% block title %}{{ customer.name }} · billow{% endblock %}
 
 {% block content %}
   <header>
     <p class="text-micro font-semibold uppercase text-ink-faint">Directory</p>
-    <h1 class="mt-2 text-title font-semibold">New Customer</h1>
+    <h1 class="mt-2 text-title font-semibold">{{ customer.name }}</h1>
     <p class="mt-2 max-w-[54ch] text-note text-ink-soft">
-      The details an invoice must carry about its recipient. Leave the GSTIN blank for a Customer who holds no registration.
+      Correct what is on file: a change of address, a misspelt name, a wrong GSTIN. Clearing the GSTIN leaves the Customer unregistered.
     </p>
   </header>
 
