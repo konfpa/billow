@@ -283,3 +283,79 @@ def test_a_code_taken_while_recording_moves_on_to_the_next(
     client.post(RECORD, submitted(name="Black tap"))
 
     assert Item.objects.get(name="Black tap").code == "I-0002"
+
+
+@pytest.mark.django_db
+def test_the_item_code_can_be_typed(client, signed_in):
+    assert '<input type="text" name="code"' in client.get(RECORD).content.decode()
+
+
+@pytest.mark.django_db
+def test_an_operator_types_their_own_item_code(client, signed_in):
+    client.post(RECORD, submitted(code="PVC-110"))
+
+    assert Item.objects.get().code == "PVC-110"
+
+
+@pytest.mark.django_db
+def test_leaving_the_item_code_blank_assigns_the_next(client, signed_in):
+    client.post(RECORD, submitted(code=""))
+
+    assert Item.objects.get().code == "I-0001"
+
+
+@pytest.mark.django_db
+def test_a_lowercase_item_code_is_saved_in_capitals(client, signed_in):
+    client.post(RECORD, submitted(code="i-0042"))
+
+    assert Item.objects.get().code == "I-0042"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("code", ["PVC 110", "PVC_110", "PVC/110", "PVC.110", "ÄB-1"])
+def test_an_item_code_of_anything_but_letters_digits_and_hyphens_is_refused(
+    client, signed_in, code
+):
+    response = client.post(RECORD, submitted(code=code))
+
+    assert not Item.objects.exists()
+    assert "code" in response.context["form"].errors
+
+
+@pytest.mark.django_db
+def test_an_item_code_another_item_holds_is_refused_naming_it(client, signed_in):
+    record(name="Astral pipe, 110 mm", code="PVC-110")
+
+    response = client.post(RECORD, submitted(code="pvc-110"))
+
+    assert Item.objects.count() == 1
+    assert "Astral pipe, 110 mm" in response.context["form"].errors["code"][0]
+
+
+@pytest.mark.django_db
+def test_an_operator_may_type_an_assigned_style_code(client, signed_in):
+    client.post(RECORD, submitted(name="Chrome tap", code="I-0050"))
+    client.post(RECORD, submitted(name="Black tap"))
+
+    codes = dict(Item.objects.values_list("name", "code"))
+    assert codes == {"Chrome tap": "I-0050", "Black tap": "I-0051"}
+
+
+@pytest.mark.django_db
+def test_an_i_code_too_long_to_count_does_not_stop_assignment(client, signed_in):
+    record(name="Old tap", code="I-99999999999999999999")
+
+    client.post(RECORD, submitted(name="New tap"))
+
+    assert Item.objects.get(name="New tap").code == "I-0001"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("code", ["straße", "ﬁ-1", "\u0131-1"])
+def test_a_letter_that_capitalises_into_plain_letters_is_refused(
+    client, signed_in, code
+):
+    response = client.post(RECORD, submitted(code=code))
+
+    assert not Item.objects.exists()
+    assert "code" in response.context["form"].errors

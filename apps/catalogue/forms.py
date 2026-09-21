@@ -7,6 +7,19 @@ from apps.tax.rates import GSTRate
 from apps.tax.units import UQC
 
 
+class ItemCodeField(forms.CharField):
+    """An Item code, folded to capitals before anything checks it.
+
+    A lower-case entry is a keyboard state rather than a different code, and
+    both must find the same Item when a label is scanned. Only plain letters
+    are folded, since some others capitalise into them, as ß does into SS.
+    """
+
+    def to_python(self, value: object) -> str:
+        code = super().to_python(value) or ""
+        return code.upper() if code.isascii() else code
+
+
 class ItemForm(StyledForm):
     """An Item and its stock unit, recorded and edited together."""
 
@@ -24,8 +37,10 @@ class ItemForm(StyledForm):
 
     class Meta:
         model = Item
-        fields = ("name", "kind", "hsn_sac", "gst_rate")
+        fields = ("name", "kind", "code", "hsn_sac", "gst_rate")
+        field_classes = {"code": ItemCodeField}
         labels = {"name": "Name"}
+        help_texts = {"code": "Leave blank for billow to assign the next one."}
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
@@ -46,6 +61,12 @@ class ItemForm(StyledForm):
         if unit := self.instance.stock_unit if self.instance.pk else None:
             self.initial.setdefault("stock_unit", unit.uqc)
             self.initial.setdefault("selling_price", unit.selling_price)
+
+        if self.instance.pk:
+            self.fields["code"].help_text = "Leave blank to keep the code on file."
+
+    def clean_code(self) -> str:
+        return self.cleaned_data["code"] or self.instance.code
 
     @transaction.atomic
     def save(self) -> Item:

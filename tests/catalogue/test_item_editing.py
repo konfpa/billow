@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 
 from apps.catalogue.models import Item, ItemUnit
-from tests.catalogue.conftest import submitted
+from tests.catalogue.conftest import record, submitted
 from tests.conftest import role
 
 
@@ -242,3 +242,60 @@ def test_the_edit_control_is_shown_with_change_item(client, signed_in, item):
     page = client.get(detail_url(item)).content.decode()
 
     assert f'href="{edit_url(item)}"' in page
+
+
+@pytest.mark.django_db
+def test_the_form_arrives_filled_with_the_item_code(client, signed_in, item):
+    form = client.get(edit_url(item)).context["form"]
+
+    assert form["code"].value() == item.code
+
+
+@pytest.mark.django_db
+def test_an_operator_changes_the_item_code(client, signed_in, item):
+    client.post(edit_url(item), submitted(code="tap-fl-ch"))
+
+    item.refresh_from_db()
+    assert item.code == "TAP-FL-CH"
+
+
+@pytest.mark.django_db
+def test_an_item_keeps_its_own_code_through_an_edit(client, signed_in, item):
+    code = item.code
+
+    response = client.post(edit_url(item), submitted(code=code))
+
+    item.refresh_from_db()
+    assert response.status_code == 302
+    assert item.code == code
+
+
+@pytest.mark.django_db
+def test_leaving_the_item_code_blank_keeps_it(client, signed_in, item):
+    code = item.code
+
+    client.post(edit_url(item), submitted(code=""))
+
+    item.refresh_from_db()
+    assert item.code == code
+
+
+@pytest.mark.django_db
+def test_another_items_code_is_refused_naming_it(client, signed_in, item):
+    record(name="Astral pipe, 110 mm", code="PVC-110")
+    code = item.code
+
+    response = client.post(edit_url(item), submitted(code="PVC-110"))
+
+    item.refresh_from_db()
+    assert item.code == code
+    assert "Astral pipe, 110 mm" in response.context["form"].errors["code"][0]
+
+
+@pytest.mark.django_db
+def test_an_edited_code_of_anything_but_letters_digits_and_hyphens_is_refused(
+    client, signed_in, item
+):
+    response = client.post(edit_url(item), submitted(code="PVC 110"))
+
+    assert "code" in response.context["form"].errors

@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import IntegrityError, models, transaction
 from django.db.models.functions import Cast, Substr
 from simple_history.models import HistoricalRecords
@@ -47,7 +47,19 @@ class Item(models.Model):
         choices=GSTRate,
         verbose_name="GST rate",
     )
-    code = models.CharField(max_length=32, blank=True, verbose_name="Item code")
+    # Held to what a barcode label can print, so a code typed today can be
+    # printed later without being retyped.
+    code = models.CharField(
+        max_length=32,
+        blank=True,
+        verbose_name="Item code",
+        validators=[
+            RegexValidator(
+                r"^[A-Z0-9-]+$",
+                "An Item code is capital letters, digits and hyphens.",
+            )
+        ],
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -91,6 +103,13 @@ class Item(models.Model):
     def clean(self) -> None:
         super().clean()
 
+        if self.code:
+            holder = Item.objects.filter(code=self.code).exclude(pk=self.pk).first()
+            if holder is not None:
+                raise ValidationError(
+                    {"code": f"{holder.name} already holds this Item code."}
+                )
+
         if not self.hsn_sac or not self.kind:
             return
 
@@ -103,8 +122,10 @@ class Item(models.Model):
 
 def next_item_code() -> str:
     """One past the highest `I-` code on file, which skips any already taken."""
+    # An Operator may type an `I-` code too long for a bigint, and counting it
+    # would fail every assignment after it; such a code can never be reached.
     highest = (
-        Item.objects.filter(code__regex=rf"^{ASSIGNED_CODE_PREFIX}[0-9]+$")
+        Item.objects.filter(code__regex=rf"^{ASSIGNED_CODE_PREFIX}[0-9]{{1,18}}$")
         .annotate(
             number=Cast(
                 Substr("code", len(ASSIGNED_CODE_PREFIX) + 1), models.BigIntegerField()
