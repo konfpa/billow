@@ -4,7 +4,7 @@ from django.urls import reverse
 from tests.conftest import role
 
 HOME = reverse("home")
-NO_WORK = "You have not been given any work in billow yet"
+NO_WORK = "Nothing on Home is open to you yet"
 
 
 @pytest.mark.django_db
