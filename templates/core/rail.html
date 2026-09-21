@@ -42,18 +42,25 @@
         </a>
 
         {% comment %}
-          Customers and Invoices have no models, views or URLs yet. They are
-          shown rather than hidden so the shape of billow is honest about what is
-          coming, and disabled rather than linked so it is honest about what is
-          not here.
+          Recording a Customer is a page of its own, so the directory is the
+          current item for both of them.
         {% endcomment %}
-        <span class="nav-item cursor-not-allowed text-ink-faint" aria-disabled="true" title="Arrives in a later release">
+        {% with current=request.resolver_match.url_name %}
+        <a href="{% url 'customer_directory' %}"
+           {% if current == 'customer_directory' or current == 'record_customer' %}aria-current="page"{% endif %}
+           class="nav-item {% if current == 'customer_directory' or current == 'record_customer' %}bg-accent-soft font-medium text-accent{% else %}text-ink-soft hover:bg-canvas hover:text-ink{% endif %}">
           <svg viewBox="0 0 16 16" class="h-4 w-4 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="8" cy="6" r="2.5"></circle><path d="M3.5 13.5c0-2.2 2-3.5 4.5-3.5s4.5 1.3 4.5 3.5"></path>
           </svg>
           Customers
-          <span class="ml-auto text-micro uppercase">Later</span>
-        </span>
+        </a>
+        {% endwith %}
+
+        {% comment %}
+          Invoices has no model, view or URL yet. It is shown rather than
+          hidden so the shape of billow is honest about what is coming, and
+          disabled rather than linked so it is honest about what is not here.
+        {% endcomment %}
         <span class="nav-item cursor-not-allowed text-ink-faint" aria-disabled="true" title="Arrives in a later release">
           <svg viewBox="0 0 16 16" class="h-4 w-4 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M4 2.5h8v11l-2-1.3-2 1.3-2-1.3-2 1.3z"></path><path d="M6.5 6h3M6.5 8.5h3"></path>

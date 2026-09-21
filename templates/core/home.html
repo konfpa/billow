@@ -12,15 +12,15 @@
   </header>
 
   {% comment %}
-    billow has no Customers, Invoices or Payments yet, so this page shows what
-    is true and nothing else. A placeholder metric for a model that does not
-    exist is a lie that has to be removed later.
+    billow has no Invoices or Payments yet, so this page shows what is true and
+    nothing else. A placeholder metric for a model that does not exist is a lie
+    that has to be removed later.
   {% endcomment %}
   <section class="mt-8 grid gap-5 sm:grid-cols-2">
     <div class="panel p-4 sm:p-5">
       <h2 class="text-note font-semibold">Customers</h2>
-      <p class="mt-1.5 text-note text-ink-soft">Nobody to invoice yet. billow will keep them here.</p>
-      <p class="mt-4 text-micro uppercase text-ink-faint">Arrives in a later release</p>
+      <p class="mt-1.5 text-note text-ink-soft">Everyone billow invoices, and the details their invoices carry.</p>
+      <a href="{% url 'customer_directory' %}" class="mt-4 inline-block text-note font-medium text-accent hover:underline">Open the directory</a>
     </div>
     <div class="panel p-4 sm:p-5">
       <h2 class="text-note font-semibold">Invoices</h2>

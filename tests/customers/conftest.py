@@ -1,0 +1,59 @@
+import pytest
+from django.contrib.auth import get_user_model
+
+from apps.business.models import Business
+from apps.customers.models import Customer
+from apps.tax.states import State
+from tests.business.conftest import COMPLETE
+
+User = get_user_model()
+
+PASSWORD = "a-perfectly-fine-password"
+
+REGISTERED = {
+    "name": "Sharma Traders",
+    "legal_name": "Sharma Traders LLP",
+    "address_line_1": "22 Linking Road",
+    "address_line_2": "Bandra West",
+    "city": "Mumbai",
+    "postal_code": "400050",
+    "state": State.MAHARASHTRA,
+    "gstin": "27AAPFU0939F1ZV",
+    "email": "accounts@sharma.example.com",
+    "phone": "+91 22 5555 0199",
+}
+
+
+@pytest.fixture
+def operator(db):
+    return User.objects.create_user(
+        email="akshay@example.com",
+        name="Akshay Prabhu",
+        password=PASSWORD,
+    )
+
+
+@pytest.fixture
+def signed_in(client, operator):
+    """An Operator signed in, past the setup gate.
+
+    The directory sits behind the gate like every other page, which
+    tests/customers/test_directory.py checks for itself.
+    """
+    Business.objects.create(**COMPLETE)
+    client.force_login(operator)
+    return operator
+
+
+@pytest.fixture
+def customer(db):
+    return Customer.objects.create(**REGISTERED)
+
+
+@pytest.fixture
+def superuser(db):
+    return User.objects.create_superuser(
+        email="priya@example.com",
+        name="Priya Nair",
+        password=PASSWORD,
+    )

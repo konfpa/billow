@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Record a customer · billow{% endblock %}
+
+{% block content %}
+  <header>
+    <p class="text-micro font-semibold uppercase text-ink-faint">Directory</p>
+    <h1 class="mt-2 text-title font-semibold">Record a customer</h1>
+    <p class="mt-2 max-w-[54ch] text-note text-ink-soft">
+      The details an invoice must carry about its recipient. Leave the GSTIN blank for a Customer who holds no registration.
+    </p>
+  </header>
+
+  <form method="post" novalidate class="mt-8 flex flex-col gap-5">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div role="alert" class="rounded-panel border border-danger/30 bg-danger-soft px-4 py-3">
+        {% for error in form.non_field_errors %}<p class="text-note text-ink">{{ error }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    <section class="panel">
+      <div class="panel-head"><h2 class="text-note font-semibold">Name</h2></div>
+      <div class="flex flex-col gap-5 p-4 sm:p-5">
+        {% include "forms/field.html" with field=form.name %}
+        {% include "forms/field.html" with field=form.legal_name %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="text-note font-semibold">Address on record</h2>
+        <p class="text-micro uppercase text-ink-faint">Place of supply</p>
+      </div>
+      <div class="flex flex-col gap-5 p-4 sm:p-5">
+        {% include "forms/field.html" with field=form.address_line_1 %}
+        {% include "forms/field.html" with field=form.address_line_2 %}
+        <div class="grid gap-5 sm:grid-cols-2">
+          {% include "forms/field.html" with field=form.city %}
+          {% include "forms/field.html" with field=form.postal_code %}
+        </div>
+        {% include "forms/field.html" with field=form.state %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2 class="text-note font-semibold">Tax registration</h2></div>
+      <div class="p-4 sm:p-5">
+        {% include "forms/field.html" with field=form.gstin %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2 class="text-note font-semibold">Contact</h2></div>
+      <div class="grid gap-5 p-4 sm:grid-cols-2 sm:p-5">
+        {% include "forms/field.html" with field=form.email %}
+        {% include "forms/field.html" with field=form.phone %}
+      </div>
+    </section>
+
+    <div class="flex flex-wrap items-center gap-4">
+      <button type="submit" class="btn w-full sm:w-auto">Record</button>
+      <a href="{% url 'customer_directory' %}" class="text-note font-medium text-accent hover:underline">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

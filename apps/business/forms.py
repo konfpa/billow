@@ -1,6 +1,7 @@
 from django import forms
 
 from apps.business.models import Business
+from apps.core.forms import StyledForm
 from apps.tax.forms import TaxCodeField
 
 
@@ -22,7 +23,7 @@ class LogoInput(forms.ClearableFileInput):
         return None
 
 
-class BusinessForm(forms.ModelForm):
+class BusinessForm(StyledForm):
     # Declared rather than inferred from the nullable column: Django's
     # NullBooleanField offers "Unknown" as a third answer, and unanswered is
     # exactly what this field exists to rule out.
@@ -88,23 +89,7 @@ class BusinessForm(forms.ModelForm):
             # requirement changes the model and this form follows.
             field.required = name in Business.REQUIRED_FOR_SETUP
 
-            # A radio group and a file picker are not text boxes, and the
-            # `field` utility styles a text box.
             if isinstance(field.widget, forms.RadioSelect):
                 field.widget.attrs.setdefault("class", "mt-0.5 h-4 w-4 accent-accent")
-            elif not isinstance(field.widget, forms.FileInput):
-                field.widget.attrs.setdefault("class", "field")
 
         self.fields["state"].empty_label = "Choose a state"
-
-    def add_error(self, field: str | None, error: object) -> None:
-        super().add_error(field, error)
-
-        # Marking the input itself is done here rather than in the template,
-        # which cannot add a class to an already-rendered widget. Every error
-        # billow raises — the field's, the model's, this form's — arrives
-        # through add_error, so one hook covers all of them.
-        if field in self.fields:
-            attrs = self.fields[field].widget.attrs
-            if "field" in attrs.get("class", "").split():
-                attrs["class"] += " field-invalid"
