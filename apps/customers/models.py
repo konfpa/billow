@@ -19,6 +19,14 @@ class CustomerQuerySet(models.QuerySet):
         """The ones withdrawn from everyday use, reached by asking for them."""
         return self.filter(archived_at__isnull=False)
 
+    def matching(self, query: str) -> Self:
+        """Those an Operator could mean by part of a name, or a GSTIN."""
+        return self.filter(
+            models.Q(name__icontains=query)
+            | models.Q(legal_name__icontains=query)
+            | models.Q(gstin__icontains=query),
+        )
+
 
 class OnFileManager(models.Manager.from_queryset(CustomerQuerySet)):
     """The default manager, which leaves the archived Customers out.

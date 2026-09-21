@@ -14,7 +14,11 @@ if TYPE_CHECKING:
 
 @login_required
 def customer_directory(request: HttpRequest) -> HttpResponse:
-    """Everyone billow can invoice, or — asked for — everyone archived."""
+    """Everyone billow can invoice, or — asked for — everyone archived.
+
+    Either can be searched by name, legal name or GSTIN, and a search stays
+    inside the one it was typed into.
+    """
     showing_archived = request.GET.get("show") == "archived"
     customers = (
         Customer.including_archived.archived()
@@ -22,10 +26,18 @@ def customer_directory(request: HttpRequest) -> HttpResponse:
         else Customer.objects.all()
     )
 
+    query = request.GET.get("q", "").strip()
+    if query:
+        customers = customers.matching(query)
+
     return render(
         request,
         "customers/directory.html",
-        {"customers": customers, "showing_archived": showing_archived},
+        {
+            "customers": customers,
+            "showing_archived": showing_archived,
+            "query": query,
+        },
     )
 
 

@@ -21,6 +21,14 @@
        class="{% if showing_archived %}font-semibold text-ink{% else %}text-ink-soft hover:underline{% endif %}">Archived</a>
   </nav>
 
+  <form method="get" action="{% url 'customer_directory' %}" role="search" class="mt-4 flex gap-2">
+    {% if showing_archived %}<input type="hidden" name="show" value="archived">{% endif %}
+    <label for="customer-search" class="sr-only">Search by name or GSTIN</label>
+    <input type="search" id="customer-search" name="q" value="{{ query }}"
+           placeholder="Search by name or GSTIN" class="field sm:max-w-sm">
+    <button type="submit" class="btn-quiet">Search</button>
+  </form>
+
   {% if customers %}
     <section class="panel mt-6">
       <div class="panel-head">
@@ -46,7 +54,16 @@
     </section>
   {% else %}
     <section class="panel mt-6 p-4 sm:p-5">
-      {% if showing_archived %}
+      {% if query %}
+        <h2 class="text-note font-semibold">No Customer matches “{{ query }}”</h2>
+        <p class="mt-1.5 max-w-[54ch] text-note text-ink-soft">
+          {% if showing_archived %}
+            Nobody archived has that name or GSTIN. They may still be <a href="{% url 'customer_directory' %}?q={{ query|urlencode }}" class="underline">on file</a>.
+          {% else %}
+            Nobody on file has that name or GSTIN. They may be <a href="{% url 'customer_directory' %}?show=archived&amp;q={{ query|urlencode }}" class="underline">archived</a>.
+          {% endif %}
+        </p>
+      {% elif showing_archived %}
         <h2 class="text-note font-semibold">Nobody archived</h2>
         <p class="mt-1.5 max-w-[54ch] text-note text-ink-soft">
           A Customer who stops buying is archived rather than deleted, and waits here in case they return.
