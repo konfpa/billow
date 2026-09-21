@@ -12,4 +12,27 @@
   </header>
 
   {% include "customers/form.html" %}
+
+  <section class="panel mt-5">
+    <div class="panel-head"><h2 class="text-note font-semibold">Archive</h2></div>
+    <div class="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
+      {% if customer.is_archived %}
+        <p class="max-w-[54ch] text-note text-ink-soft">
+          Archived on {{ customer.archived_at|date:"j F Y" }}, and out of the ordinary directory. Every invoice already issued still names them.
+        </p>
+        <form method="post" action="{% url 'restore_customer' customer.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn">Restore</button>
+        </form>
+      {% else %}
+        <p class="max-w-[54ch] text-note text-ink-soft">
+          Withdraw a Customer who has stopped buying from the directory. Nothing is deleted, and they can be restored if they return.
+        </p>
+        <form method="post" action="{% url 'archive_customer' customer.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn">Archive</button>
+        </form>
+      {% endif %}
+    </div>
+  </section>
 {% endblock %}
