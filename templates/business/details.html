@@ -1,9 +1,9 @@
 {% comment %}
-  The Business section for an Operator who is not a Superuser: what appears
+  The Business section for an Operator who may not change it: what appears
   on invoices, to check and not to change. The form is absent rather than
   disabled — a disabled form is an invitation that ends in a refusal — and the
   values are form-page/readonly's <dl>, in the same blocks and order as the
-  form a Superuser sees.
+  form an Operator who may change it sees.
 {% endcomment %}
 <div>
   <div class="px-5 py-4">
@@ -93,6 +93,6 @@
   </div>
 
   <div class="border-t border-zinc-200 bg-zinc-100 px-5 py-3">
-    <p class="text-[12px]/4 tabular-nums text-zinc-600">Only a Superuser changes these details.</p>
+    <p class="text-[12px]/4 tabular-nums text-zinc-600">Changing these details needs the permission Can change business.</p>
   </div>
 </div>

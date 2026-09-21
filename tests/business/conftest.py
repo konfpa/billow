@@ -25,6 +25,12 @@ COMPLETE = {
 }
 
 
+def submitted(**changes):
+    """What the form posts: the complete Business, with anything changed."""
+    posted = {**COMPLETE, "is_gst_registered": "True", **changes}
+    return {key: value for key, value in posted.items() if value is not None}
+
+
 @pytest.fixture(autouse=True)
 def uploads(settings, tmp_path):
     """Keep an uploaded logo out of the working tree."""
