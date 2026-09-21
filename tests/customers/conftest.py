@@ -58,6 +58,12 @@ def customer(db):
 
 
 @pytest.fixture
+def archived(customer):
+    customer.archive()
+    return customer
+
+
+@pytest.fixture
 def superuser(db):
     return User.objects.create_superuser(
         email="priya@example.com",

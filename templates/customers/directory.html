@@ -84,7 +84,7 @@
             {% for customer in customers %}
               <tr class="relative border-b border-zinc-100 last:border-0 hover:bg-zinc-100 has-[a:focus-visible]:bg-zinc-100">
                 <td class="px-4 py-2 font-medium">
-                  <a href="{% url 'edit_customer' customer.pk %}" class="underline underline-offset-2 after:absolute after:inset-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ customer.name }}</a>
+                  <a href="{% url 'customer_detail' customer.pk %}" class="underline underline-offset-2 after:absolute after:inset-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ customer.name }}</a>
                 </td>
                 <td class="px-4 py-2 tabular-nums">{% if customer.is_registered %}{{ customer.gstin }}{% else %}<span class="text-zinc-600">Unregistered</span>{% endif %}</td>
                 <td class="px-4 py-2">{{ customer.city }}</td>
@@ -99,7 +99,7 @@
             <li class="relative hover:bg-zinc-100 has-[a:focus-visible]:bg-zinc-100">
               <div class="px-4 py-3">
                 <div class="flex items-baseline justify-between gap-3">
-                  <a href="{% url 'edit_customer' customer.pk %}" class="text-[14px]/5 font-medium underline underline-offset-2 after:absolute after:inset-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ customer.name }}</a>
+                  <a href="{% url 'customer_detail' customer.pk %}" class="text-[14px]/5 font-medium underline underline-offset-2 after:absolute after:inset-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ customer.name }}</a>
                   <span class="shrink-0 text-[14px]/5 tabular-nums">{% if customer.is_registered %}{{ customer.gstin }}{% else %}<span class="text-zinc-600">Unregistered</span>{% endif %}</span>
                 </div>
                 <p class="mt-0.5 text-[13px]/5 text-zinc-600">{{ customer.city }} · {{ customer.get_state_display }}</p>

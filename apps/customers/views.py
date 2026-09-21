@@ -74,6 +74,13 @@ def record_customer(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+def customer_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    """What is on file about a Customer, as an invoice to them will carry it."""
+    customer = get_object_or_404(Customer.including_archived, pk=pk)
+    return render(request, "customers/detail.html", {"customer": customer})
+
+
+@login_required
 def edit_customer(request: HttpRequest, pk: int) -> HttpResponse:
     """Correct what is on file about a Customer.
 
@@ -112,7 +119,7 @@ def edit_customer(request: HttpRequest, pk: int) -> HttpResponse:
 
     form.save()
     messages.success(request, f"{form.instance.name} is saved.")
-    return redirect("customer_directory")
+    return redirect("customer_detail", pk=pk)
 
 
 @login_required
@@ -123,7 +130,7 @@ def archive_customer(request: HttpRequest, pk: int) -> HttpResponse:
     customer.archive()
 
     messages.success(request, f"{customer.name} is archived.")
-    return redirect("customer_directory")
+    return redirect("customer_detail", pk=pk)
 
 
 @login_required
@@ -134,4 +141,4 @@ def restore_customer(request: HttpRequest, pk: int) -> HttpResponse:
     customer.restore()
 
     messages.success(request, f"{customer.name} is back on file.")
-    return redirect("customer_directory")
+    return redirect("customer_detail", pk=pk)
