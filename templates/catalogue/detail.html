@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item.name }} · billow{% endblock %}
+
+{% block main %}
+{% comment %}
+  konspec form-page/readonly under a page-header/back band: the same sections
+  in the same order as the Item form, each a <dl> rather than a field.
+{% endcomment %}
+<div data-kui="form-page/readonly" class="text-zinc-900">
+
+  <header data-kui="page-header/back" class="border-b border-zinc-200 bg-white">
+    <div class="mx-auto max-w-4xl px-4 py-4 lg:px-6">
+      <a href="{% url 'item_directory' %}" class="inline-flex items-center gap-1.5 rounded text-[13px]/5 text-zinc-600 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+        <i data-lucide="chevron-left" class="size-4"></i>Items
+      </a>
+
+      <div class="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div class="min-w-0">
+          <h1 class="text-[24px]/7 font-semibold tracking-tight">{{ item.name }}</h1>
+          <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{{ item.code }} · {{ item.get_kind_display }}</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-4xl space-y-4 p-4 pb-6 lg:p-6">
+    {% include "core/messages.html" %}
+
+    <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-5 py-3.5">
+        <h2 class="text-[16px]/6 font-semibold">Item</h2>
+      </div>
+      <dl class="grid gap-4 px-5 py-4 text-[13px]/5 sm:grid-cols-2">
+        <div class="sm:col-span-2">
+          <dt class="text-zinc-600">Name</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium">{{ item.name }}</dd>
+        </div>
+        <div>
+          <dt class="text-zinc-600">Item code</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{{ item.code }}</dd>
+        </div>
+        <div>
+          <dt class="text-zinc-600">Kind</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium">{{ item.get_kind_display }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-5 py-3.5">
+        <h2 class="text-[16px]/6 font-semibold">Tax</h2>
+      </div>
+      <dl class="grid gap-4 px-5 py-4 text-[13px]/5 sm:grid-cols-2">
+        <div>
+          <dt class="text-zinc-600">{% if item.kind == "service" %}SAC{% else %}HSN code{% endif %}</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{{ item.hsn_sac }}</dd>
+        </div>
+        <div>
+          <dt class="text-zinc-600">GST rate</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{{ item.get_gst_rate_display }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    {% with unit=item.stock_unit %}
+    <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-5 py-3.5">
+        <h2 class="text-[16px]/6 font-semibold">Unit and price</h2>
+      </div>
+      <dl class="grid gap-4 px-5 py-4 text-[13px]/5 sm:grid-cols-2">
+        <div>
+          <dt class="text-zinc-600">Stock unit</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium">{{ unit.get_uqc_display }}</dd>
+        </div>
+        <div>
+          <dt class="text-zinc-600">Selling price, including GST</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if unit.selling_price is not None %}₹{{ unit.selling_price }} per {{ unit.uqc }}{% else %}No price{% endif %}</dd>
+        </div>
+      </dl>
+    </div>
+    {% endwith %}
+  </div>
+</div>
+{% endblock %}
