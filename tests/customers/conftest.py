@@ -44,6 +44,11 @@ def signed_in(client, operator):
 
 
 @pytest.fixture
+def business(db):
+    return Business.objects.create(**COMPLETE)
+
+
+@pytest.fixture
 def customer(db):
     return Customer.objects.create(**REGISTERED)
 

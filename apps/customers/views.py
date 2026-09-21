@@ -56,7 +56,7 @@ def customer_directory(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required
+@requires("customers.add_customer")
 def record_customer(request: HttpRequest) -> HttpResponse:
     """Put a new Customer on file."""
     if request.method != "POST":
@@ -81,7 +81,7 @@ def customer_detail(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "customers/detail.html", {"customer": customer})
 
 
-@login_required
+@requires("customers.change_customer")
 def edit_customer(request: HttpRequest, pk: int) -> HttpResponse:
     """Correct what is on file about a Customer.
 

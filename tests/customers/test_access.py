@@ -2,8 +2,6 @@ import pytest
 from django.contrib.auth.models import Permission
 from django.urls import reverse
 
-from apps.business.models import Business
-from tests.business.conftest import COMPLETE
 from tests.conftest import PASSWORD, role
 
 DIRECTORY = reverse("customer_directory")
@@ -18,11 +16,6 @@ def pages(customer):
         f"{DIRECTORY}?show=archived&q=Sharma",
         reverse("customer_detail", args=[customer.pk]),
     ]
-
-
-@pytest.fixture
-def business(db):
-    return Business.objects.create(**COMPLETE)
 
 
 @pytest.mark.django_db
