@@ -112,20 +112,20 @@
       {% if perms.business.view_business %}
       <p class="overflow-hidden px-1.5 pt-4 pb-1 text-[11px]/4 font-semibold tracking-wider whitespace-nowrap text-zinc-500 uppercase">
         <span class="relative block">
-          <span class="block transition-opacity duration-150" :class="fade">Settings</span>
+          <span class="block transition-opacity duration-150" :class="fade">Admin</span>
           <span aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-zinc-200 opacity-0 transition-opacity duration-150" :class="rule"></span>
         </span>
       </p>
 
       {% if current == "business_settings" %}
-      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Business" href="{% url 'business_settings' %}" aria-current="page"
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Settings" href="{% url 'business_settings' %}" aria-current="page"
          class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg bg-zinc-200 px-1.5 text-[13px]/5 font-medium whitespace-nowrap text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
       {% else %}
-      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Business" href="{% url 'business_settings' %}"
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Settings" href="{% url 'business_settings' %}"
          class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-1.5 text-[13px]/5 whitespace-nowrap text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
       {% endif %}
-        <span class="flex w-8 shrink-0 items-center justify-center"><i data-lucide="building-2" class="size-[18px]"></i></span>
-        <span class="min-w-0 flex-1 truncate transition-opacity duration-150" :class="fade">Business</span>
+        <span class="flex w-8 shrink-0 items-center justify-center"><i data-lucide="settings" class="size-[18px]"></i></span>
+        <span class="min-w-0 flex-1 truncate transition-opacity duration-150" :class="fade">Settings</span>
       </a>
       {% endif %}
     </nav>
