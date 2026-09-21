@@ -35,5 +35,5 @@ def record_customer(request: HttpRequest) -> HttpResponse:
         return render(request, "customers/record.html", {"form": form})
 
     customer = form.save()
-    messages.success(request, f"{customer.name} is recorded.")
+    messages.success(request, f"{customer.name} is saved.")
     return redirect("customer_directory")
