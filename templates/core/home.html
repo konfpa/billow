@@ -3,29 +3,41 @@
 {% block title %}Home · billow{% endblock %}
 
 {% block content %}
-  <header>
-    <p class="text-micro font-semibold uppercase text-ink-faint">{% now "l, j F Y" %}</p>
-    <h1 class="mt-2 text-title font-semibold">Welcome back, {{ user.get_short_name }}</h1>
-    <p class="mt-2 max-w-[54ch] text-note text-ink-soft">
-      You are signed in as <span class="font-medium text-ink">{{ user.email }}</span>.
-    </p>
-  </header>
-
   {% comment %}
-    billow has no Invoices or Payments yet, so this page shows what is true and
-    nothing else. A placeholder metric for a model that does not exist is a lie
-    that has to be removed later.
+    konspec dashboard, empty variant: the first week of a deployment. billow has
+    no Invoices or Payments yet, so this page shows what is true and nothing
+    else. A placeholder metric for a model that does not exist is a lie that has
+    to be removed later, which is why there is no figure strip, no queue and no
+    plot. The shell's main column already carries the dashboard's gutter, so the
+    page head takes page-header's title and meta without its band.
   {% endcomment %}
-  <section class="mt-8 grid gap-5 sm:grid-cols-2">
-    <div class="panel p-4 sm:p-5">
-      <h2 class="text-note font-semibold">Customers</h2>
-      <p class="mt-1.5 text-note text-ink-soft">Everyone billow invoices, and the details their invoices carry.</p>
-      <a href="{% url 'customer_directory' %}" class="mt-4 inline-block text-note font-medium text-accent hover:underline">Open the directory</a>
+  <div class="space-y-4">
+    <div class="min-w-0">
+      <p class="text-[13px]/5 text-zinc-600">Welcome back, {{ user.get_short_name }}</p>
+      <h1 class="mt-0.5 text-[24px]/7 font-semibold tracking-tight">Home</h1>
+      <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% now "l d M Y" %} · signed in as {{ user.email }}</p>
     </div>
-    <div class="panel p-4 sm:p-5">
-      <h2 class="text-note font-semibold">Invoices</h2>
-      <p class="mt-1.5 text-note text-ink-soft">Nothing issued yet, and nothing outstanding.</p>
-      <p class="mt-4 text-micro uppercase text-ink-faint">Arrives in a later release</p>
+
+    <div class="grid items-start gap-3 sm:grid-cols-2">
+      <section data-kui="card/default" aria-labelledby="home-customers-h" class="min-w-0 overflow-hidden rounded-xl border border-zinc-300 bg-white">
+        <div class="border-b border-zinc-200 px-5 py-3.5">
+          <h2 id="home-customers-h" class="text-[14px]/5 font-semibold">Customers</h2>
+        </div>
+        <div class="px-5 py-4 text-[13px]/5">
+          <p class="text-zinc-600">Everyone billow invoices, and the details their invoices carry.</p>
+          <a href="{% url 'customer_directory' %}" class="mt-2 inline-block font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Open the directory</a>
+        </div>
+      </section>
+
+      <section data-kui="card/default" aria-labelledby="home-invoices-h" class="min-w-0 overflow-hidden rounded-xl border border-zinc-300 bg-white">
+        <div class="border-b border-zinc-200 px-5 py-3.5">
+          <h2 id="home-invoices-h" class="text-[14px]/5 font-semibold">Invoices</h2>
+        </div>
+        <div class="px-5 py-4 text-[13px]/5">
+          <p class="text-zinc-600">Nothing issued yet, and nothing outstanding.</p>
+          <p class="mt-2 text-zinc-500">Invoicing arrives in a later release.</p>
+        </div>
+      </section>
     </div>
-  </section>
+  </div>
 {% endblock %}
