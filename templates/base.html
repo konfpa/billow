@@ -17,7 +17,7 @@
     <script src="{% static 'js/app.js' %}" defer></script>
     <script src="{% static 'js/alpine.min.js' %}" defer></script>
   </head>
-  <body class="bg-canvas font-sans text-body text-ink antialiased">
+  <body class="bg-stone-100 font-sans text-[14px]/5 text-zinc-900 antialiased">
     {% block shell %}
     {% with current=request.resolver_match.url_name %}
 <div data-kui="app-shell/default" class="relative flex h-screen overflow-hidden bg-stone-100 [.canvas-zinc_&]:bg-zinc-100 text-[14px]/5 text-zinc-900"

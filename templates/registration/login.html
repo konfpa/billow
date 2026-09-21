@@ -89,7 +89,7 @@
                  class="w-full min-w-0 bg-transparent px-3 py-2 text-[14px]/5 outline-none">
         {% endif %}
           <button type="button" @click="reveal" :aria-label="revealLabel"
-                  class="mr-1 flex size-7 shrink-0 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900">
+                  class="mr-1 inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-transparent text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
             <span x-show="concealed" class="flex"><i data-lucide="eye" class="size-4"></i></span>
             <span x-show="show" x-cloak class="flex"><i data-lucide="eye-off" class="size-4"></i></span>
           </button>
@@ -102,7 +102,7 @@
         A double-click here is a second authentication attempt.
       {% endcomment %}
       <button type="submit" :disabled="busy" :aria-busy="busy"
-              class="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 disabled:hover:bg-zinc-700">
+              class="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-transparent bg-zinc-700 px-5 text-[14px]/5 font-medium text-white hover:bg-zinc-800 disabled:hover:bg-zinc-700 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
         <span x-show="busy" x-cloak class="flex"><i data-lucide="loader-circle" class="size-4 animate-spin"></i></span>
         <span class="grid">
           <span class="col-start-1 row-start-1" :class="idleLabel">Sign in</span>

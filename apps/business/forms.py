@@ -70,10 +70,9 @@ class BusinessForm(StyledForm):
             ),
         }
         widgets = {
-            "state": forms.Select(attrs={"class": "field"}),
             "logo": LogoInput(
                 attrs={
-                    "class": "sr-only",
+                    "class": "peer sr-only",
                     "accept": "image/png,image/jpeg,image/webp,image/svg+xml",
                     "x-ref": "input",
                     "x-on:change": "chosen",
@@ -90,6 +89,17 @@ class BusinessForm(StyledForm):
             field.required = name in Business.REQUIRED_FOR_SETUP
 
             if isinstance(field.widget, forms.RadioSelect):
-                field.widget.attrs.setdefault("class", "mt-0.5 h-4 w-4 accent-accent")
+                field.widget.attrs.setdefault(
+                    "class", "mt-0.5 size-4 shrink-0 accent-zinc-700"
+                )
 
         self.fields["state"].empty_label = "Choose a state"
+        self.fields["logo"].widget.attrs.update(
+            {
+                "aria-labelledby": "logo-h",
+                "aria-describedby": f"{self['logo'].auto_id}-msg",
+            }
+        )
+        # konspec radio/conditional: a GSTIN hidden by answering No is also
+        # disabled, so what was typed before the answer changed is not posted.
+        self.fields["gstin"].widget.attrs["x-bind:disabled"] = "unregistered"
