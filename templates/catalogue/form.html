@@ -87,7 +87,7 @@
       </span>
     </p>
     <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-      <a href="{% url 'item_directory' %}" x-ref="cancel" @click="cancel"
+      <a href="{% if item %}{% url 'item_detail' item.pk %}{% else %}{% url 'item_directory' %}{% endif %}" x-ref="cancel" @click="cancel"
          class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent px-4 text-[13px]/5 font-medium text-zinc-900 hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Cancel</a>
       <button type="submit"
               class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Save</button>

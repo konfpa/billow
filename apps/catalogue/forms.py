@@ -8,7 +8,7 @@ from apps.tax.units import UQC
 
 
 class ItemForm(StyledForm):
-    """An Item and its stock unit, recorded together."""
+    """An Item and its stock unit, recorded and edited together."""
 
     stock_unit = forms.ChoiceField(
         choices=[("", "Choose a unit"), *UQC.choices],
@@ -43,13 +43,22 @@ class ItemForm(StyledForm):
         ]
         self.fields["gst_rate"].choices = [("", "Choose a rate"), *GSTRate.choices]
 
+        if unit := self.instance.stock_unit if self.instance.pk else None:
+            self.initial.setdefault("stock_unit", unit.uqc)
+            self.initial.setdefault("selling_price", unit.selling_price)
+
     @transaction.atomic
     def save(self) -> Item:
         item = super().save()
-        ItemUnit.objects.create(
-            item=item,
-            uqc=self.cleaned_data["stock_unit"],
-            is_stock_unit=True,
-            selling_price=self.cleaned_data["selling_price"],
-        )
+        unit = item.stock_unit or ItemUnit(item=item, is_stock_unit=True)
+
+        # Saved only when changed, so the unit's history holds real changes.
+        if unit.pk and not {"stock_unit", "selling_price"} & set(self.changed_data):
+            return item
+
+        # The stock unit changes freely while no stock movements exist; see
+        # docs/adr/0011-stock-is-the-sum-of-movements.md.
+        unit.uqc = self.cleaned_data["stock_unit"]
+        unit.selling_price = self.cleaned_data["selling_price"]
+        unit.save()
         return item

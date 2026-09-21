@@ -41,3 +41,27 @@ def item_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """What is on file about an Item, as an invoice line will copy it."""
     item = get_object_or_404(Item.objects.prefetch_related("units"), pk=pk)
     return render(request, "catalogue/detail.html", {"item": item})
+
+
+@requires("catalogue.change_item")
+def edit_item(request: HttpRequest, pk: int) -> HttpResponse:
+    """Correct an Item's details, its stock unit or its price."""
+    item = get_object_or_404(Item.objects.prefetch_related("units"), pk=pk)
+
+    if request.method != "POST":
+        form = ItemForm(instance=item)
+        return render(request, "catalogue/edit.html", {"form": form, "item": item})
+
+    # Bound to its own instance: a form that fails validation still writes what
+    # it could clean onto the instance it holds, and `item` is what the page
+    # shows as on file.
+    form = ItemForm(request.POST, instance=Item.objects.get(pk=pk))
+
+    if not form.is_valid():
+        # Rendered rather than redirected, so that everything already typed is
+        # still on the page next to what was wrong with it.
+        return render(request, "catalogue/edit.html", {"form": form, "item": item})
+
+    form.save()
+    messages.success(request, f"{form.instance.name} is saved.")
+    return redirect("item_detail", pk=pk)
