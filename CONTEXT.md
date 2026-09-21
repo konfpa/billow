@@ -11,8 +11,8 @@ _Avoid_: Account, login, member
 
 **Operator**:
 A User in their working role — the human who issues invoices, records payments
-and otherwise runs billing on behalf of the Business. Every User is an operator
-today.
+and otherwise runs billing on behalf of the Business. An Operator does only
+the work they have been granted; being a User grants none of it.
 _Avoid_: Staff, agent, admin
 
 **Customer**:
@@ -40,9 +40,14 @@ deleted: a User is never deleted, because the audit trail names them as the
 actor behind past changes.
 _Avoid_: Disabled, removed, archived
 
+**Role**:
+A named set of work that a Superuser grants to Operators, such as recording
+Customers or archiving them. An Operator's access is the sum of their Roles.
+_Avoid_: Group, profile, access level
+
 **Superuser**:
 A User holding every permission unconditionally, and the only one who creates
-other Users.
+other Users, defines Roles and grants them.
 _Avoid_: Owner, root
 
 **Business**:
