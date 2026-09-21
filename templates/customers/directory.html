@@ -22,14 +22,17 @@
       </div>
       <ul>
         {% for customer in customers %}
-          <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-line px-4 py-3.5 first:border-t-0 sm:px-5">
-            <div class="min-w-0">
-              <p class="text-note font-medium text-ink">{{ customer.name }}</p>
-              <p class="text-note text-ink-faint">{{ customer.city }}, {{ customer.get_state_display }}</p>
-            </div>
-            <p class="text-note text-ink-soft">
-              {% if customer.is_registered %}{{ customer.gstin }}{% else %}Unregistered{% endif %}
-            </p>
+          <li class="border-t border-line first:border-t-0">
+            <a href="{% url 'edit_customer' customer.pk %}"
+               class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3.5 hover:bg-canvas sm:px-5">
+              <div class="min-w-0">
+                <p class="text-note font-medium text-ink">{{ customer.name }}</p>
+                <p class="text-note text-ink-faint">{{ customer.city }}, {{ customer.get_state_display }}</p>
+              </div>
+              <p class="text-note text-ink-soft">
+                {% if customer.is_registered %}{{ customer.gstin }}{% else %}Unregistered{% endif %}
+              </p>
+            </a>
           </li>
         {% endfor %}
       </ul>

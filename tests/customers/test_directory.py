@@ -3,18 +3,10 @@ from django.urls import reverse
 
 from apps.customers.models import Customer
 from apps.tax.states import State
-from tests.customers.conftest import REGISTERED
-
-# The same PAN registered in a second state, which is a second Customer.
-KARNATAKA_GSTIN = "29AAPFU0939F1ZR"
+from tests.customers.conftest import KARNATAKA_GSTIN, submitted
 
 DIRECTORY = reverse("customer_directory")
 RECORD = reverse("record_customer")
-
-
-def submitted(**changes):
-    """What the form posts: a complete Customer, with anything changed."""
-    return {**REGISTERED, **changes}
 
 
 @pytest.mark.django_db
