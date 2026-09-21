@@ -190,7 +190,7 @@ def test_the_state_is_chosen_from_a_list_that_starts_unanswered(client, signed_i
 
 
 @pytest.mark.django_db
-def test_recording_a_customer_is_confirmed(client, signed_in):
+def test_saving_a_customer_is_confirmed(client, signed_in):
     page = client.post(RECORD, submitted(), follow=True).content.decode()
 
-    assert "Sharma Traders is recorded." in page
+    assert "Sharma Traders is saved." in page
