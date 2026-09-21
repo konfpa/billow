@@ -53,13 +53,20 @@ def business(db):
 
 @pytest.fixture
 def storekeeper(db):
-    """An Operator who may look up and record Items, and nothing else."""
+    """An Operator who may look up, record and edit Items, and nothing else."""
     user = User.objects.create_user(
         email="meera@example.com",
         name="Meera Iyer",
         password=PASSWORD,
     )
-    user.groups.add(role("Storekeeper", "catalogue.view_item", "catalogue.add_item"))
+    user.groups.add(
+        role(
+            "Storekeeper",
+            "catalogue.view_item",
+            "catalogue.add_item",
+            "catalogue.change_item",
+        )
+    )
     return user
 
 
