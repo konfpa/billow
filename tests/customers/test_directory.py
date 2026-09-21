@@ -305,3 +305,12 @@ def test_a_customers_address_longer_than_500_characters_is_refused(client, signe
     assert response.context["form"].errors["address"] == [
         "An address is 500 characters or fewer."
     ]
+
+
+@pytest.mark.django_db
+def test_every_row_leads_to_the_customer(client, signed_in, customer):
+    page = client.get(DIRECTORY).content.decode()
+
+    detail = reverse("customer_detail", args=[customer.pk])
+    assert page.count(f'href="{detail}"') == 2
+    assert reverse("edit_customer", args=[customer.pk]) not in page

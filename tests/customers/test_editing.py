@@ -153,10 +153,25 @@ def test_a_change_names_the_operator_who_made_it(client, signed_in, customer):
 
 
 @pytest.mark.django_db
-def test_a_customer_is_reached_from_the_directory(client, signed_in, customer):
-    page = client.get(reverse("customer_directory")).content.decode()
+def test_a_saved_edit_returns_to_the_customer(client, signed_in, customer):
+    response = client.post(edit_url(customer), submitted(city="Pune"))
 
-    assert f'href="{edit_url(customer)}"' in page
+    assert response.url == reverse("customer_detail", args=[customer.pk])
+
+
+@pytest.mark.django_db
+def test_the_back_link_returns_to_the_customer(client, signed_in, customer):
+    page = client.get(edit_url(customer)).content.decode()
+
+    assert f'href="{reverse("customer_detail", args=[customer.pk])}"' in page
+
+
+@pytest.mark.django_db
+def test_archiving_is_not_offered_while_editing(client, signed_in, customer):
+    page = client.get(edit_url(customer)).content.decode()
+
+    assert reverse("archive_customer", args=[customer.pk]) not in page
+    assert reverse("restore_customer", args=[customer.pk]) not in page
 
 
 @pytest.mark.django_db

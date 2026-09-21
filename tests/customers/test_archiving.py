@@ -17,10 +17,8 @@ def restore_url(customer):
     return reverse("restore_customer", args=[customer.pk])
 
 
-@pytest.fixture
-def archived(customer):
-    customer.archive()
-    return customer
+def detail_url(customer):
+    return reverse("customer_detail", args=[customer.pk])
 
 
 @pytest.mark.django_db
@@ -114,6 +112,20 @@ def test_restoring_names_the_operator_who_did_it(client, signed_in, archived):
 
 
 @pytest.mark.django_db
+def test_archiving_returns_to_the_customer(client, signed_in, customer):
+    response = client.post(archive_url(customer))
+
+    assert response.url == detail_url(customer)
+
+
+@pytest.mark.django_db
+def test_restoring_returns_to_the_customer(client, signed_in, archived):
+    response = client.post(restore_url(archived))
+
+    assert response.url == detail_url(archived)
+
+
+@pytest.mark.django_db
 def test_archiving_is_confirmed(client, signed_in, customer):
     page = client.post(archive_url(customer), follow=True).content.decode()
 
@@ -138,12 +150,12 @@ def test_the_directory_offers_the_archived_filter(client, signed_in, customer):
 def test_an_archived_customer_is_reached_from_the_filter(client, signed_in, archived):
     page = client.get(ARCHIVED).content.decode()
 
-    assert reverse("edit_customer", args=[archived.pk]) in page
+    assert detail_url(archived) in page
 
 
 @pytest.mark.django_db
 def test_a_customer_on_file_is_offered_archiving(client, signed_in, customer):
-    page = client.get(reverse("edit_customer", args=[customer.pk])).content.decode()
+    page = client.get(detail_url(customer)).content.decode()
 
     assert archive_url(customer) in page
     assert restore_url(customer) not in page
@@ -151,7 +163,7 @@ def test_a_customer_on_file_is_offered_archiving(client, signed_in, customer):
 
 @pytest.mark.django_db
 def test_an_archived_customer_is_offered_restoring(client, signed_in, archived):
-    page = client.get(reverse("edit_customer", args=[archived.pk])).content.decode()
+    page = client.get(detail_url(archived)).content.decode()
 
     assert restore_url(archived) in page
     assert archive_url(archived) not in page
