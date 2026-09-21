@@ -69,8 +69,10 @@ document.addEventListener("alpine:init", () => {
       return [this.sidebar ? "lg:w-64" : "lg:w-[68px]", this.nav ? "translate-x-0" : "max-lg:-translate-x-full"];
     },
 
+    // Capped at the collapsed rail's content width: w-full alone resolves
+    // against the rail mid-transition, stretching the brand across it.
     get brandBox() {
-      return this.sidebar ? "" : "lg:w-full";
+      return this.sidebar ? "" : "lg:w-full lg:max-w-11";
     },
 
     get brandWell() {
