@@ -9,6 +9,8 @@
   Archiving is the record's own action, so it sits in the band, and it takes
   no confirmation: nothing is deleted and Restore undoes it in one press,
   which is below the bar alert-dialog sets for interrupting.
+  Archive and Restore take the zinc-300 edge rather than button/icons'
+  zinc-200: on the white band the lighter edge left them unreadable as buttons.
 {% endcomment %}
 <div data-kui="form-page/readonly" class="text-zinc-900">
 
@@ -42,14 +44,14 @@
             {% if customer.is_archived %}
               <form method="post" action="{% url 'restore_customer' customer.pk %}">
                 {% csrf_token %}
-                <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+                <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
                   <i data-lucide="archive-restore" class="size-4 text-zinc-600"></i>Restore
                 </button>
               </form>
             {% else %}
               <form method="post" action="{% url 'archive_customer' customer.pk %}">
                 {% csrf_token %}
-                <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+                <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
                   <i data-lucide="archive" class="size-4 text-zinc-600"></i>Archive
                 </button>
               </form>
