@@ -5,10 +5,10 @@ from apps.business.models import Business
 from apps.customers.models import Customer
 from apps.tax.states import State
 from tests.business.conftest import COMPLETE
+from tests.conftest import PASSWORD
 
 User = get_user_model()
 
-PASSWORD = "a-perfectly-fine-password"
 
 REGISTERED = {
     "name": "Sharma Traders",
@@ -29,15 +29,6 @@ KARNATAKA_GSTIN = "29AAPFU0939F1ZR"
 def submitted(**changes):
     """What the form posts: a complete Customer, with anything changed."""
     return {**REGISTERED, **changes}
-
-
-@pytest.fixture
-def operator(db):
-    return User.objects.create_user(
-        email="akshay@example.com",
-        name="Akshay Prabhu",
-        password=PASSWORD,
-    )
 
 
 @pytest.fixture

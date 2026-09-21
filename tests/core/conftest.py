@@ -1,21 +1,7 @@
 import pytest
-from django.contrib.auth import get_user_model
 
 from apps.business.models import Business
 from tests.business.conftest import COMPLETE
-
-User = get_user_model()
-
-PASSWORD = "a-perfectly-fine-password"
-
-
-@pytest.fixture
-def operator(db):
-    return User.objects.create_user(
-        email="akshay@example.com",
-        name="Akshay Prabhu",
-        password=PASSWORD,
-    )
 
 
 @pytest.fixture

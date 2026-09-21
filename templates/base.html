@@ -82,6 +82,7 @@
         Recording and correcting a Customer are pages of their own, so the
         directory is the current item for all three.
       {% endcomment %}
+      {% if perms.customers.view_customer %}
       {% if current == "customer_directory" or current == "record_customer" or current == "edit_customer" %}
       <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Customers" href="{% url 'customer_directory' %}" aria-current="page"
          class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg bg-zinc-200 px-1.5 text-[13px]/5 font-medium whitespace-nowrap text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
@@ -92,6 +93,7 @@
         <span class="flex w-8 shrink-0 items-center justify-center"><i data-lucide="users" class="size-[18px]"></i></span>
         <span class="min-w-0 flex-1 truncate transition-opacity duration-150" :class="fade">Customers</span>
       </a>
+      {% endif %}
 
       {% comment %}
         Invoices has no model, view or URL yet. It is shown so billow is honest
