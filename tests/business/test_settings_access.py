@@ -7,7 +7,7 @@ from tests.conftest import role
 
 URL = reverse("business_settings")
 HOME = reverse("home")
-NAV_LINK = 'data-tip="Business"'
+NAV_LINK = 'data-tip="Settings"'
 # The logout form is on every page, so the Business form is told apart by its upload.
 FORM = 'enctype="multipart/form-data"'
 
