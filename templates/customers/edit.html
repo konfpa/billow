@@ -2,37 +2,65 @@
 
 {% block title %}{{ customer.name }} · billow{% endblock %}
 
-{% block content %}
-  <header>
-    <p class="text-micro font-semibold uppercase text-ink-faint">Directory</p>
-    <h1 class="mt-2 text-title font-semibold">{{ customer.name }}</h1>
-    <p class="mt-2 max-w-[54ch] text-note text-ink-soft">
-      Correct what is on file: a change of address, a misspelt name, a wrong GSTIN. Clearing the GSTIN leaves the Customer unregistered.
-    </p>
+{% block main %}
+{% comment %}
+  konspec form-page/two-column under a page-header/back band, as on the New
+  Customer page. Archiving is the record's own action, so it sits in the band
+  rather than beside Save, and it takes no confirmation: nothing is deleted
+  and Restore undoes it in one press, which is below the bar alert-dialog
+  sets for interrupting.
+{% endcomment %}
+<div data-kui="form-page/two-column" x-data="formPage" @beforeunload.window="guard" class="text-zinc-900">
+
+  <header data-kui="page-header/back" class="border-b border-zinc-200 bg-white">
+    <div class="mx-auto max-w-4xl px-4 py-4 lg:px-6">
+      <a href="{% url 'customer_directory' %}{% if customer.is_archived %}?show=archived{% endif %}" class="inline-flex items-center gap-1.5 rounded text-[13px]/5 text-zinc-600 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+        <i data-lucide="chevron-left" class="size-4"></i>Customers
+      </a>
+
+      <div class="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 class="text-[24px]/7 font-semibold tracking-tight">{{ customer.name }}</h1>
+            {% if customer.is_archived %}
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-zinc-200 px-2.5 py-0.5 text-[12px]/4 font-medium text-zinc-600 ring-1 ring-inset ring-zinc-300">
+                <span class="size-1.5 rounded-full bg-zinc-400" aria-hidden="true"></span>Archived
+              </span>
+            {% endif %}
+          </div>
+          <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">
+            {% if customer.is_archived %}
+              Archived on {{ customer.archived_at|date:"j F Y" }}, and out of the ordinary directory. Every invoice already issued still names them.
+            {% else %}
+              {% if customer.is_registered %}{{ customer.gstin }}{% else %}Unregistered{% endif %} · {{ customer.city }}, {{ customer.get_state_display }}
+            {% endif %}
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          {% if customer.is_archived %}
+            <form method="post" action="{% url 'restore_customer' customer.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+                <i data-lucide="archive-restore" class="size-4 text-zinc-600"></i>Restore
+              </button>
+            </form>
+          {% else %}
+            <form method="post" action="{% url 'archive_customer' customer.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+                <i data-lucide="archive" class="size-4 text-zinc-600"></i>Archive
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
   </header>
 
-  {% include "customers/form.html" %}
-
-  <section class="panel mt-5">
-    <div class="panel-head"><h2 class="text-note font-semibold">Archive</h2></div>
-    <div class="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
-      {% if customer.is_archived %}
-        <p class="max-w-[54ch] text-note text-ink-soft">
-          Archived on {{ customer.archived_at|date:"j F Y" }}, and out of the ordinary directory. Every invoice already issued still names them.
-        </p>
-        <form method="post" action="{% url 'restore_customer' customer.pk %}">
-          {% csrf_token %}
-          <button type="submit" class="btn">Restore</button>
-        </form>
-      {% else %}
-        <p class="max-w-[54ch] text-note text-ink-soft">
-          Withdraw a Customer who has stopped buying from the directory. Nothing is deleted, and they can be restored if they return.
-        </p>
-        <form method="post" action="{% url 'archive_customer' customer.pk %}">
-          {% csrf_token %}
-          <button type="submit" class="btn">Archive</button>
-        </form>
-      {% endif %}
-    </div>
-  </section>
+  <div class="mx-auto max-w-4xl space-y-4 p-4 pb-6 lg:p-6">
+    {% include "core/messages.html" %}
+    {% include "customers/form.html" %}
+  </div>
+</div>
 {% endblock %}
