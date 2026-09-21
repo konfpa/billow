@@ -2,14 +2,33 @@
 
 {% block title %}New Customer · billow{% endblock %}
 
-{% block content %}
-  <header>
-    <p class="text-micro font-semibold uppercase text-ink-faint">Directory</p>
-    <h1 class="mt-2 text-title font-semibold">New Customer</h1>
-    <p class="mt-2 max-w-[54ch] text-note text-ink-soft">
-      The details an invoice must carry about its recipient. Leave the GSTIN blank for a Customer who holds no registration.
-    </p>
+{% block main %}
+{% comment %}
+  konspec form-page/two-column under a page-header/back band: one level below
+  the directory, so a back link rather than a trail. The band's gutter is the
+  form's max-w-4xl rather than the shell's 1600px, so the title lines up with
+  the cards under it.
+{% endcomment %}
+<div data-kui="form-page/two-column" x-data="formPage" @beforeunload.window="guard" class="text-zinc-900">
+
+  <header data-kui="page-header/back" class="border-b border-zinc-200 bg-white">
+    <div class="mx-auto max-w-4xl px-4 py-4 lg:px-6">
+      <a href="{% url 'customer_directory' %}" class="inline-flex items-center gap-1.5 rounded text-[13px]/5 text-zinc-600 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+        <i data-lucide="chevron-left" class="size-4"></i>Customers
+      </a>
+
+      <div class="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div class="min-w-0">
+          <h1 class="text-[24px]/7 font-semibold tracking-tight">New Customer</h1>
+          <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">The details an invoice must carry about its recipient.</p>
+        </div>
+      </div>
+    </div>
   </header>
 
-  {% include "customers/form.html" %}
+  <div class="mx-auto max-w-4xl space-y-4 p-4 pb-6 lg:p-6">
+    {% include "core/messages.html" %}
+    {% include "customers/form.html" %}
+  </div>
+</div>
 {% endblock %}

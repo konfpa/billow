@@ -242,6 +242,67 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
+  // konspec form-page/two-column's unsaved-changes guard. Armed by input and
+  // change only, so tabbing through a form to read it is not an edit.
+  Alpine.data("formPage", () => ({
+    dirty: false,
+    leaving: false,
+
+    arm(event) {
+      if (event.target.matches("input, select, textarea")) this.dirty = true;
+    },
+
+    // Cancel is a real link, so it still works without JavaScript and is
+    // only held back here when there is something to lose.
+    cancel(event) {
+      if (!this.dirty) return;
+      event.preventDefault();
+      this.leaving = true;
+    },
+
+    stay() {
+      this.leaving = false;
+    },
+
+    discard() {
+      this.dirty = false;
+      window.location.href = this.$refs.cancel.href;
+    },
+
+    saveAndLeave() {
+      this.leaving = false;
+      this.$refs.form.requestSubmit();
+    },
+
+    get clean() {
+      return !this.dirty;
+    },
+
+    // Cleared before the POST navigates, or the page would stop its own Save.
+    send() {
+      this.dirty = false;
+    },
+
+    // A Discard that reloads the page is itself the answer to "lose these
+    // changes?", so the browser is not left to ask it again.
+    drop() {
+      this.dirty = false;
+    },
+
+    guard(event) {
+      if (this.dirty) event.preventDefault();
+    },
+  }));
+
+  // konspec alert/form-errors. A failed POST re-renders the page with the
+  // summary already in it, where role="alert" announces nothing; the focus
+  // move is what reads it out.
+  Alpine.data("formErrors", () => ({
+    init() {
+      this.$el.focus();
+    },
+  }));
+
   Alpine.data("dismissible", () => ({
     show: true,
 
@@ -250,11 +311,30 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
+  // konspec radio/conditional's show condition, read off the checked radio
+  // rather than bound with x-model, so the markup stays Django's own. It only
+  // disables the GSTIN; CSS shows and hides it, with or without JavaScript.
+  Alpine.data("gstAnswer", () => ({
+    registered: false,
+
+    init() {
+      this.read();
+    },
+
+    read() {
+      this.registered = this.$el.querySelector('input[value="True"]').checked;
+    },
+
+    get unregistered() {
+      return !this.registered;
+    },
+  }));
+
   Alpine.data("logoPicker", () => ({
     name: "",
     detail: "",
     removing: false,
-    dragging: false,
+    depth: 0,
 
     // Taken off the page rather than passed in, so what the server rendered
     // for a visitor without JavaScript is also what this starts from.
@@ -264,7 +344,7 @@ document.addEventListener("alpine:init", () => {
     },
 
     get zone() {
-      return this.dragging ? "border-accent bg-accent-soft" : "";
+      return this.depth > 0 ? "border-zinc-700 bg-zinc-50" : "border-zinc-200 bg-zinc-100";
     },
 
     chosen() {
@@ -282,19 +362,18 @@ document.addEventListener("alpine:init", () => {
       reader.readAsDataURL(file);
     },
 
-    dragOn() {
-      this.dragging = true;
+    // A depth rather than a flag: dragleave also fires as the pointer crosses
+    // into a child of the zone, which would flicker a flag off.
+    dragIn() {
+      this.depth++;
     },
 
-    // dragleave also fires as the pointer crosses into a child of the zone,
-    // which would flicker the highlight off over every element inside it.
-    dragOff(event) {
-      if (event.currentTarget.contains(event.relatedTarget)) return;
-      this.dragging = false;
+    dragOut() {
+      this.depth--;
     },
 
     dropped(event) {
-      this.dragging = false;
+      this.depth = 0;
       const files = event.dataTransfer.files;
       if (!files.length) return;
 

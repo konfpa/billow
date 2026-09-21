@@ -1,15 +1,19 @@
-from typing import TYPE_CHECKING
-
 from django import forms
 
-if TYPE_CHECKING:
-    from django.core.exceptions import ValidationError
+# konspec field/django and select/django. The widget renders the control
+# alone: the bordered wrapper, the focus outline and the error border are
+# drawn by templates/forms/field.html around it.
+CONTROL = "w-full bg-transparent px-3 py-2 text-[14px]/5 tabular-nums outline-none"
+SELECT = (
+    "block w-full min-w-0 appearance-none bg-transparent py-2 pr-9 pl-3 "
+    "text-[14px]/5 outline-none"
+)
 
 
 class StyledForm(forms.ModelForm):
-    """A ModelForm whose inputs are dressed the way billow's pages expect.
+    """A ModelForm whose controls are dressed and wired the way konspec asks.
 
-    Done here rather than in the template, which cannot add a class to an
+    Done here rather than in the template, which cannot add an attribute to an
     already-rendered widget, and per form rather than per field so that a
     field added to a form is styled by having been added at all.
     """
@@ -17,18 +21,31 @@ class StyledForm(forms.ModelForm):
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
 
-        for field in self.fields.values():
-            # A radio group and a file picker are not text boxes, and the
-            # `field` utility styles a text box.
-            if not isinstance(field.widget, forms.RadioSelect | forms.FileInput):
-                field.widget.attrs.setdefault("class", "field")
+        for name, field in self.fields.items():
+            # A radio group and a file picker are drawn by hand on the page,
+            # with no field wrapper and no message line to describe them by.
+            if isinstance(field.widget, forms.RadioSelect | forms.FileInput):
+                continue
 
-    def add_error(self, field: str | None, error: ValidationError | str) -> None:
-        super().add_error(field, error)
+            attrs = field.widget.attrs
+            is_select = isinstance(field.widget, forms.Select)
+            attrs.setdefault("class", SELECT if is_select else CONTROL)
+            attrs["aria-describedby"] = f"{self[name].auto_id}-msg"
+            attrs["aria-invalid"] = "false"
 
-        # Every error billow raises — the field's, the model's, this form's —
-        # arrives through add_error, so one hook marks all of them.
-        if field in self.fields:
-            attrs = self.fields[field].widget.attrs
-            if "field" in attrs.get("class", "").split():
-                attrs["class"] += " field-invalid"
+    def full_clean(self) -> None:
+        super().full_clean()
+
+        # Decided once validation has run, from every error it produced — the
+        # field's, the model's, this form's — rather than hooked into
+        # add_error, which a ModelForm bypasses for a model's error dict.
+        for name, field in self.fields.items():
+            if "aria-invalid" in field.widget.attrs:
+                field.widget.attrs["aria-invalid"] = (
+                    "true" if name in self.errors else "false"
+                )
+
+    @property
+    def invalid_fields(self) -> list[forms.BoundField]:
+        """The fields that failed, in form order, for the error summary."""
+        return [field for field in self if field.errors]

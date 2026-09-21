@@ -1,16 +1,39 @@
 {% comment %}
-  One field of the Business form: label, widget, help and errors. Included
-  per field rather than looped over, so the page can group them and the
-  widths can differ; the markup around them stays in one place.
+  konspec field/django, and select/django's wrapper and chevron for a select:
+  the label written by hand, the control's wrapper drawing the border and the
+  focus outline, and one message line whose id never changes, holding the
+  error or else the help text. The control's classes, aria-describedby and
+  aria-invalid are set in apps/core/forms.py.
+
+  Marking runs the way form-page's key says: an optional field carries the
+  word Optional, and optional_class lets a page hide that word with CSS.
+  field_class goes on the root, for a grid span.
 {% endcomment %}
-<div>
-  <label class="lbl" for="{{ field.id_for_label }}">
+<div class="min-w-0 {{ field_class }}">
+  <label for="{{ field.id_for_label }}" class="mb-1.5 {% if field.field.required %}block{% else %}flex items-baseline gap-2{% endif %} text-[13px]/5 font-medium">
     {{ field.label }}
-    {% if not field.field.required %}<span class="{{ optional_class }} text-micro font-normal uppercase text-ink-faint">Optional</span>{% endif %}
+    {% if not field.field.required %}<span aria-hidden="true" class="{{ optional_class }} font-normal text-zinc-500">Optional</span>{% endif %}
   </label>
-  {{ field }}
-  {% if field.help_text %}<p class="mt-1.5 text-note text-ink-faint">{{ field.help_text }}</p>{% endif %}
-  {% for error in field.errors %}
-    <p class="mt-1.5 text-note text-danger">{{ error }}</p>
-  {% endfor %}
+  {% if field.widget_type == "select" %}
+    <div class="relative rounded-lg bg-white {% if field.errors %}border border-red-600 focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-red-600/15{% else %}border border-zinc-200 focus-within:border-zinc-700 focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-zinc-700/15{% endif %}">
+      {{ field }}
+      <span aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-zinc-600">
+        <i data-lucide="chevron-down" class="size-4"></i>
+      </span>
+    </div>
+  {% else %}
+    <div class="rounded-lg bg-white focus-within:outline-3 focus-within:outline-offset-2 {% if field.errors %}border border-red-600 focus-within:outline-red-600/15{% else %}border border-zinc-200 focus-within:border-zinc-700 focus-within:outline-zinc-700/15{% endif %}">
+      {{ field }}
+    </div>
+  {% endif %}
+  <p id="{{ field.auto_id }}-msg" class="mt-1.5 min-h-4 text-[12px]/4">
+    {% if field.errors %}
+      <span class="flex items-start gap-1.5 font-medium text-red-600">
+        <i data-lucide="alert-circle" class="mt-px size-3.5 shrink-0"></i>
+        <span class="tabular-nums">{{ field.errors.0 }}</span>
+      </span>
+    {% else %}
+      <span class="block tabular-nums text-zinc-500">{{ field.help_text }}</span>
+    {% endif %}
+  </p>
 </div>

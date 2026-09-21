@@ -23,7 +23,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <a href="{% url 'record_customer' %}"
-             class="flex items-center gap-2 rounded-lg bg-zinc-700 px-3.5 py-2 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+             class="inline-flex h-9 items-center gap-2 rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
             <i data-lucide="plus" class="size-4"></i>New Customer
           </a>
         </div>
@@ -40,7 +40,7 @@
           </div>
         </div>
         {% if showing_archived %}<input type="hidden" name="show" value="archived">{% endif %}
-        <button type="submit" class="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px]/5 font-medium hover:bg-zinc-100 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15 md:shrink-0">Search</button>
+        <button type="submit" class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15 md:shrink-0">Search</button>
       </form>
 
       {% comment %}

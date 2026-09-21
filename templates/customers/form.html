@@ -1,57 +1,129 @@
 {% comment %}
-  The fields a Customer is made of, shared by recording and editing so that
-  the two pages cannot drift apart.
+  The body of konspec form-page/two-column, shared by recording and editing so
+  that the two pages cannot drift apart: the error summary, the required key,
+  a card per group of fields, the action bar and the unsaved-changes dialog.
+  The page around it carries the form-page root and its formPage component.
+
+  The summary is alert/form-errors. The page is a failed POST re-rendered, so
+  role="alert" announces nothing; formErrors moves focus to it instead.
 {% endcomment %}
-<form method="post" novalidate class="mt-8 flex flex-col gap-5">
+<form method="post" novalidate x-ref="form" @input="arm" @change="arm" @submit="send">
   {% csrf_token %}
 
-  {% if form.non_field_errors %}
-    <div role="alert" class="rounded-panel border border-danger/30 bg-danger-soft px-4 py-3">
-      {% for error in form.non_field_errors %}<p class="text-note text-ink">{{ error }}</p>{% endfor %}
+  {% if form.errors %}
+    <div class="mb-4">
+      <div data-kui="alert/form-errors" role="alert" tabindex="-1" x-data="formErrors"
+           class="rounded-lg border border-zinc-300 bg-white px-4 py-3 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+        <div class="flex items-start gap-3">
+          <i data-lucide="alert-circle" class="mt-0.5 size-4 shrink-0 text-red-600"></i>
+          <div class="min-w-0">
+            {% with count=form.invalid_fields|length %}
+              <p class="text-[13px]/5 font-medium">This Customer was not saved{% if count %} — <span class="tabular-nums">{{ count }}</span> field{{ count|pluralize:" needs,s need" }} attention{% endif %}.</p>
+            {% endwith %}
+            <ul class="mt-2 space-y-1 text-[12px]/4 text-zinc-600">
+              {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+              {% for field in form.invalid_fields %}
+                <li>
+                  <a href="#{{ field.id_for_label }}" class="font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ field.label }}</a>
+                  — {{ field.errors.0 }}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   {% endif %}
 
-  <section class="panel">
-    <div class="panel-head"><h2 class="text-note font-semibold">Name</h2></div>
-    <div class="flex flex-col gap-5 p-4 sm:p-5">
-      {% include "forms/field.html" with field=form.name %}
-      {% include "forms/field.html" with field=form.legal_name %}
-    </div>
-  </section>
+  <p class="text-[12px]/4 text-zinc-600">
+    Every field is required unless its label says <span class="font-medium text-zinc-900">Optional</span>.
+  </p>
 
-  <section class="panel">
-    <div class="panel-head">
-      <h2 class="text-note font-semibold">Address on record</h2>
-      <p class="text-micro uppercase text-ink-faint">Place of supply</p>
-    </div>
-    <div class="flex flex-col gap-5 p-4 sm:p-5">
-      {% include "forms/field.html" with field=form.address_line_1 %}
-      {% include "forms/field.html" with field=form.address_line_2 %}
-      <div class="grid gap-5 sm:grid-cols-2">
-        {% include "forms/field.html" with field=form.city %}
-        {% include "forms/field.html" with field=form.postal_code %}
+  <div class="mt-3 space-y-4">
+
+    <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-5 py-3.5">
+        <h2 class="text-[16px]/6 font-semibold">Name</h2>
       </div>
-      {% include "forms/field.html" with field=form.state %}
+      <div class="px-5 py-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          {% include "forms/field.html" with field=form.name field_class="sm:col-span-2" %}
+          {% include "forms/field.html" with field=form.legal_name field_class="sm:col-span-2" %}
+        </div>
+      </div>
     </div>
-  </section>
 
-  <section class="panel">
-    <div class="panel-head"><h2 class="text-note font-semibold">Tax registration</h2></div>
-    <div class="p-4 sm:p-5">
-      {% include "forms/field.html" with field=form.gstin %}
+    <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-5 py-3.5">
+        <h2 class="text-[16px]/6 font-semibold">Address on record</h2>
+      </div>
+      <div class="px-5 py-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          {% include "forms/field.html" with field=form.address_line_1 field_class="sm:col-span-2" %}
+          {% include "forms/field.html" with field=form.address_line_2 field_class="sm:col-span-2" %}
+          {% include "forms/field.html" with field=form.city %}
+          {% include "forms/field.html" with field=form.postal_code %}
+          {% include "forms/field.html" with field=form.state %}
+        </div>
+      </div>
     </div>
-  </section>
 
-  <section class="panel">
-    <div class="panel-head"><h2 class="text-note font-semibold">Contact</h2></div>
-    <div class="grid gap-5 p-4 sm:grid-cols-2 sm:p-5">
-      {% include "forms/field.html" with field=form.email %}
-      {% include "forms/field.html" with field=form.phone %}
+    <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-5 py-3.5">
+        <h2 class="text-[16px]/6 font-semibold">Tax registration</h2>
+      </div>
+      <div class="px-5 py-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          {% include "forms/field.html" with field=form.gstin %}
+        </div>
+      </div>
     </div>
-  </section>
 
-  <div class="flex flex-wrap items-center gap-4">
-    <button type="submit" class="btn w-full sm:w-auto">Save</button>
-    <a href="{% url 'customer_directory' %}" class="text-note font-medium text-accent hover:underline">Cancel</a>
+    <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-5 py-3.5">
+        <h2 class="text-[16px]/6 font-semibold">Contact</h2>
+      </div>
+      <div class="px-5 py-4">
+        <div class="grid gap-4 sm:grid-cols-2">
+          {% include "forms/field.html" with field=form.email %}
+          {% include "forms/field.html" with field=form.phone %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sticky bottom-0 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-300 bg-white px-4 py-3">
+    <p class="text-[12px]/4 tabular-nums text-zinc-600">
+      <span x-show="dirty" x-cloak class="flex items-center gap-1.5 font-medium text-zinc-900">
+        <i data-lucide="pencil" class="size-3.5 shrink-0 text-zinc-600"></i>Unsaved changes
+      </span>
+    </p>
+    <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <a href="{% url 'customer_directory' %}{% if customer.is_archived %}?show=archived{% endif %}" x-ref="cancel" @click="cancel"
+         class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent px-4 text-[13px]/5 font-medium text-zinc-900 hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Cancel</a>
+      <button type="submit"
+              class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Save</button>
+    </div>
   </div>
 </form>
+
+<div x-show="leaving" x-cloak x-trap.noscroll="leaving" @keydown.escape.window="stay"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
+  <div role="alertdialog" aria-modal="true" aria-labelledby="customer-leave-t" aria-describedby="customer-leave-b"
+       class="w-full max-w-md rounded-xl border border-zinc-300 bg-white p-5 shadow-lg">
+    <h2 id="customer-leave-t" class="text-[16px]/6 font-semibold">Leave without saving?</h2>
+    <p id="customer-leave-b" class="mt-1.5 text-[13px]/5 text-zinc-600">
+      This Customer has changes that have not been saved. Leaving now loses them.
+    </p>
+    <div class="mt-5 flex flex-wrap items-center justify-end gap-2">
+      <button type="button" @click="stay"
+              class="inline-flex h-9 items-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Keep editing</button>
+      <button type="button" @click="discard"
+              class="inline-flex h-9 items-center rounded-lg border border-transparent px-4 text-[13px]/5 font-medium text-red-600 hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Discard changes</button>
+      <button type="button" @click="saveAndLeave"
+              class="inline-flex h-9 items-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Save and leave</button>
+    </div>
+  </div>
+</div>
