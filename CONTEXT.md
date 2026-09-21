@@ -126,6 +126,15 @@ the piece. Every other unit the Item is bought or sold in is defined once, as a
 fixed rate against it, so any unit converts to any other through it.
 _Avoid_: Base unit, primary unit, UOM
 
+**GST unit code**:
+The code a GST return reports a quantity in, such as NOS, MTR or SQF, from the
+fixed list GST publishes (the UQC). A unit billow offers that has no code of
+its own, such as feet, reports under one by an exact factor (1 ft = 0.3048
+MTR), while the invoice and stock keep the unit the Operator chose. Units of
+different kinds, such as feet and square feet, never convert into each other;
+only an Item's own rates link them.
+_Avoid_: UOM, unit of measure
+
 **Supplier**:
 A party the Business buys stock from. Distinct from a Customer even when one
 firm is both, because each side keeps its own ledger.
