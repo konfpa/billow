@@ -5,83 +5,91 @@
 {% block main %}
 {% comment %}
   konspec settings-page/django, as a real page: the variant's preview frame is
-  dropped and its <main> is the shell's, so the root keeps only the width and
-  the gutter. billow has one settings section so far, the Business, and the nav
-  names it anyway, because it is where the next section will be added.
+  dropped and its <main> is the shell's. Its title is set in page-header/default's
+  band rather than bare on the page as the variant draws it, so Settings opens
+  like every other page. billow has one settings section so far, the Business,
+  and the nav names it anyway, because it is where the next section will be added.
 
   The section is one Django form, so its groups are h3 blocks inside the one
   card rather than cards of their own: cards do not nest, and one Save commits
   all of them. The dirty guard is form-page's formPage; with no second section
   to switch to, beforeunload is the only move it has to catch.
 {% endcomment %}
-<div data-kui="settings-page/django" class="mx-auto max-w-5xl p-4 pb-6 text-zinc-900 lg:p-6"
+<div data-kui="settings-page/django" class="text-zinc-900"
      {% if perms.business.change_business %}x-data="formPage" @beforeunload.window="guard"{% endif %}>
 
-  <div class="min-w-0">
-    <h1 class="text-[24px]/7 font-semibold tracking-tight">Settings</h1>
-    <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">
-      {% if missing %}
-        Setting up · billow opens once the Business is recorded
-      {% else %}
-        {{ business.invoice_name }} · {{ business.get_state_display }}
-      {% endif %}
-    </p>
-  </div>
-
-  {% if messages %}<div class="mt-5">{% include "core/messages.html" %}</div>{% endif %}
-
-  {% comment %}
-    Naming what is missing rather than only marking the fields: the list is
-    what lets setup be finished in one pass, and after an upgrade it is the
-    only sign that a Business complete yesterday is short of something today.
-    alert/tags in its waiting tone; no role, because it is true at first paint.
-  {% endcomment %}
-  {% if missing %}
-    <div data-kui="alert/tags" class="mt-5 flex items-start gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3">
-      <i data-lucide="alert-triangle" class="mt-0.5 size-4 shrink-0 text-amber-700"></i>
+  <header data-kui="page-header/default" class="border-b border-zinc-200 bg-white">
+    <div class="mx-auto flex max-w-5xl flex-wrap items-start justify-between gap-x-6 gap-y-3 px-4 py-4 lg:px-6">
       <div class="min-w-0">
-        <p class="text-[13px]/5 font-medium">billow cannot be used until the Business is recorded.</p>
-        <p class="mt-0.5 text-[12px]/4 text-zinc-600">Still needed: {{ missing|join:", " }}.</p>
+        <h1 class="text-[24px]/7 font-semibold tracking-tight">Settings</h1>
+        <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">
+          {% if missing %}
+            Setting up · billow opens once the Business is recorded
+          {% else %}
+            {{ business.invoice_name }} · {{ business.get_state_display }}
+          {% endif %}
+        </p>
       </div>
     </div>
-  {% endif %}
+  </header>
 
-  <div class="mt-5 lg:grid lg:items-start lg:gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+  <div class="mx-auto max-w-5xl space-y-5 p-4 pb-6 lg:p-6">
 
-    <nav aria-label="Settings sections" class="lg:sticky lg:top-6 lg:self-start">
-      <ul role="list" class="space-y-0.5 border-l border-zinc-200 text-[13px]/5">
-        <li>
-          <a href="{% url 'business_settings' %}" aria-current="page"
-             class="-ml-px flex items-center gap-2 border-l-2 border-zinc-700 py-1.5 pl-3 font-medium text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
-            <span class="min-w-0 flex-1">Business</span>
-            {% if perms.business.change_business %}
-              <span x-show="dirty" x-cloak class="flex items-center">
-                <span class="size-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
-                <span class="sr-only">Unsaved changes</span>
-              </span>
-            {% endif %}
-          </a>
-        </li>
-      </ul>
-    </nav>
+    {% if messages %}<div>{% include "core/messages.html" %}</div>{% endif %}
 
-    <section id="business-pane" tabindex="-1" aria-labelledby="business-h"
-             class="mt-4 min-w-0 rounded-xl focus:outline-3 focus:outline-offset-2 focus:outline-zinc-700/15 lg:mt-0">
+    {% comment %}
+      Naming what is missing rather than only marking the fields: the list is
+      what lets setup be finished in one pass, and after an upgrade it is the
+      only sign that a Business complete yesterday is short of something today.
+      alert/tags in its waiting tone; no role, because it is true at first paint.
+    {% endcomment %}
+    {% if missing %}
+      <div data-kui="alert/tags" class="flex items-start gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3">
+        <i data-lucide="alert-triangle" class="mt-0.5 size-4 shrink-0 text-amber-700"></i>
+        <div class="min-w-0">
+          <p class="text-[13px]/5 font-medium">billow cannot be used until the Business is recorded.</p>
+          <p class="mt-0.5 text-[12px]/4 text-zinc-600">Still needed: {{ missing|join:", " }}.</p>
+        </div>
+      </div>
+    {% endif %}
 
-      <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
-        <div class="border-b border-zinc-200 px-5 py-3.5">
-          <h2 id="business-h" class="text-[16px]/6 font-semibold">Business</h2>
-          <p class="mt-0.5 text-[13px]/5 text-zinc-600">Who billow invoices on behalf of. These details appear on every invoice it issues.</p>
+    <div class="lg:grid lg:items-start lg:gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+
+      <nav aria-label="Settings sections" class="lg:sticky lg:top-6 lg:self-start">
+        <ul role="list" class="space-y-0.5 border-l border-zinc-200 text-[13px]/5">
+          <li>
+            <a href="{% url 'business_settings' %}" aria-current="page"
+               class="-ml-px flex items-center gap-2 border-l-2 border-zinc-700 py-1.5 pl-3 font-medium text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+              <span class="min-w-0 flex-1">Business</span>
+              {% if perms.business.change_business %}
+                <span x-show="dirty" x-cloak class="flex items-center">
+                  <span class="size-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
+                  <span class="sr-only">Unsaved changes</span>
+                </span>
+              {% endif %}
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <section id="business-pane" tabindex="-1" aria-labelledby="business-h"
+               class="mt-4 min-w-0 rounded-xl focus:outline-3 focus:outline-offset-2 focus:outline-zinc-700/15 lg:mt-0">
+
+        <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+          <div class="border-b border-zinc-200 px-5 py-3.5">
+            <h2 id="business-h" class="text-[16px]/6 font-semibold">Business</h2>
+            <p class="mt-0.5 text-[13px]/5 text-zinc-600">Who billow invoices on behalf of. These details appear on every invoice it issues.</p>
+          </div>
+
+          {% if perms.business.change_business %}
+            {% include "business/form.html" %}
+          {% else %}
+            {% include "business/details.html" %}
+          {% endif %}
         </div>
 
-        {% if perms.business.change_business %}
-          {% include "business/form.html" %}
-        {% else %}
-          {% include "business/details.html" %}
-        {% endif %}
-      </div>
-
-    </section>
+      </section>
+    </div>
   </div>
 </div>
 {% endblock %}
