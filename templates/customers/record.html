@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Record a customer · billow{% endblock %}
+{% block title %}New Customer · billow{% endblock %}
 
 {% block content %}
   <header>
     <p class="text-micro font-semibold uppercase text-ink-faint">Directory</p>
-    <h1 class="mt-2 text-title font-semibold">Record a customer</h1>
+    <h1 class="mt-2 text-title font-semibold">New Customer</h1>
     <p class="mt-2 max-w-[54ch] text-note text-ink-soft">
       The details an invoice must carry about its recipient. Leave the GSTIN blank for a Customer who holds no registration.
     </p>
@@ -60,7 +60,7 @@
     </section>
 
     <div class="flex flex-wrap items-center gap-4">
-      <button type="submit" class="btn w-full sm:w-auto">Record</button>
+      <button type="submit" class="btn w-full sm:w-auto">Save</button>
       <a href="{% url 'customer_directory' %}" class="text-note font-medium text-accent hover:underline">Cancel</a>
     </div>
   </form>
