@@ -3,24 +3,54 @@
 {% block title %}Not set up yet · billow{% endblock %}
 
 {% comment %}
-  The shell is left out deliberately: every link in it leads back here, and
-  offering navigation that cannot go anywhere is a worse dead end than saying
-  so plainly.
+  konspec error-page, 403 variant: the shell is left out because every link in
+  it leads back here. Signing out is the only way off that goes anywhere, so it
+  is the one action; the wordmark comes back to this page until a Superuser has
+  recorded the Business, and then it lets the Operator in.
 {% endcomment %}
 {% block shell %}
-  <main class="flex min-h-dvh items-center justify-center px-4 py-10 sm:px-6">
-    <div class="panel w-full max-w-[46ch] p-5 sm:p-6">
-      {% include "core/wordmark.html" %}
-      <h1 class="mt-6 text-title font-semibold">billow needs setting up</h1>
-      <p class="mt-2 text-note text-ink-soft">
+<div data-kui="error-page/403" class="flex min-h-screen flex-col bg-stone-100 px-4 py-5 text-[14px]/5 text-zinc-900">
+
+  <header class="flex items-center justify-between gap-3">
+    <a href="{% url 'home' %}" class="inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-700 text-white" aria-hidden="true">
+        <svg viewBox="0 0 20 20" class="size-[18px]" fill="none" stroke="currentColor" stroke-width="1.7">
+          <rect x="2.5" y="2.5" width="15" height="15" rx="4"></rect>
+          <path d="M6.5 12.5c2.2 0 2.2-5 4.4-5s2.2 5 2.6 5" stroke-linecap="round"></path>
+        </svg>
+      </span>
+      <span class="text-[16px]/6 font-semibold">billow</span>
+    </a>
+  </header>
+
+  <main class="flex flex-1 items-center justify-center py-10">
+    <div class="w-full max-w-md text-center">
+      <span class="mx-auto flex size-12 items-center justify-center rounded-full bg-zinc-200 ring-1 ring-inset ring-zinc-300">
+        <i data-lucide="settings" class="size-5 text-zinc-600" aria-hidden="true"></i>
+      </span>
+
+      <p class="mt-4 text-[11px]/4 font-semibold uppercase tracking-wider text-zinc-500">Not set up yet</p>
+      <h1 tabindex="-1" class="mt-1 text-[20px]/7 font-semibold tracking-tight">billow needs setting up</h1>
+      <p class="mx-auto mt-2 max-w-md text-[14px]/5 text-zinc-600">
         Before billow can be used, the Business it invoices on behalf of has to be
         recorded — the name, address and tax registration every invoice carries.
+      </p>
+      <p class="mx-auto mt-3 max-w-md text-[13px]/5 text-zinc-600">
         Only a Superuser can do that, so please ask one.
       </p>
-      <form method="post" action="{% url 'logout' %}" class="mt-6">
+
+      <form method="post" action="{% url 'logout' %}" class="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
         {% csrf_token %}
-        <button type="submit" class="btn">Sign out</button>
+        <button type="submit"
+           class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/30">
+          Sign out
+        </button>
       </form>
     </div>
   </main>
+
+  <footer class="border-t border-zinc-200 pt-4 text-center text-[11px]/4 text-zinc-500">
+    Signed in as {{ user.email }}
+  </footer>
+</div>
 {% endblock %}
