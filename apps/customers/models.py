@@ -20,6 +20,19 @@ class CustomerQuerySet(models.QuerySet):
         return self.filter(archived_at__isnull=False)
 
 
+class OnFileManager(models.Manager.from_queryset(CustomerQuerySet)):
+    """The default manager, which leaves the archived Customers out.
+
+    A picker that forgets to filter is the failure this guards against, so
+    forgetting gives the safe answer and reaching an archived Customer is
+    what has to be spelt out. See
+    docs/adr/0008-a-customer-is-archived-never-deleted.md.
+    """
+
+    def get_queryset(self) -> CustomerQuerySet:
+        return super().get_queryset().on_file()
+
+
 class Customer(models.Model):
     """A party billow invoices: one GSTIN, or one unregistered person.
 
@@ -87,7 +100,12 @@ class Customer(models.Model):
 
     history = HistoricalRecords()
 
-    objects = CustomerQuerySet.as_manager()
+    # Declared first, so it is the default manager that the admin, a
+    # ModelForm's choices and `get_object_or_404` reach for. Related-object
+    # traversal uses Django's own `_base_manager`, which filters nothing, so
+    # an invoice can still reach the archived Customer it was issued to.
+    objects = OnFileManager()
+    including_archived = CustomerQuerySet.as_manager()
 
     class Meta:
         ordering = ("name",)
@@ -156,7 +174,11 @@ class Customer(models.Model):
         if not self.gstin:
             return
 
-        holder = Customer.objects.filter(gstin=self.gstin).exclude(pk=self.pk).first()
+        holder = (
+            Customer.including_archived.filter(gstin=self.gstin)
+            .exclude(pk=self.pk)
+            .first()
+        )
 
         if holder is not None:
             # Named rather than merely refused, so the Operator goes and finds
