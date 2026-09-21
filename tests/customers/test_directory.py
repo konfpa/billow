@@ -5,6 +5,9 @@ from apps.customers.models import Customer
 from apps.tax.states import State
 from tests.customers.conftest import REGISTERED
 
+# The same PAN registered in a second state, which is a second Customer.
+KARNATAKA_GSTIN = "29AAPFU0939F1ZR"
+
 DIRECTORY = reverse("customer_directory")
 RECORD = reverse("record_customer")
 
@@ -194,3 +197,64 @@ def test_saving_a_customer_is_confirmed(client, signed_in):
     page = client.post(RECORD, submitted(), follow=True).content.decode()
 
     assert "Sharma Traders is saved." in page
+
+
+@pytest.mark.django_db
+def test_a_gstin_already_on_file_is_refused_naming_who_holds_it(
+    client,
+    signed_in,
+    customer,
+):
+    page = client.post(RECORD, submitted(name="Sharma Trading")).content.decode()
+
+    assert Customer.objects.count() == 1
+    assert "Sharma Traders already holds this GSTIN." in page
+
+
+@pytest.mark.django_db
+def test_the_same_gstin_in_lower_case_is_refused_as_a_duplicate(
+    client,
+    signed_in,
+    customer,
+):
+    page = client.post(RECORD, submitted(gstin="27aapfu0939f1zv")).content.decode()
+
+    assert Customer.objects.count() == 1
+    assert "Sharma Traders already holds this GSTIN." in page
+
+
+@pytest.mark.django_db
+def test_two_customers_may_share_a_display_name(client, signed_in, customer):
+    page = client.post(RECORD, submitted(gstin=""), follow=True).content.decode()
+
+    assert Customer.objects.filter(name="Sharma Traders").count() == 2
+    assert "already holds" not in page
+
+
+@pytest.mark.django_db
+def test_any_number_of_customers_may_hold_no_gstin(client, signed_in):
+    for name in ("Anita Desai", "Ravi Kumar", "Meera Iyer"):
+        client.post(RECORD, submitted(name=name, legal_name="", gstin=""))
+
+    assert Customer.objects.count() == 3
+
+
+@pytest.mark.django_db
+def test_one_company_registered_in_two_states_is_two_customers(
+    client,
+    signed_in,
+    customer,
+):
+    page = client.post(
+        RECORD,
+        submitted(
+            city="Bengaluru",
+            postal_code="560001",
+            state=State.KARNATAKA,
+            gstin=KARNATAKA_GSTIN,
+        ),
+        follow=True,
+    ).content.decode()
+
+    assert Customer.objects.count() == 2
+    assert KARNATAKA_GSTIN in page

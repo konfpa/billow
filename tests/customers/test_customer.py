@@ -1,8 +1,10 @@
 import pytest
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, connection, transaction
 
 from apps.customers.models import Customer
 from apps.tax.states import State
+from tests.customers.conftest import REGISTERED
 
 
 @pytest.mark.django_db
@@ -86,3 +88,33 @@ def test_a_change_names_the_operator_who_made_it(customer, operator):
     customer.save()
 
     assert customer.history.latest().history_user == operator
+
+
+@pytest.mark.django_db
+def test_a_second_customer_on_one_registration_is_refused(customer):
+    twin = Customer(**{**REGISTERED, "name": "Sharma Trading"})
+
+    with pytest.raises(ValidationError) as refusal:
+        twin.full_clean()
+
+    assert "Sharma Traders already holds" in str(refusal.value.error_dict["gstin"])
+
+
+@pytest.mark.django_db
+def test_a_customer_is_not_a_duplicate_of_itself(customer):
+    customer.city = "Pune"
+
+    customer.full_clean()
+
+
+@pytest.mark.django_db
+def test_raw_sql_cannot_write_a_second_customer_on_one_registration(customer):
+    with pytest.raises(IntegrityError), transaction.atomic(), connection.cursor() as c:
+        c.execute(
+            "INSERT INTO customers_customer (name, legal_name, address_line_1,"
+            " address_line_2, city, postal_code, state, gstin, email, phone,"
+            " created_at, updated_at)"
+            " SELECT name, legal_name, address_line_1, address_line_2, city,"
+            " postal_code, state, gstin, email, phone, created_at, updated_at"
+            " FROM customers_customer",
+        )

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from simple_history.models import HistoricalRecords
@@ -71,6 +72,20 @@ class Customer(models.Model):
 
     class Meta:
         ordering = ("name",)
+        constraints = [
+            # One registration is one Customer, made structural so that a
+            # `loaddata`, a `bulk_create` or raw SQL cannot put a second
+            # Customer behind a GSTIN and leave one taxpayer with two
+            # ledgers. Plain uniqueness is enough because a GSTIN is only
+            # ever accepted in capitals. Unregistered Customers are exempt:
+            # holding no GSTIN is what makes them one, and there may be any
+            # number of them.
+            models.UniqueConstraint(
+                fields=["gstin"],
+                condition=~models.Q(gstin=""),
+                name="one_customer_per_gstin",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -94,3 +109,14 @@ class Customer(models.Model):
         super().clean()
 
         validate_gstin_matches_state(self.gstin, self.state)
+
+        if not self.gstin:
+            return
+
+        holder = Customer.objects.filter(gstin=self.gstin).exclude(pk=self.pk).first()
+
+        if holder is not None:
+            # Named rather than merely refused, so the Operator goes and finds
+            # the Customer instead of inventing a near-duplicate.
+            msg = f"{holder.name} already holds this GSTIN."
+            raise ValidationError({"gstin": msg})
