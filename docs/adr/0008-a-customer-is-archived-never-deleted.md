@@ -2,7 +2,8 @@
 
 A Customer who stops buying is withdrawn from the ordinary directory by
 stamping `archived_at`, and the row stays. Nothing in billow deletes a
-Customer, and the archived ones are reached by asking for them.
+Customer. The default manager leaves the archived ones out, so reaching them
+is something a query has to spell out: `Customer.including_archived`.
 
 ## Considered Options
 
@@ -19,7 +20,18 @@ file would find nothing. Hence a filter rather than a disappearance.
 
 ## Consequences
 
-Every query that lists Customers to choose from must ask for `on_file()`
-rather than `all()`, and a query that forgets will offer an archived Customer
-for invoicing. Archiving is not a soft delete to be swept up by a purge job:
-there is no purge.
+Filtering the default manager is the one place Django's own advice is set
+aside deliberately. The alternative, an opt-in `on_file()` on an unfiltered
+default, puts the whole rule on every future author remembering it, and the
+release where one forgets offers an archived Customer to invoice. Forgetting
+now gives the safe answer instead.
+
+What this costs is that the default manager no longer speaks for the table.
+`Customer.objects.count()` is not how many Customers there are, and anything
+that must see every row — the duplicate-GSTIN check, the edit page, restoring
+— names `including_archived` and is easy to leave out by accident. Related
+traversal is unaffected: Django's `_base_manager` filters nothing, so an
+invoice still reaches the archived Customer it was issued to.
+
+Archiving is not a soft delete to be swept up by a purge job: there is no
+purge.

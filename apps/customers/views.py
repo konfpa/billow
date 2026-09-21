@@ -17,7 +17,9 @@ def customer_directory(request: HttpRequest) -> HttpResponse:
     """Everyone billow can invoice, or — asked for — everyone archived."""
     showing_archived = request.GET.get("show") == "archived"
     customers = (
-        Customer.objects.archived() if showing_archived else Customer.objects.on_file()
+        Customer.including_archived.archived()
+        if showing_archived
+        else Customer.objects.all()
     )
 
     return render(
@@ -55,7 +57,7 @@ def edit_customer(request: HttpRequest, pk: int) -> HttpResponse:
     corrected here is the Customer and nothing else; see
     docs/adr/0007-invoices-snapshot-the-recipient.md.
     """
-    customer = get_object_or_404(Customer, pk=pk)
+    customer = get_object_or_404(Customer.including_archived, pk=pk)
 
     if request.method != "POST":
         form = CustomerForm(instance=customer)
@@ -68,7 +70,10 @@ def edit_customer(request: HttpRequest, pk: int) -> HttpResponse:
     # Bound to its own instance: a form that fails validation still writes what
     # it could clean onto the instance it holds, and `customer` is what the
     # page shows as on file.
-    form = CustomerForm(request.POST, instance=Customer.objects.get(pk=pk))
+    form = CustomerForm(
+        request.POST,
+        instance=Customer.including_archived.get(pk=pk),
+    )
 
     if not form.is_valid():
         # Rendered rather than redirected, so that everything already typed is
@@ -88,7 +93,7 @@ def edit_customer(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 def archive_customer(request: HttpRequest, pk: int) -> HttpResponse:
     """Withdraw a Customer who has stopped buying from the directory."""
-    customer = get_object_or_404(Customer, pk=pk)
+    customer = get_object_or_404(Customer.including_archived, pk=pk)
     customer.archive()
 
     messages.success(request, f"{customer.name} is archived.")
@@ -99,7 +104,7 @@ def archive_customer(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 def restore_customer(request: HttpRequest, pk: int) -> HttpResponse:
     """Bring back a Customer who returned, as the record they always were."""
-    customer = get_object_or_404(Customer, pk=pk)
+    customer = get_object_or_404(Customer.including_archived, pk=pk)
     customer.restore()
 
     messages.success(request, f"{customer.name} is back on file.")

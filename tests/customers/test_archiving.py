@@ -3,7 +3,7 @@ from django.urls import reverse
 
 from apps.customers import urls
 from apps.customers.models import Customer
-from tests.customers.conftest import submitted
+from tests.customers.conftest import REGISTERED, submitted
 
 DIRECTORY = reverse("customer_directory")
 ARCHIVED = f"{DIRECTORY}?show=archived"
@@ -33,7 +33,7 @@ def test_an_operator_archives_a_customer_and_the_row_remains(
 
     customer.refresh_from_db()
     assert response.status_code == 200
-    assert Customer.objects.count() == 1
+    assert Customer.including_archived.count() == 1
     assert customer.is_archived
 
 
@@ -252,6 +252,21 @@ def test_a_gstin_an_archived_customer_holds_says_they_are_archived(
 ):
     page = client.post(reverse("record_customer"), submitted()).content.decode()
 
-    assert Customer.objects.count() == 1
+    assert Customer.including_archived.count() == 1
     assert "Sharma Traders already holds this GSTIN." in page
     assert "They are archived, and can be restored." in page
+
+
+@pytest.mark.django_db
+def test_the_default_manager_leaves_out_the_archived(archived):
+    assert not Customer.objects.exists()
+    assert Customer.including_archived.get() == archived
+
+
+@pytest.mark.django_db
+def test_reaching_an_archived_customer_is_spelt_out(archived):
+    """Forgetting to filter gives the safe answer; see docs/adr/0008."""
+    on_file = Customer.objects.create(**{**REGISTERED, "gstin": ""})
+
+    assert list(Customer.objects.all()) == [on_file]
+    assert list(Customer.including_archived.archived()) == [archived]
