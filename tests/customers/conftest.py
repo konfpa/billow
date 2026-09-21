@@ -13,8 +13,7 @@ PASSWORD = "a-perfectly-fine-password"
 REGISTERED = {
     "name": "Sharma Traders",
     "legal_name": "Sharma Traders LLP",
-    "address_line_1": "22 Linking Road",
-    "address_line_2": "Bandra West",
+    "address": "22 Linking Road\nBandra West",
     "city": "Mumbai",
     "postal_code": "400050",
     "state": State.MAHARASHTRA,

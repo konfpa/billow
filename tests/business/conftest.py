@@ -11,8 +11,7 @@ PASSWORD = "a-perfectly-fine-password"
 COMPLETE = {
     "name": "Umbrella Trading",
     "legal_name": "Umbrella Trading Private Limited",
-    "address_line_1": "14 Marine Drive",
-    "address_line_2": "Nariman Point",
+    "address": "14 Marine Drive\nNariman Point",
     "city": "Mumbai",
     "postal_code": "400021",
     "state": State.MAHARASHTRA,

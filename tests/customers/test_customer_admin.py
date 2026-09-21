@@ -27,8 +27,7 @@ def test_the_admin_shows_every_detail_of_a_customer(superuser_client, customer):
     for detail in (
         "Sharma Traders",
         "Sharma Traders LLP",
-        "22 Linking Road",
-        "Bandra West",
+        "22 Linking Road<br>Bandra West",
         "Mumbai",
         "400050",
         "Maharashtra",

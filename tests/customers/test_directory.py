@@ -99,10 +99,10 @@ def test_a_gstin_typed_in_lower_case_is_stored_in_capitals(client, signed_in):
 
 @pytest.mark.django_db
 def test_a_customer_without_an_address_is_refused(client, signed_in):
-    response = client.post(RECORD, submitted(address_line_1="", city=""))
+    response = client.post(RECORD, submitted(address="", city=""))
 
     assert not Customer.objects.exists()
-    assert set(response.context["form"].errors) == {"address_line_1", "city"}
+    assert set(response.context["form"].errors) == {"address", "city"}
 
 
 @pytest.mark.django_db
@@ -278,3 +278,30 @@ def test_a_search_of_the_archived_matching_nothing_points_to_those_on_file(
     assert "No Customer matches “Kapoor”" in page
     assert "in case they return" not in page
     assert f'href="{DIRECTORY}?q=Kapoor"' in page
+
+
+@pytest.mark.django_db
+def test_a_customers_address_keeps_the_lines_it_was_typed_on(client, signed_in):
+    client.post(RECORD, submitted(address=" Shop 3, Linking Road \n\nBandra West\n"))
+
+    assert Customer.objects.get().address == "Shop 3, Linking Road\nBandra West"
+
+
+@pytest.mark.django_db
+def test_a_customers_address_of_six_lines_is_refused(client, signed_in):
+    response = client.post(RECORD, submitted(address="1\n2\n3\n4\n5\n6"))
+
+    assert not Customer.objects.exists()
+    assert response.context["form"].errors["address"] == [
+        "An address fits on 5 lines or fewer."
+    ]
+
+
+@pytest.mark.django_db
+def test_a_customers_address_longer_than_500_characters_is_refused(client, signed_in):
+    response = client.post(RECORD, submitted(address="x" * 501))
+
+    assert not Customer.objects.exists()
+    assert response.context["form"].errors["address"] == [
+        "An address is 500 characters or fewer."
+    ]

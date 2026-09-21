@@ -29,7 +29,7 @@ def test_the_form_arrives_filled_with_what_is_on_file(client, signed_in, custome
     page = client.get(edit_url(customer)).content.decode()
 
     assert 'value="Sharma Traders"' in page
-    assert 'value="22 Linking Road"' in page
+    assert ">\n22 Linking Road\nBandra West</textarea>" in page
     assert 'value="27AAPFU0939F1ZV"' in page
 
 
@@ -70,11 +70,11 @@ def test_what_editing_requires_is_what_recording_requires(client, signed_in, cus
 
 @pytest.mark.django_db
 def test_a_customer_without_an_address_is_refused(client, signed_in, customer):
-    response = client.post(edit_url(customer), submitted(address_line_1="", city=""))
+    response = client.post(edit_url(customer), submitted(address="", city=""))
 
     customer.refresh_from_db()
-    assert customer.address_line_1 == "22 Linking Road"
-    assert set(response.context["form"].errors) == {"address_line_1", "city"}
+    assert customer.address == "22 Linking Road\nBandra West"
+    assert set(response.context["form"].errors) == {"address", "city"}
 
 
 @pytest.mark.django_db
@@ -185,3 +185,14 @@ def test_a_customer_who_is_not_on_file_is_not_found(client, signed_in):
     response = client.get(reverse("edit_customer", args=[404]))
 
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_a_customers_address_is_changed_line_by_line(client, signed_in, customer):
+    client.post(
+        edit_url(customer),
+        submitted(address="Shop 3\n22 Linking Road\nBandra West"),
+    )
+
+    page = client.get(edit_url(customer)).content.decode()
+    assert ">\nShop 3\n22 Linking Road\nBandra West</textarea>" in page

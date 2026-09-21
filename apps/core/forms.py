@@ -1,12 +1,16 @@
 from django import forms
 
-# konspec field/django and select/django. The widget renders the control
-# alone: the bordered wrapper, the focus outline and the error border are
-# drawn by templates/forms/field.html around it.
+# konspec field/django, select/django and textarea/django. The widget renders
+# the control alone: the bordered wrapper, the focus outline and the error
+# border are drawn by templates/forms/field.html around it.
 CONTROL = "w-full bg-transparent px-3 py-2 text-[14px]/5 tabular-nums outline-none"
 SELECT = (
     "block w-full min-w-0 appearance-none bg-transparent py-2 pr-9 pl-3 "
     "text-[14px]/5 outline-none"
+)
+TEXTAREA = (
+    "block w-full bg-transparent px-3 py-2 text-[14px]/5 outline-none "
+    "placeholder:text-zinc-500"
 )
 
 
@@ -28,8 +32,12 @@ class StyledForm(forms.ModelForm):
                 continue
 
             attrs = field.widget.attrs
-            is_select = isinstance(field.widget, forms.Select)
-            attrs.setdefault("class", SELECT if is_select else CONTROL)
+            if isinstance(field.widget, forms.Select):
+                attrs.setdefault("class", SELECT)
+            elif isinstance(field.widget, forms.Textarea):
+                attrs.setdefault("class", TEXTAREA)
+            else:
+                attrs.setdefault("class", CONTROL)
             attrs["aria-describedby"] = f"{self[name].auto_id}-msg"
             attrs["aria-invalid"] = "false"
 

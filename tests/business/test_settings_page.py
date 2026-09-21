@@ -250,3 +250,69 @@ def test_a_change_names_the_superuser_who_made_it(client, superuser, business):
     client.post(URL, submitted(name="Umbrella Supplies"))
 
     assert business.history.latest().history_user == superuser
+
+
+@pytest.mark.django_db
+def test_an_address_keeps_the_lines_it_was_typed_on(client, superuser, operator):
+    client.force_login(superuser)
+    client.post(
+        URL,
+        submitted(address="Unit 4, Mistry Chambers\n14 Marine Drive\nNariman Point"),
+    )
+    client.force_login(operator)
+
+    page = client.get(URL).content.decode()
+
+    assert "Unit 4, Mistry Chambers<br>14 Marine Drive<br>Nariman Point" in page
+
+
+@pytest.mark.django_db
+def test_blank_lines_and_stray_spaces_are_left_out_of_an_address(client, superuser):
+    client.force_login(superuser)
+
+    client.post(URL, submitted(address="  14 Marine Drive  \n\n \nNariman Point\n\n"))
+
+    assert Business.objects.get().address == "14 Marine Drive\nNariman Point"
+
+
+@pytest.mark.django_db
+def test_an_address_of_six_lines_is_refused(client, superuser):
+    client.force_login(superuser)
+
+    response = client.post(URL, submitted(address="1\n2\n3\n4\n5\n6"))
+
+    assert not Business.objects.exists()
+    assert response.context["form"].errors["address"] == [
+        "An address fits on 5 lines or fewer."
+    ]
+
+
+@pytest.mark.django_db
+def test_blank_lines_do_not_count_against_an_address(client, superuser):
+    client.force_login(superuser)
+
+    client.post(URL, submitted(address="1\n\n2\n\n3\n\n4\n\n5"))
+
+    assert Business.objects.get().address == "1\n2\n3\n4\n5"
+
+
+@pytest.mark.django_db
+def test_an_address_longer_than_500_characters_is_refused(client, superuser):
+    client.force_login(superuser)
+
+    response = client.post(URL, submitted(address="x" * 501))
+
+    assert not Business.objects.exists()
+    assert response.context["form"].errors["address"] == [
+        "An address is 500 characters or fewer."
+    ]
+
+
+@pytest.mark.django_db
+def test_an_address_of_nothing_but_blank_lines_is_refused(client, superuser):
+    client.force_login(superuser)
+
+    response = client.post(URL, submitted(address=" \n\n  "))
+
+    assert not Business.objects.exists()
+    assert "address" in response.context["form"].errors

@@ -27,12 +27,12 @@ def test_a_legal_name_is_what_a_tax_invoice_carries(business):
 def test_raw_sql_cannot_write_a_second_business(business):
     with pytest.raises(IntegrityError), transaction.atomic(), connection.cursor() as c:
         c.execute(
-            "INSERT INTO business_business (id, name, legal_name, address_line_1,"
-            " address_line_2, city, postal_code, state, is_gst_registered, gstin,"
-            " pan, cin, email, phone, website, logo, created_at, updated_at)"
-            " SELECT 2, name, legal_name, address_line_1, address_line_2, city,"
+            "INSERT INTO business_business (id, name, legal_name, address, city,"
             " postal_code, state, is_gst_registered, gstin, pan, cin, email,"
-            " phone, website, logo, created_at, updated_at FROM business_business",
+            " phone, website, logo, created_at, updated_at)"
+            " SELECT 2, name, legal_name, address, city, postal_code, state,"
+            " is_gst_registered, gstin, pan, cin, email, phone, website, logo,"
+            " created_at, updated_at FROM business_business",
         )
 
 
