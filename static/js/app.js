@@ -377,6 +377,7 @@ document.addEventListener("alpine:init", () => {
       const row = holder.firstElementChild;
       row.querySelector("legend").textContent = `Other unit ${index + 1}`;
       row.querySelector("button").setAttribute("aria-label", `Remove other unit ${index + 1}`);
+      row.querySelector("[data-title]").textContent = `Unit ${index + 1}`;
 
       this.$refs.rows.append(row);
       this.$refs.total.value = index + 1;

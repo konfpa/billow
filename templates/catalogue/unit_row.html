@@ -1,10 +1,15 @@
 {% comment %}
-  One line of konspec form-page/line-items, as a Django formset form.
+  One line of konspec form-page/line-items, as a Django formset form. Below
+  md each line is its own titled card, since stacked lines ran together.
 {% endcomment %}
-<fieldset class="border-b border-zinc-100 last:border-0" {% if unit_form.DELETE.value %}hidden{% endif %}>
+<fieldset class="relative m-3 rounded-lg border border-zinc-300 bg-white md:m-0 md:rounded-none md:border-0 md:border-b md:border-zinc-100 md:last:border-0" {% if unit_form.DELETE.value %}hidden{% endif %}>
   <legend class="sr-only">Other unit {{ position }}</legend>
   {{ unit_form.id }}
   <input type="hidden" name="{{ unit_form.DELETE.html_name }}" value="{% if unit_form.DELETE.value %}on{% endif %}" data-delete>
+
+  <div aria-hidden="true" class="flex h-11 items-center border-b border-zinc-200 px-4 md:hidden">
+    <span data-title class="text-[13px]/5 font-semibold">Unit {{ position }}</span>
+  </div>
 
   <div class="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_7rem_7rem_7rem_2.25rem] md:items-start md:gap-2 md:py-2">
 
@@ -50,11 +55,10 @@
     </div>
     {% endwith %}
 
-    <div class="md:pt-0.5">
+    <div class="absolute top-1 right-2 md:static md:pt-0.5">
       <button type="button" @click="remove" aria-label="Remove other unit {{ position }}"
-              class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white text-[13px]/5 font-medium text-zinc-600 hover:bg-zinc-100 hover:text-red-600 md:size-9 md:w-auto md:border-transparent">
+              class="inline-flex size-9 items-center justify-center rounded-lg border border-transparent text-zinc-600 hover:bg-zinc-200 hover:text-red-600 md:hover:bg-zinc-100">
         <i data-lucide="trash-2" class="size-4"></i>
-        <span class="md:hidden">Remove this unit</span>
       </button>
     </div>
 
