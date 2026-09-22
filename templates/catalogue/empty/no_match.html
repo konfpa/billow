@@ -9,7 +9,7 @@
     </span>
     <h2 class="mt-3 text-[16px]/6 font-semibold">No Items from {{ brand.name }}</h2>
     <p class="mt-1 max-w-sm text-[13px]/5 text-zinc-600">
-      There are <span class="font-medium text-zinc-900 tabular-nums">{{ total }}</span> Items on file, and none is sold under {{ brand.name }}.
+      There {{ total|pluralize:"is,are" }} <span class="font-medium text-zinc-900 tabular-nums">{{ total }}</span> Item{{ total|pluralize }} on file, and none is sold under {{ brand.name }}.
     </p>
     <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
       <a href="{% url 'item_directory' %}"
