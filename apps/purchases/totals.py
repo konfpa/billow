@@ -8,6 +8,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 
+RUPEE = Decimal(1)
 PAISE = Decimal("0.01")
 QUANTITY_STEP = Decimal("0.001")
 HUNDRED = Decimal(100)
@@ -80,6 +81,7 @@ class Totals(Tax):
     bill_discount: Decimal
     lines: tuple[LineTotals, ...]
     by_rate: tuple[RateTotals, ...]
+    round_off: Decimal = NOTHING
 
     @property
     def discounted(self) -> Decimal:
@@ -87,8 +89,13 @@ class Totals(Tax):
         return self.taxable_value + self.bill_discount
 
     @property
+    def suggested_round_off(self) -> Decimal:
+        """What brings the amount to a whole rupee, whatever Round-off was given."""
+        return self.amount.quantize(RUPEE, ROUND_HALF_UP) - self.amount
+
+    @property
     def grand_total(self) -> Decimal:
-        return self.amount
+        return self.amount + self.round_off
 
 
 def purchase_totals(  # noqa: PLR0913
@@ -99,6 +106,7 @@ def purchase_totals(  # noqa: PLR0913
     business_state: str,
     business_registered: bool,
     bill_discount: Decimal = NOTHING,
+    round_off: Decimal = NOTHING,
 ) -> Totals:
     """Each line's taxable value, tax and cost, the tax by GST rate, and the total.
 
@@ -160,6 +168,7 @@ def purchase_totals(  # noqa: PLR0913
         bill_discount=sum(shares, NOTHING),
         lines=tuple(totalled),
         by_rate=by_rate,
+        round_off=round_off,
         **_summed(totalled),
     )
 

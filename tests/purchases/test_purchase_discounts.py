@@ -22,6 +22,7 @@ def test_discounts_are_recorded_as_printed(client, signed_in, supplier, elbow, p
             line(elbow, quantity="1", rate="600"),
             line(pipe, quantity="1", rate="500", discount_percent="20"),
             bill_discount="100",
+            billed_total="1015",
         ),
     )
 
@@ -31,7 +32,7 @@ def test_discounts_are_recorded_as_printed(client, signed_in, supplier, elbow, p
         Decimal("0.00"),
         Decimal("20.00"),
     ]
-    assert purchase.totals().grand_total == Decimal("1015.20")
+    assert purchase.totals().grand_total == Decimal("1015.00")
 
 
 @pytest.mark.django_db
@@ -95,6 +96,7 @@ def test_the_page_shows_the_discounts(client, signed_in, supplier, elbow, pipe):
             line(elbow, quantity="1", rate="600"),
             line(pipe, quantity="1", rate="500", discount_percent="20"),
             bill_discount="100",
+            billed_total="1015",
         ),
     )
 
@@ -104,7 +106,7 @@ def test_the_page_shows_the_discounts(client, signed_in, supplier, elbow, pipe):
     assert "Bill discount" in page
     assert "\N{MINUS SIGN}₹100.00" in page
     assert "₹900.00" in page
-    assert "₹1,015.20" in page
+    assert "₹1,015.00" in page
 
 
 @pytest.mark.django_db

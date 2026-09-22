@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 
 import pytest
 from django.urls import reverse
@@ -15,6 +16,7 @@ def bill(supplier, item, number, received, rate="100"):
         bill_number=number,
         bill_date=received,
         received_date=received,
+        billed_total=Decimal(rate) * Decimal("1.18"),
     )
     purchase.copy_supplier()
     purchase.save()

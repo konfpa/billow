@@ -29,6 +29,7 @@ def validate_positive(quantity: Decimal) -> None:
 
 
 APRIL = 4
+ROUND_OFF_LIMIT = "A Round-off is no more than ₹1.00 either way."
 
 
 def financial_year(date: str | models.Expression) -> models.Expression:
@@ -81,6 +82,26 @@ class Purchase(models.Model):
         validators=[MinValueValidator(0)],
         help_text="As printed, before tax. Leave blank if there is none.",
     )
+    # Limited so that a mistyped line cannot hide inside it. See CONTEXT.md,
+    # Round-off.
+    round_off = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        default=0,
+        validators=[
+            MinValueValidator(-1, ROUND_OFF_LIMIT),
+            MaxValueValidator(1, ROUND_OFF_LIMIT),
+        ],
+        verbose_name="Round-off",
+        help_text="Leave blank for the one that makes a whole rupee.",
+    )
+    # As typed off the bill, and kept even where billow's total differs, so a
+    # bill the Supplier added up wrongly is still on file as printed.
+    billed_total = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name="Grand total on the bill",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -103,6 +124,10 @@ class Purchase(models.Model):
                 condition=models.Q(bill_discount__gte=0),
                 name="bill_discount_is_not_negative",
             ),
+            models.CheckConstraint(
+                condition=models.Q(round_off__range=(-1, 1)),
+                name="round_off_is_within_a_rupee",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -112,16 +137,24 @@ class Purchase(models.Model):
         self.supplier_gstin = self.supplier.gstin
         self.supplier_state = self.supplier.state
 
-    def totals(self, business: Business | None = None) -> Totals:
-        """What this Purchase comes to. Reads `lines` through any prefetch."""
+    def totals(
+        self, business: Business | None = None, lines: list[Line] | None = None
+    ) -> Totals:
+        """What this Purchase comes to, from `lines` or those it has on file.
+
+        Lines on file are read through any prefetch.
+        """
         business = business or Business.load()
+        if lines is None:
+            lines = [line.as_line() for line in self.lines.all()]
         return purchase_totals(
-            [line.as_line() for line in self.lines.all()],
+            lines,
             supplier_state=self.supplier_state,
             supplier_gstin=self.supplier_gstin,
             business_state=business.state,
             business_registered=bool(business.is_gst_registered),
             bill_discount=self.bill_discount,
+            round_off=self.round_off,
         )
 
 

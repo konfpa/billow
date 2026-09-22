@@ -13,10 +13,12 @@ def totals(
     supplier_gstin=MAHARASHTRA_GSTIN,
     business_registered=True,
     bill_discount="0",
+    round_off="0",
 ):
     return purchase_totals(
         lines,
         bill_discount=Decimal(bill_discount),
+        round_off=Decimal(round_off),
         supplier_state=supplier_state,
         supplier_gstin=supplier_gstin,
         business_state=State.MAHARASHTRA,
@@ -245,3 +247,41 @@ def test_the_bill_discount_lowers_cost():
     result = totals(line(quantity="4", rate="100"), bill_discount="40")
 
     assert result.lines[0].cost_per_stock_unit == Decimal("90.00")
+
+
+def test_the_suggested_round_off_brings_the_total_to_a_whole_rupee():
+    result = totals(line(quantity="1", rate="860"))
+
+    assert result.amount == Decimal("1014.80")
+    assert result.suggested_round_off == Decimal("0.20")
+
+
+def test_the_suggested_round_off_takes_paise_off_below_half_a_rupee():
+    result = totals(line(quantity="1", rate="860.35"))
+
+    assert result.amount == Decimal("1015.21")
+    assert result.suggested_round_off == Decimal("-0.21")
+
+
+def test_half_a_rupee_rounds_up():
+    result = totals(line(rate="50.50", gst_rate="0"))
+
+    assert result.amount == Decimal("50.50")
+    assert result.suggested_round_off == Decimal("0.50")
+
+
+def test_a_whole_rupee_total_needs_no_round_off():
+    assert totals(line()).suggested_round_off == Decimal("0.00")
+
+
+def test_the_round_off_is_added_to_the_grand_total():
+    result = totals(line(quantity="1", rate="860"), round_off="-0.80")
+
+    assert result.round_off == Decimal("-0.80")
+    assert result.grand_total == Decimal("1014.00")
+
+
+def test_the_suggestion_does_not_depend_on_the_round_off_given():
+    result = totals(line(quantity="1", rate="860"), round_off="-0.80")
+
+    assert result.suggested_round_off == Decimal("0.20")

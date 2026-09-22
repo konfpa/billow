@@ -36,12 +36,17 @@ def line(item, unit="NOS", quantity="10", rate="100.00", **fields):
 
 
 def submitted(supplier, *rows, **changes):
-    """What the form posts: a bill from `supplier`, with anything changed."""
+    """What the form posts: a bill from `supplier`, with anything changed.
+
+    The grand total typed is what one default `line` comes to, from a Supplier
+    in the Business's state.
+    """
     return {
         "supplier": str(supplier.pk),
         "bill_number": "MP/2026-27/0412",
         "bill_date": BILL_DATE.isoformat(),
         "received_date": BILL_DATE.isoformat(),
+        "billed_total": "1180.00",
         **lines(*rows),
         **changes,
     }

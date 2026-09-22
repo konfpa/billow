@@ -1,4 +1,5 @@
 import json
+from dataclasses import dataclass
 from decimal import Decimal
 
 from django import forms
@@ -126,8 +127,29 @@ LineFormSet = forms.inlineformset_factory(
 )
 
 
+@dataclass(frozen=True)
+class TotalCheck:
+    """billow's grand total against the one typed off the bill, when they differ."""
+
+    calculated: Decimal
+    billed: Decimal
+
+    @property
+    def difference(self) -> Decimal:
+        return abs(self.calculated - self.billed)
+
+    @property
+    def confirmation(self) -> str:
+        """What the Operator posts to save these two figures as they stand."""
+        return f"{self.billed:.2f}|{self.calculated:.2f}"
+
+
 class PurchaseForm(StyledForm):
     """A Supplier's bill and its lines, recorded together."""
+
+    # Holds the TotalCheck the Operator saved past. Any change to either total
+    # makes it stale, so a confirmation is never carried over to other figures.
+    confirmed_total = forms.CharField(required=False, widget=forms.HiddenInput)
 
     class Meta:
         model = Purchase
@@ -137,12 +159,18 @@ class PurchaseForm(StyledForm):
             "bill_date",
             "received_date",
             "bill_discount",
+            "round_off",
+            "billed_total",
         )
         labels = {"supplier": "Supplier", "bill_number": "Bill number"}
         widgets = {
             "bill_date": forms.DateInput(attrs={"type": "date"}),
             "received_date": forms.DateInput(attrs={"type": "date"}),
             "bill_discount": forms.TextInput(attrs={"inputmode": "decimal"}),
+            "round_off": forms.TextInput(
+                attrs={"inputmode": "decimal", "x-bind:placeholder": "roundOffHint"}
+            ),
+            "billed_total": forms.TextInput(attrs={"inputmode": "decimal"}),
         }
 
     def __init__(self, *args: object, **kwargs: object) -> None:
@@ -151,6 +179,11 @@ class PurchaseForm(StyledForm):
         self.fields["supplier"].empty_label = "Choose a Supplier"
         self.fields["received_date"].required = False
         blank_when_none(self, "bill_discount")
+        # Blank on a new bill, so it takes the suggestion unless one is typed.
+        self.fields["round_off"].required = False
+        if self.instance.pk is None:
+            self.initial["round_off"] = None
+        self.total_check: TotalCheck | None = None
 
         self.lines = LineFormSet(
             self.data if self.is_bound else None,
@@ -163,7 +196,32 @@ class PurchaseForm(StyledForm):
         lines_are_valid = self.lines.is_valid()
         if purchase_is_valid and lines_are_valid:
             self.check_bill_discount()
-        return lines_are_valid and not self.errors
+        if lines_are_valid and not self.errors:
+            self.check_total()
+        return lines_are_valid and not self.errors and not self.total_check
+
+    def check_total(self) -> None:
+        # A warning rather than an error: a Supplier who added the bill up
+        # wrongly still has to be recorded as billed, once the Operator says so.
+        purchase = self.instance
+        purchase.copy_supplier()
+        lines = [form.instance.as_line() for form in self.lines.kept_forms()]
+        suggest = self.cleaned_data["round_off"] is None
+        if suggest:
+            purchase.round_off = Decimal(0)
+        totals = purchase.totals(lines=lines)
+        if suggest:
+            purchase.round_off = totals.suggested_round_off
+
+        check = TotalCheck(
+            calculated=totals.amount + purchase.round_off,
+            billed=self.cleaned_data["billed_total"],
+        )
+        if (
+            check.calculated != check.billed
+            and self.cleaned_data["confirmed_total"] != check.confirmation
+        ):
+            self.total_check = check
 
     def check_bill_discount(self) -> None:
         # Needs the lines cleaned, so it runs once both forms are.

@@ -35,7 +35,9 @@ def test_the_page_shows_the_bill(client, signed_in, supplier, elbow):
 
 @pytest.mark.django_db
 def test_within_the_state_tax_is_cgst_and_sgst(client, signed_in, supplier, elbow):
-    purchase = recorded(client, supplier, line(elbow, quantity="3", rate="100"))
+    purchase = recorded(
+        client, supplier, line(elbow, quantity="3", rate="100"), billed_total="354"
+    )
 
     page = detail(client, purchase)
 
@@ -49,7 +51,10 @@ def test_within_the_state_tax_is_cgst_and_sgst(client, signed_in, supplier, elbo
 @pytest.mark.django_db
 def test_from_another_state_tax_is_igst(client, signed_in, karnataka_supplier, elbow):
     purchase = recorded(
-        client, karnataka_supplier, line(elbow, quantity="3", rate="100")
+        client,
+        karnataka_supplier,
+        line(elbow, quantity="3", rate="100"),
+        billed_total="354",
     )
 
     page = detail(client, purchase)
@@ -65,7 +70,10 @@ def test_an_unregistered_supplier_charges_no_tax(
     client, signed_in, unregistered_supplier, elbow
 ):
     purchase = recorded(
-        client, unregistered_supplier, line(elbow, quantity="3", rate="100")
+        client,
+        unregistered_supplier,
+        line(elbow, quantity="3", rate="100"),
+        billed_total="300",
     )
 
     page = detail(client, purchase)
@@ -84,6 +92,7 @@ def test_tax_is_shown_by_gst_rate(client, signed_in, supplier, elbow, pipe):
         supplier,
         line(elbow, quantity="2", rate="100"),
         line(pipe, quantity="1", rate="200"),
+        billed_total="446",
     )
 
     page = detail(client, purchase)
@@ -98,7 +107,9 @@ def test_tax_is_shown_by_gst_rate(client, signed_in, supplier, elbow, pipe):
 def test_correcting_the_supplier_later_leaves_the_tax_as_it_was(
     client, signed_in, supplier, elbow
 ):
-    purchase = recorded(client, supplier, line(elbow, quantity="3", rate="100"))
+    purchase = recorded(
+        client, supplier, line(elbow, quantity="3", rate="100"), billed_total="354"
+    )
 
     supplier.gstin = ""
     supplier.save()

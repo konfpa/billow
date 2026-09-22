@@ -16,6 +16,7 @@ def on_file(supplier, bill_date, bill_number="MP/2026-27/0412"):
         bill_number=bill_number,
         bill_date=bill_date,
         received_date=bill_date,
+        billed_total=1180,
     )
     purchase.copy_supplier()
     purchase.save()
