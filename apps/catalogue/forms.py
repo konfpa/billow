@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 
 from django import forms
@@ -8,7 +9,7 @@ from apps.catalogue.models import Item, ItemUnit
 from apps.core.forms import LINE_CONTROL, LINE_SELECT, StyledForm
 from apps.core.templatetags.ui import plain
 from apps.tax.rates import GSTRate
-from apps.tax.units import UNITS
+from apps.tax.units import REPORTED_UNDER, UNITS
 
 
 class ItemCodeField(forms.CharField):
@@ -163,6 +164,16 @@ class ItemForm(StyledForm):
         # judged against.
         item_is_valid = super().is_valid()
         return self.units.is_valid() and item_is_valid
+
+    @property
+    def exact_rates(self) -> str:
+        """Rates billow knows exactly, such as 1 ft = 0.3048 MTR, to prefill."""
+        return json.dumps(
+            {
+                unit: {code: str(factor)}
+                for unit, (code, factor) in REPORTED_UNDER.items()
+            }
+        )
 
     @property
     def summary(self) -> list[tuple[str, forms.BoundField]]:
