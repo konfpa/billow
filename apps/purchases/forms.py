@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -8,7 +9,7 @@ from django.utils.dateformat import format as date_format
 from apps.business.models import Business
 from apps.catalogue.models import Item, ItemQuerySet, ItemUnit
 from apps.core.forms import LINE_CONTROL, LINE_SELECT, StyledForm
-from apps.core.templatetags.ui import plain
+from apps.core.templatetags.ui import plain, rupees
 from apps.purchases.models import Purchase, PurchaseLine
 from apps.suppliers.models import Supplier
 from apps.tax.rates import GSTRate
@@ -23,6 +24,13 @@ def units_of(item: Item) -> list[ItemUnit]:
     return sorted(item.units.all(), key=lambda unit: (not unit.is_stock_unit, unit.pk))
 
 
+def blank_when_none(form: forms.ModelForm, name: str) -> None:
+    """An optional discount, shown empty rather than as 0 when there is none."""
+    form.fields[name].required = False
+    if not form.initial.get(name):
+        form.initial[name] = None
+
+
 class PurchaseLineForm(StyledForm):
     # Chosen by the line's Item picker rather than typed, and offered as the
     # chosen Item's own units, so it is checked against that Item in clean().
@@ -30,12 +38,13 @@ class PurchaseLineForm(StyledForm):
 
     class Meta:
         model = PurchaseLine
-        fields = ("item", "unit", "quantity", "rate", "gst_rate")
-        labels = {"rate": "Rate", "gst_rate": "GST"}
+        fields = ("item", "unit", "quantity", "rate", "discount_percent", "gst_rate")
+        labels = {"rate": "Rate", "discount_percent": "Discount", "gst_rate": "GST"}
         widgets = {
             "item": forms.HiddenInput,
             "quantity": forms.TextInput(attrs={"inputmode": "decimal"}),
             "rate": forms.TextInput(attrs={"inputmode": "decimal"}),
+            "discount_percent": forms.TextInput(attrs={"inputmode": "decimal"}),
         }
 
     def __init__(self, *args: object, **kwargs: object) -> None:
@@ -47,10 +56,11 @@ class PurchaseLineForm(StyledForm):
         # Left blank, the line takes the Item's own rate.
         self.fields["gst_rate"].required = False
         self.fields["gst_rate"].choices = [("", "Item's"), *GSTRate.choices]
+        blank_when_none(self, "discount_percent")
 
         for name in ("unit", "gst_rate"):
             self.fields[name].widget.attrs["class"] = LINE_SELECT
-        for name in ("quantity", "rate"):
+        for name in ("quantity", "rate", "discount_percent"):
             self.fields[name].widget.attrs["class"] = LINE_CONTROL
 
     @property
@@ -87,6 +97,9 @@ class PurchaseLineForm(StyledForm):
             cleaned["gst_rate"] = item.gst_rate
         return cleaned
 
+    def clean_discount_percent(self) -> Decimal:
+        return self.cleaned_data["discount_percent"] or Decimal(0)
+
 
 class PurchaseLineFormSet(forms.BaseInlineFormSet):
     def kept_forms(self) -> list[PurchaseLineForm]:
@@ -118,11 +131,18 @@ class PurchaseForm(StyledForm):
 
     class Meta:
         model = Purchase
-        fields = ("supplier", "bill_number", "bill_date", "received_date")
+        fields = (
+            "supplier",
+            "bill_number",
+            "bill_date",
+            "received_date",
+            "bill_discount",
+        )
         labels = {"supplier": "Supplier", "bill_number": "Bill number"}
         widgets = {
             "bill_date": forms.DateInput(attrs={"type": "date"}),
             "received_date": forms.DateInput(attrs={"type": "date"}),
+            "bill_discount": forms.TextInput(attrs={"inputmode": "decimal"}),
         }
 
     def __init__(self, *args: object, **kwargs: object) -> None:
@@ -130,6 +150,7 @@ class PurchaseForm(StyledForm):
         # The default manager leaves Archived Suppliers out of the choice.
         self.fields["supplier"].empty_label = "Choose a Supplier"
         self.fields["received_date"].required = False
+        blank_when_none(self, "bill_discount")
 
         self.lines = LineFormSet(
             self.data if self.is_bound else None,
@@ -139,7 +160,26 @@ class PurchaseForm(StyledForm):
 
     def is_valid(self) -> bool:
         purchase_is_valid = super().is_valid()
-        return self.lines.is_valid() and purchase_is_valid
+        lines_are_valid = self.lines.is_valid()
+        if purchase_is_valid and lines_are_valid:
+            self.check_bill_discount()
+        return lines_are_valid and not self.errors
+
+    def check_bill_discount(self) -> None:
+        # Needs the lines cleaned, so it runs once both forms are.
+        after_line_discounts = sum(
+            (form.instance.as_line().discounted for form in self.lines.kept_forms()),
+            Decimal(0),
+        )
+        if self.cleaned_data["bill_discount"] > after_line_discounts:
+            self.add_error(
+                "bill_discount",
+                "A Bill discount is no more than the lines come to after their "
+                f"own discounts, {rupees(after_line_discounts)}.",
+            )
+
+    def clean_bill_discount(self) -> Decimal:
+        return self.cleaned_data["bill_discount"] or Decimal(0)
 
     def clean(self) -> dict:
         cleaned = super().clean()

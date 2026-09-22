@@ -25,6 +25,20 @@ class Line:
     gst_rate: Decimal
     # How many of the Item's stock unit one of the billed unit holds.
     stock_units_in_one: Decimal = Decimal(1)
+    discount_percent: Decimal = Decimal(0)
+
+    @property
+    def gross(self) -> Decimal:
+        return paise(self.quantity * self.rate)
+
+    @property
+    def discount(self) -> Decimal:
+        return paise(self.gross * self.discount_percent / HUNDRED)
+
+    @property
+    def discounted(self) -> Decimal:
+        """The line less its own discount, before any Bill discount."""
+        return self.gross - self.discount
 
 
 @dataclass(frozen=True)
@@ -45,8 +59,15 @@ class Tax:
 
 @dataclass(frozen=True)
 class LineTotals(Tax):
+    gross: Decimal
+    line_discount: Decimal
+    bill_discount: Decimal
     stock_quantity: Decimal
     cost_per_stock_unit: Decimal
+
+    @property
+    def discounted(self) -> Decimal:
+        return self.gross - self.line_discount
 
 
 @dataclass(frozen=True)
@@ -56,23 +77,34 @@ class RateTotals(Tax):
 
 @dataclass(frozen=True)
 class Totals(Tax):
+    bill_discount: Decimal
     lines: tuple[LineTotals, ...]
     by_rate: tuple[RateTotals, ...]
+
+    @property
+    def discounted(self) -> Decimal:
+        """The lines less their own discounts, before the Bill discount."""
+        return self.taxable_value + self.bill_discount
 
     @property
     def grand_total(self) -> Decimal:
         return self.amount
 
 
-def purchase_totals(
+def purchase_totals(  # noqa: PLR0913
     lines: tuple[Line, ...] | list[Line],
     *,
     supplier_state: str,
     supplier_gstin: str,
     business_state: str,
     business_registered: bool,
+    bill_discount: Decimal = NOTHING,
 ) -> Totals:
     """Each line's taxable value, tax and cost, the tax by GST rate, and the total.
+
+    A line's taxable value is its gross less its own discount and its share of
+    the Bill discount, which is spread in proportion to what each line comes
+    to after its own discount.
 
     Tax is CGST plus SGST when the Supplier is in the Business's state and IGST
     otherwise, and nothing from a Supplier holding no GSTIN, who cannot charge
@@ -81,9 +113,11 @@ def purchase_totals(
     charges_tax = bool(supplier_gstin)
     within_state = supplier_state == business_state
 
+    shares = _spread(bill_discount, [line.discounted for line in lines])
+
     totalled = []
-    for line in lines:
-        taxable_value = paise(line.quantity * line.rate)
+    for line, share in zip(lines, shares, strict=True):
+        taxable_value = line.discounted - share
         cgst = sgst = igst = NOTHING
         if charges_tax and within_state:
             cgst = sgst = paise(taxable_value * line.gst_rate / 2 / HUNDRED)
@@ -101,6 +135,9 @@ def purchase_totals(
 
         totalled.append(
             LineTotals(
+                gross=line.gross,
+                line_discount=line.discount,
+                bill_discount=share,
                 taxable_value=taxable_value,
                 cgst=cgst,
                 sgst=sgst,
@@ -119,7 +156,32 @@ def purchase_totals(
         RateTotals(gst_rate=rate, **_summed(at_rate[rate])) for rate in sorted(at_rate)
     )
 
-    return Totals(lines=tuple(totalled), by_rate=by_rate, **_summed(totalled))
+    return Totals(
+        bill_discount=sum(shares, NOTHING),
+        lines=tuple(totalled),
+        by_rate=by_rate,
+        **_summed(totalled),
+    )
+
+
+def _spread(amount: Decimal, values: list[Decimal]) -> list[Decimal]:
+    """`amount` shared in proportion to `values`, in paise that add up to it.
+
+    Each share is the rounded running total less the one before, so the paise
+    lost rounding one share are made up in the next rather than lost.
+    """
+    whole = sum(values, NOTHING)
+    if not whole:
+        return [NOTHING] * len(values)
+
+    shares = []
+    running = shared = NOTHING
+    for value in values:
+        running += value
+        upto = paise(amount * running / whole)
+        shares.append(upto - shared)
+        shared = upto
+    return shares
 
 
 def _summed(taxes: list[Tax]) -> dict[str, Decimal]:

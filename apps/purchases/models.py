@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.functions import ExtractMonth, ExtractYear
 from django.db.models.lookups import LessThan
@@ -72,6 +72,16 @@ class Purchase(models.Model):
     supplier_gstin = models.CharField(max_length=15, blank=True, verbose_name="GSTIN")
     supplier_state = state_field("The Supplier's state when the Purchase was recorded.")
 
+    # Before tax only; one given off what is payable is not recorded. See
+    # CONTEXT.md, Bill discount.
+    bill_discount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="As printed, before tax. Leave blank if there is none.",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -88,6 +98,10 @@ class Purchase(models.Model):
                 financial_year("bill_date"),
                 name="one_bill_number_per_supplier_per_financial_year",
                 violation_error_message="This bill is already on file.",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(bill_discount__gte=0),
+                name="bill_discount_is_not_negative",
             ),
         ]
 
@@ -107,6 +121,7 @@ class Purchase(models.Model):
             supplier_gstin=self.supplier_gstin,
             business_state=business.state,
             business_registered=bool(business.is_gst_registered),
+            bill_discount=self.bill_discount,
         )
 
 
@@ -133,6 +148,13 @@ class PurchaseLine(models.Model):
     gst_rate = models.DecimalField(
         max_digits=4, decimal_places=2, choices=GSTRate, verbose_name="GST rate"
     )
+    discount_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name="discount",
+    )
 
     history = HistoricalRecords()
 
@@ -145,6 +167,10 @@ class PurchaseLine(models.Model):
             models.CheckConstraint(
                 condition=models.Q(rate__gte=0), name="line_rate_is_not_negative"
             ),
+            models.CheckConstraint(
+                condition=models.Q(discount_percent__range=(0, 100)),
+                name="line_discount_is_a_percentage",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -156,4 +182,5 @@ class PurchaseLine(models.Model):
             rate=self.rate,
             gst_rate=self.gst_rate,
             stock_units_in_one=self.stock_units_in_one,
+            discount_percent=self.discount_percent,
         )

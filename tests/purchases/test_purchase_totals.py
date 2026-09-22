@@ -12,9 +12,11 @@ def totals(
     supplier_state=State.MAHARASHTRA,
     supplier_gstin=MAHARASHTRA_GSTIN,
     business_registered=True,
+    bill_discount="0",
 ):
     return purchase_totals(
         lines,
+        bill_discount=Decimal(bill_discount),
         supplier_state=supplier_state,
         supplier_gstin=supplier_gstin,
         business_state=State.MAHARASHTRA,
@@ -22,12 +24,15 @@ def totals(
     )
 
 
-def line(quantity="1", rate="100", gst_rate="18.00", stock_units_in_one="1"):
+def line(
+    quantity="1", rate="100", gst_rate="18.00", stock_units_in_one="1", discount="0"
+):
     return Line(
         quantity=Decimal(quantity),
         rate=Decimal(rate),
         gst_rate=Decimal(gst_rate),
         stock_units_in_one=Decimal(stock_units_in_one),
+        discount_percent=Decimal(discount),
     )
 
 
@@ -156,3 +161,87 @@ def test_no_lines_come_to_nothing():
 
     assert result.by_rate == ()
     assert result.grand_total == Decimal("0.00")
+
+
+def test_a_line_discount_comes_off_the_line_before_tax():
+    result = totals(line(quantity="4", rate="250", discount="10"))
+
+    [discounted] = result.lines
+    assert discounted.gross == Decimal("1000.00")
+    assert discounted.line_discount == Decimal("100.00")
+    assert discounted.taxable_value == Decimal("900.00")
+    assert discounted.cgst == Decimal("81.00")
+    assert result.grand_total == Decimal("1062.00")
+
+
+def test_a_line_discount_is_rounded_to_paise():
+    # 7.5% of 33.33 is 2.49975.
+    result = totals(line(rate="33.33", discount="7.5"))
+
+    assert result.lines[0].line_discount == Decimal("2.50")
+    assert result.lines[0].taxable_value == Decimal("30.83")
+
+
+def test_the_bill_discount_is_spread_by_taxable_value_across_gst_rates():
+    # ₹100 off lines worth ₹600 at 18% and ₹400 at 5% after a line discount.
+    result = totals(
+        line(quantity="1", rate="600", gst_rate="18.00"),
+        line(quantity="1", rate="500", gst_rate="5.00", discount="20"),
+        bill_discount="100",
+    )
+
+    eighteen, five = result.lines
+    assert eighteen.bill_discount == Decimal("60.00")
+    assert eighteen.taxable_value == Decimal("540.00")
+    assert eighteen.cgst == Decimal("48.60")
+    assert five.bill_discount == Decimal("40.00")
+    assert five.taxable_value == Decimal("360.00")
+    assert five.cgst == Decimal("9.00")
+    assert [(group.gst_rate, group.taxable_value) for group in result.by_rate] == [
+        (Decimal("5.00"), Decimal("360.00")),
+        (Decimal("18.00"), Decimal("540.00")),
+    ]
+    assert result.bill_discount == Decimal("100.00")
+    assert result.taxable_value == Decimal("900.00")
+    assert result.tax == Decimal("115.20")
+    assert result.grand_total == Decimal("1015.20")
+
+
+def test_the_bill_discount_comes_off_before_igst():
+    result = totals(
+        line(quantity="1", rate="600", gst_rate="18.00"),
+        line(quantity="1", rate="400", gst_rate="5.00"),
+        bill_discount="100",
+        supplier_state=State.KARNATAKA,
+        supplier_gstin=KARNATAKA_GSTIN,
+    )
+
+    assert [taxed.igst for taxed in result.lines] == [
+        Decimal("97.20"),
+        Decimal("18.00"),
+    ]
+    assert result.grand_total == Decimal("1015.20")
+
+
+def test_the_bill_discount_shares_add_up_to_it_exactly():
+    # A third of ₹10 each is 3.333…; rounded alone, the shares would miss a paisa.
+    result = totals(line(), line(), line(), bill_discount="10")
+
+    shares = [taxed.bill_discount for taxed in result.lines]
+    assert sum(shares) == Decimal("10.00")
+    assert all(share in {Decimal("3.33"), Decimal("3.34")} for share in shares)
+
+
+def test_a_free_line_bears_none_of_the_bill_discount():
+    result = totals(line(rate="100"), line(rate="0"), bill_discount="5")
+
+    assert [taxed.bill_discount for taxed in result.lines] == [
+        Decimal("5.00"),
+        Decimal("0.00"),
+    ]
+
+
+def test_the_bill_discount_lowers_cost():
+    result = totals(line(quantity="4", rate="100"), bill_discount="40")
+
+    assert result.lines[0].cost_per_stock_unit == Decimal("90.00")
