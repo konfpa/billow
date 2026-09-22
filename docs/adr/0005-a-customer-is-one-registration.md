@@ -26,3 +26,11 @@ nobody can reconstruct.
 The Customer list holds near-duplicate names that differ only by state, which
 looks like a bug and is not. The GSTIN is unique and the name deliberately is
 not, so duplicate detection cannot lean on the name.
+
+## Suppliers
+
+A Supplier is one registration too, for the mirror-image reason: the
+supplier's state against the Business's decides whether input tax is CGST plus
+SGST or IGST, and GSTR-2B reports input tax credit per supplier GSTIN. The
+GSTIN is unique among Suppliers, and an Unregistered supplier is the same shape
+with it left empty.

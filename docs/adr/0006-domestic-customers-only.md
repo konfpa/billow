@@ -32,3 +32,11 @@ A Business that starts exporting cannot record it in billow, which is the
 intended answer until export is designed as its own piece of work. The absence
 must stay visible: billow should not grow a field that half-admits one of these
 customers.
+
+## Suppliers
+
+The same holds on the buying side. Imports and purchases from SEZ units are
+out of scope: an import is taxed at customs on a Bill of Entry, with IGST paid
+there and claimed against the bill rather than an invoice, and its supplier
+has neither a GSTIN nor an Indian state. Every Supplier is registered under
+GST in India, or not registered at all.

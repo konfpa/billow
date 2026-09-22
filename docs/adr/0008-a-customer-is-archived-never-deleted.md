@@ -35,3 +35,10 @@ invoice still reaches the archived Customer it was issued to.
 
 Archiving is not a soft delete to be swept up by a purge job: there is no
 purge.
+
+## Suppliers
+
+Suppliers follow the same rule, for the same two reasons: a Purchase names its
+Supplier, and a supplier who returns is the one already on file.
+`Supplier.objects` leaves the archived out, `Supplier.including_archived`
+reaches them, and `archive_supplier` is granted apart from `change_supplier`.

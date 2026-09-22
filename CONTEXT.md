@@ -29,9 +29,9 @@ delivery, which belongs to a single supply rather than to the Customer.
 _Avoid_: Billing address, registered address, primary address
 
 **Archived**:
-A Customer or Item withdrawn from everyday use: absent from the pickers an
-Operator chooses from, but still named by every invoice and stock movement
-that already refers to it. Distinct
+A Customer, Supplier or Item withdrawn from everyday use: absent from the
+pickers an Operator chooses from, but still named by every invoice, Purchase
+and stock movement that already refers to it. Distinct
 from Deactivated, which is about a User's ability to authenticate.
 _Avoid_: Deleted, inactive, disabled, hidden
 
@@ -136,8 +136,10 @@ only an Item's own rates link them.
 _Avoid_: UOM, unit of measure
 
 **Supplier**:
-A party the Business buys stock from. Distinct from a Customer even when one
-firm is both, because each side keeps its own ledger.
+A party the Business buys from: one GSTIN, or one unregistered trader, in
+India. Distinct from a Customer even when one firm is both, because a sale and
+a purchase are taxed and reported separately whoever the other party is; the
+same GSTIN may then be on file once on each side.
 _Avoid_: Vendor, seller, party
 
 **Purchase**:
