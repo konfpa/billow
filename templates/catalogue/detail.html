@@ -78,37 +78,54 @@
       <div class="border-b border-zinc-200 px-5 py-3.5">
         <h2 class="text-[16px]/6 font-semibold">Units and prices</h2>
       </div>
-      <dl class="grid gap-4 px-5 py-4 text-[13px]/5 sm:grid-cols-3">
-        <div>
-          <dt class="text-zinc-600">Stock unit</dt>
-          <dd class="mt-0.5 text-[14px]/5 font-medium">{{ unit.get_code_display }}</dd>
-        </div>
-        <div>
-          <dt class="text-zinc-600">Selling price, including GST</dt>
-          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if unit.selling_price is not None %}₹{{ unit.selling_price }} per {{ unit.code }}{% else %}No price{% endif %}</dd>
-        </div>
-        <div>
-          <dt class="text-zinc-600">MRP</dt>
-          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if unit.mrp is not None %}₹{{ unit.mrp }} per {{ unit.code }}{% else %}No MRP{% endif %}</dd>
-        </div>
+      {% comment %}
+        One card per unit below sm, so where a unit ends is plain on a phone;
+        from sm up the cards flatten back into ruled rows.
+      {% endcomment %}
+      <div class="space-y-3 bg-zinc-50 p-3 sm:space-y-0 sm:bg-white sm:p-0">
+        <section class="rounded-lg border border-zinc-300 bg-white sm:rounded-none sm:border-0 sm:border-b sm:border-zinc-100 sm:last:border-0">
+          <h3 class="flex items-center gap-2 border-b border-zinc-200 px-4 py-2.5 text-[13px]/5 font-semibold sm:hidden">
+            {{ unit.get_code_display }}
+            <span class="rounded-full bg-zinc-200 px-2 text-[11px]/5 font-medium text-zinc-700 ring-1 ring-inset ring-zinc-300">Stock unit</span>
+          </h3>
+          <dl class="grid gap-4 px-4 py-3 text-[13px]/5 sm:grid-cols-3 sm:px-5 sm:py-4">
+            <div class="hidden sm:block">
+              <dt class="text-zinc-600">Stock unit</dt>
+              <dd class="mt-0.5 text-[14px]/5 font-medium">{{ unit.get_code_display }}</dd>
+            </div>
+            <div>
+              <dt class="text-zinc-600">Selling price, including GST</dt>
+              <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if unit.selling_price is not None %}₹{{ unit.selling_price }} per {{ unit.code }}{% else %}No price{% endif %}</dd>
+            </div>
+            <div>
+              <dt class="text-zinc-600">MRP</dt>
+              <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if unit.mrp is not None %}₹{{ unit.mrp }} per {{ unit.code }}{% else %}No MRP{% endif %}</dd>
+            </div>
+          </dl>
+        </section>
         {% for other, quote in other_units %}
-        <div class="border-t border-zinc-100 pt-4">
-          <dt class="text-zinc-600">{{ other.get_code_display }}</dt>
-          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">1 {{ other.code }} = {{ other.rate|plain }} {{ unit.code }}</dd>
-        </div>
-        <div class="sm:border-t sm:border-zinc-100 sm:pt-4">
-          <dt class="text-zinc-600">Selling price, including GST</dt>
-          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">
-            {% if quote.unit_price is None %}No price{% else %}₹{{ quote.unit_price }} per {{ other.code }}
-            <span class="font-normal text-zinc-600">· {% if quote.derived %}worked out as ₹{{ unit.selling_price }} per {{ unit.code }} × {{ other.rate|plain }}{% else %}set for this unit{% endif %}</span>{% endif %}
-          </dd>
-        </div>
-        <div class="sm:border-t sm:border-zinc-100 sm:pt-4">
-          <dt class="text-zinc-600">MRP</dt>
-          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if other.mrp is not None %}₹{{ other.mrp }} per {{ other.code }}{% else %}No MRP{% endif %}</dd>
-        </div>
+        <section class="rounded-lg border border-zinc-300 bg-white sm:rounded-none sm:border-0 sm:border-b sm:border-zinc-100 sm:last:border-0">
+          <h3 class="border-b border-zinc-200 px-4 py-2.5 text-[13px]/5 font-semibold sm:hidden">{{ other.get_code_display }}</h3>
+          <dl class="grid gap-4 px-4 py-3 text-[13px]/5 sm:grid-cols-3 sm:px-5 sm:py-4">
+            <div>
+              <dt class="text-zinc-600"><span class="sm:hidden">Holds</span><span class="hidden sm:inline">{{ other.get_code_display }}</span></dt>
+              <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">1 {{ other.code }} = {{ other.rate|plain }} {{ unit.code }}</dd>
+            </div>
+            <div>
+              <dt class="text-zinc-600">Selling price, including GST</dt>
+              <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">
+                {% if quote.unit_price is None %}No price{% else %}₹{{ quote.unit_price }} per {{ other.code }}
+                <span class="font-normal text-zinc-600">· {% if quote.derived %}worked out as ₹{{ unit.selling_price }} per {{ unit.code }} × {{ other.rate|plain }}{% else %}set for this unit{% endif %}</span>{% endif %}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-zinc-600">MRP</dt>
+              <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if other.mrp is not None %}₹{{ other.mrp }} per {{ other.code }}{% else %}No MRP{% endif %}</dd>
+            </div>
+          </dl>
+        </section>
         {% endfor %}
-      </dl>
+      </div>
     </div>
     {% endwith %}
   </div>

@@ -112,7 +112,7 @@
         <span></span>
       </div>
 
-      <div x-ref="rows" @change="prefill">
+      <div x-ref="rows" @change="prefill" class="bg-zinc-50 py-1 md:bg-white md:py-0">
         {% for unit_form in form.units %}
           {% include "catalogue/unit_row.html" with position=forloop.counter %}
         {% endfor %}
