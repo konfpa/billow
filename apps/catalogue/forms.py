@@ -35,7 +35,7 @@ class RateInput(forms.TextInput):
 
 
 class ItemUnitForm(StyledForm):
-    """A further unit, defined by its rate against the stock unit."""
+    """Another unit, defined by its rate against the stock unit."""
 
     class Meta:
         model = ItemUnit
@@ -90,7 +90,7 @@ class ItemUnitFormSet(forms.BaseInlineFormSet):
         kept = self.kept_forms()
 
         if item.get("kind") == Item.Kind.SERVICE and kept:
-            msg = "A Service is sold in one unit, so it has no further units."
+            msg = "A Service is sold in one unit, so it has no other units."
             raise ValidationError(msg)
 
         seen = {item.get("stock_unit")}
@@ -107,7 +107,7 @@ UnitFormSet = forms.inlineformset_factory(
 
 
 class ItemForm(StyledForm):
-    """An Item, its stock unit and any further units, recorded and edited together."""
+    """An Item, its stock unit and any other units, recorded and edited together."""
 
     stock_unit = forms.ChoiceField(
         choices=[("", "Choose a unit"), *UNITS],
@@ -185,7 +185,7 @@ class ItemForm(StyledForm):
         for form in self.units.kept_forms():
             position = self.units.forms.index(form) + 1
             failed += [
-                (f"Further unit {position}, {field.label.lower()}", field)
+                (f"Other unit {position}, {field.label.lower()}", field)
                 for field in form
                 if field.errors
             ]
