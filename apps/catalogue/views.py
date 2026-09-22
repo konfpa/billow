@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST
 from apps.catalogue.forms import BrandForm, CategoryForm, ItemForm
 from apps.catalogue.models import Brand, Category, Item
 from apps.core.access import requires
+from apps.core.redirects import back
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
@@ -190,7 +191,7 @@ def archive_item(request: HttpRequest, pk: int) -> HttpResponse:
     item.archive()
 
     messages.success(request, f"{item.name} is archived.")
-    return redirect("item_detail", pk=pk)
+    return back(request, "item_detail", pk=pk)
 
 
 @requires("catalogue.archive_item")
@@ -201,7 +202,7 @@ def restore_item(request: HttpRequest, pk: int) -> HttpResponse:
     item.restore()
 
     messages.success(request, f"{item.name} is back on file.")
-    return redirect("item_detail", pk=pk)
+    return back(request, "item_detail", pk=pk)
 
 
 # The annotation joins past the default manager, so the archived are left out

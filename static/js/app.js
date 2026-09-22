@@ -633,9 +633,9 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
-  // konspec dropdown/context-menu over the Customer directory. One menu
-  // serves every row, so the row it is about is held as state and each row
-  // carries its own name and URLs.
+  // konspec dropdown/context-menu over a directory's rows. One menu serves
+  // every row, so the row it is about is held as state and each row carries
+  // its own name and URLs.
   Alpine.data("rowMenu", () => ({
     open: false,
     confirming: false,
@@ -747,6 +747,10 @@ document.addEventListener("alpine:init", () => {
 
     get editUrl() {
       return this.row?.dataset.edit;
+    },
+
+    get duplicateUrl() {
+      return this.row?.dataset.duplicate;
     },
 
     get actUrl() {

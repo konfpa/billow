@@ -10,6 +10,9 @@
   dense selects in the same GET form as the search box, applied on change by
   filterSelect, so all three combine. The On file / Archived tabs are
   tabs/django, links rather than a tablist, since each one is a page load.
+  Right-click on a row opens the same row menu as the Customer directory,
+  without the variant's row button for the same reason: every item in it
+  is also on the Item's page.
 {% endcomment %}
 <div data-kui="index-page/django" class="text-zinc-900">
 
@@ -109,6 +112,8 @@
     {% if empty %}
       {% include empty %}
     {% else %}
+      <div data-kui="dropdown/context-menu" x-data="rowMenu"
+           @click="dismiss" @click.outside="closeQuietly" @scroll.window="closeQuietly" @keydown.escape="escape">
       <div data-kui="table/linked-rows" class="hidden overflow-hidden rounded-xl border border-zinc-300 bg-white md:block">
         <table class="w-full text-[13px]/5">
           <thead>
@@ -125,7 +130,13 @@
           <tbody>
             {% for item in items %}
               {% with unit=item.stock_unit %}
-              <tr class="relative border-b border-zinc-100 last:border-0 hover:bg-zinc-100 has-[a:focus-visible]:bg-zinc-100">
+              <tr @contextmenu.prevent="fromRow" x-bind:class="tint($el)"
+                  data-name="{{ item.name }}"
+                  data-open="{% url 'item_detail' item.pk %}"
+                  data-edit="{% url 'edit_item' item.pk %}"
+                  data-duplicate="{% url 'duplicate_item' item.pk %}"
+                  data-act="{% if showing_archived %}{% url 'restore_item' item.pk %}{% else %}{% url 'archive_item' item.pk %}{% endif %}"
+                  class="relative border-b border-zinc-100 last:border-0 hover:bg-zinc-100 has-[a:focus-visible]:bg-zinc-100">
                 <td class="px-4 py-2 tabular-nums text-zinc-600">{{ item.code }}</td>
                 <td class="px-4 py-2 font-medium">
                   <a href="{% url 'item_detail' item.pk %}" class="underline underline-offset-2 after:absolute after:inset-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ item.name }}</a>
@@ -140,6 +151,77 @@
             {% endfor %}
           </tbody>
         </table>
+      </div>
+
+      <div x-show="open" x-cloak x-ref="menu" role="menu"
+           x-bind:aria-label="menuLabel"
+           x-bind:style="menuStyle"
+           @keydown.arrow-down.prevent="next" @keydown.arrow-up.prevent="prev"
+           @keydown.home.prevent="toFirst" @keydown.end.prevent="toLast"
+           @keydown.tab="closeQuietly"
+           class="fixed z-40 w-52 overflow-hidden rounded-xl border border-zinc-300 bg-white py-1 shadow-lg">
+        <a role="menuitem" tabindex="-1" x-bind:href="openUrl"
+           class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]/5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-2 focus:-outline-offset-2 focus:outline-zinc-700">
+          <i data-lucide="eye" class="size-4 text-zinc-600"></i>Open item
+        </a>
+        {% if perms.catalogue.change_item %}
+          <a role="menuitem" tabindex="-1" x-bind:href="editUrl"
+             class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]/5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-2 focus:-outline-offset-2 focus:outline-zinc-700">
+            <i data-lucide="pencil" class="size-4 text-zinc-600"></i>Edit item
+          </a>
+        {% endif %}
+        {% if perms.catalogue.add_item %}
+          <a role="menuitem" tabindex="-1" x-bind:href="duplicateUrl"
+             class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]/5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-2 focus:-outline-offset-2 focus:outline-zinc-700">
+            <i data-lucide="copy" class="size-4 text-zinc-600"></i>Duplicate item
+          </a>
+        {% endif %}
+        {% if perms.catalogue.archive_item %}
+          <div role="separator" class="my-1 h-px bg-zinc-100"></div>
+          {% if showing_archived %}
+            <button type="submit" form="item-act" role="menuitem" tabindex="-1"
+                    class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]/5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-2 focus:-outline-offset-2 focus:outline-zinc-700">
+              <i data-lucide="archive-restore" class="size-4 text-zinc-600"></i>Restore item
+            </button>
+          {% else %}
+            <button type="button" role="menuitem" tabindex="-1" @click="askArchive"
+                    class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]/5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-2 focus:-outline-offset-2 focus:outline-zinc-700">
+              <i data-lucide="archive" class="size-4 text-zinc-600"></i>Archive item
+            </button>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      {% if perms.catalogue.archive_item %}
+        {% if showing_archived %}
+          <form id="item-act" method="post" x-bind:action="actUrl" hidden>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          </form>
+        {% else %}
+          <div x-show="confirming" x-cloak x-trap.noscroll="confirming" @keydown.escape.window="cancel"
+               class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
+            <div role="alertdialog" aria-modal="true" aria-labelledby="item-archive-t" aria-describedby="item-archive-b"
+                 class="w-full max-w-md rounded-xl border border-zinc-300 bg-white p-5 shadow-lg">
+              <h2 id="item-archive-t" class="text-[16px]/6 font-semibold">Archive <span x-text="name"></span>?</h2>
+              <p id="item-archive-b" class="mt-1.5 text-[13px]/5 text-zinc-600">
+                It leaves the ordinary directory and can no longer be picked for a new invoice. Every invoice and stock movement already recorded still names it, and Restore brings it back.
+              </p>
+
+              <form method="post" x-bind:action="actUrl">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <button type="button" @click="cancel"
+                          class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Cancel</button>
+                  <button type="submit"
+                          class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Archive item</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
       </div>
 
       <div data-kui="card/clickable" class="grid items-start gap-3 sm:grid-cols-2 md:hidden">

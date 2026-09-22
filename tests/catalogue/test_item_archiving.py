@@ -296,3 +296,26 @@ def test_an_archived_item_is_still_duplicated(client, signed_in, archived):
     )
 
     assert not Item.objects.get(name="Black tap").is_archived
+
+
+@pytest.mark.django_db
+def test_archiving_from_the_directory_returns_to_the_directory(client, archivist, item):
+    response = client.post(archive_url(item), {"next": f"{DIRECTORY}?q=tap"})
+
+    assert response.url == f"{DIRECTORY}?q=tap"
+
+
+@pytest.mark.django_db
+def test_restoring_from_the_directory_returns_to_the_archived_list(
+    client, archivist, archived
+):
+    response = client.post(restore_url(archived), {"next": ARCHIVED})
+
+    assert response.url == ARCHIVED
+
+
+@pytest.mark.django_db
+def test_archiving_an_item_never_follows_a_next_off_the_site(client, archivist, item):
+    response = client.post(archive_url(item), {"next": "https://evil.example.com/"})
+
+    assert response.url == detail_url(item)
