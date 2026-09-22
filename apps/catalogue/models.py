@@ -4,7 +4,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import IntegrityError, models, transaction
-from django.db.models.functions import Cast, Substr
+from django.db.models.functions import Cast, Lower, Substr
 from simple_history.models import HistoricalRecords
 
 from apps.tax.hsn_sac import validate_hsn, validate_sac
@@ -27,6 +27,35 @@ class Quote:
     # True when no price of the unit's own applies, and the stock unit's
     # price times the rate stands in for it.
     derived: bool
+
+
+class Brand(models.Model):
+    """The maker an Item is sold under, such as Jaquar. See CONTEXT.md."""
+
+    name = models.CharField(max_length=255)
+
+    class Meta:
+        ordering = ("name",)
+        constraints = [
+            # "Jaquar" and "jaquar" are one maker, and filtering by one must
+            # never miss the Items filed under the other.
+            models.UniqueConstraint(
+                Lower("name"),
+                name="one_brand_per_name",
+                violation_error_message="This is already a Brand.",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+    def clean(self) -> None:
+        super().clean()
+        holder = (
+            Brand.objects.filter(name__iexact=self.name).exclude(pk=self.pk).first()
+        )
+        if holder is not None:
+            raise ValidationError({"name": f"{holder.name} is already a Brand."})
 
 
 class Item(models.Model):
@@ -76,6 +105,14 @@ class Item(models.Model):
                 "An Item code is capital letters, digits and hyphens.",
             )
         ],
+    )
+
+    brand = models.ForeignKey(
+        Brand,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="items",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

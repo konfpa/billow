@@ -4,8 +4,10 @@
 
 {% block main %}
 {% comment %}
-  konspec index-page, as the Customer directory: the band is page-header and
-  the body is the register panel, a table from md and stacked cards below it.
+  konspec index-page, as the Customer directory: the band is page-header with
+  the Brand filter, and the body is the register panel, a table from md and
+  stacked cards below it. The filter is select/filter's dense select in a GET
+  form, applied on change by filterSelect.
 {% endcomment %}
 <div data-kui="index-page/django" class="text-zinc-900">
 
@@ -14,7 +16,7 @@
       <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div class="min-w-0">
           <h1 class="text-[24px]/7 font-semibold tracking-tight">Items</h1>
-          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{{ items|length }} on file</p>
+          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% if brand %}{{ items|length }} of {{ total }}{% else %}{{ total }}{% endif %} on file{% if brand %} from {{ brand.name }}{% endif %}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           {% if perms.catalogue.add_item %}
@@ -25,13 +27,38 @@
           {% endif %}
         </div>
       </div>
+
+      {% if brands %}
+      <form method="get" action="{% url 'item_directory' %}" x-data="filterSelect" class="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <div class="min-w-0">
+          <label for="item-brand" class="sr-only">Brand</label>
+          <div class="relative rounded-lg border border-zinc-200 bg-white focus-within:border-zinc-700 focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-zinc-700/15">
+            <select id="item-brand" name="brand" @change="apply"
+                    class="block w-full min-w-0 appearance-none bg-transparent py-1.5 pr-8 pl-2.5 text-[13px]/5 outline-none">
+              <option value="">All Brands</option>
+              {% for option in brands %}
+              <option value="{{ option.pk }}"{% if option == brand %} selected{% endif %}>{{ option.name }}</option>
+              {% endfor %}
+            </select>
+            <span aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-zinc-600">
+              <i data-lucide="chevron-down" class="size-3.5"></i>
+            </span>
+          </div>
+        </div>
+        <noscript>
+          <button type="submit" class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Filter</button>
+        </noscript>
+      </form>
+      {% endif %}
     </div>
   </header>
 
   <div class="mx-auto max-w-[1600px] space-y-4 px-4 py-5 lg:px-6">
     {% include "core/messages.html" %}
 
-    {% if not items %}
+    {% if not items and brand %}
+      {% include "catalogue/empty/no_match.html" %}
+    {% elif not items %}
       {% include "catalogue/empty/nothing_on_file.html" %}
     {% else %}
       <div data-kui="table/linked-rows" class="hidden overflow-hidden rounded-xl border border-zinc-300 bg-white md:block">
@@ -40,6 +67,7 @@
             <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-[11px]/4 font-medium tracking-wider text-zinc-600 uppercase">
               <th scope="col" class="px-4 py-2.5 font-medium">Item code</th>
               <th scope="col" class="px-4 py-2.5 font-medium">Item</th>
+              <th scope="col" class="px-4 py-2.5 font-medium">Brand</th>
               <th scope="col" class="px-4 py-2.5 font-medium">Stock unit</th>
               <th scope="col" class="px-4 py-2.5 text-right font-medium">Price</th>
               <th scope="col" class="px-4 py-2.5 text-right font-medium">GST rate</th>
@@ -53,6 +81,7 @@
                 <td class="px-4 py-2 font-medium">
                   <a href="{% url 'item_detail' item.pk %}" class="underline underline-offset-2 after:absolute after:inset-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ item.name }}</a>
                 </td>
+                <td class="px-4 py-2 text-zinc-600">{{ item.brand.name|default:"" }}</td>
                 <td class="px-4 py-2">{{ unit.code }}</td>
                 <td class="px-4 py-2 text-right tabular-nums">{% if unit.selling_price is not None %}₹{{ unit.selling_price }}{% else %}<span class="text-zinc-600">No price</span>{% endif %}</td>
                 <td class="px-4 py-2 text-right tabular-nums">{{ item.get_gst_rate_display }}</td>
@@ -70,7 +99,7 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <h3 class="truncate text-[14px]/5 font-semibold">{{ item.name }}</h3>
-                <p class="mt-0.5 truncate text-[12px]/4 tabular-nums text-zinc-600">{{ item.code }} · GST {{ item.get_gst_rate_display }}</p>
+                <p class="mt-0.5 truncate text-[12px]/4 tabular-nums text-zinc-600">{{ item.code }}{% if item.brand %} · {{ item.brand.name }}{% endif %} · GST {{ item.get_gst_rate_display }}</p>
               </div>
               <i data-lucide="chevron-right" class="size-4 shrink-0 text-zinc-500 transition group-hover:text-zinc-900" aria-hidden="true"></i>
             </div>

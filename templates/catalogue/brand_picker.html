@@ -1,0 +1,76 @@
+{% comment %}
+  konspec combobox/create, wired as combobox/django: the options come through
+  json_script and the visible box has no name. What posts is `brand`, the id
+  of a Brand on file, or `brand_new`, the name of one to create with the Item,
+  never an invented id. The create row is offered only to those who may add a
+  Brand. Its expressions live in brandPicker in static/js/app.js.
+{% endcomment %}
+{{ form.brand_options|json_script:"brand-options" }}
+<div data-kui="combobox/create" class="relative min-w-0 sm:col-span-2"
+     x-data="brandPicker"
+     data-can-create="{{ form.can_create_brand|yesno:'true,false' }}"
+     data-selected="{{ field.value|default:'' }}"
+     data-fresh="{{ form.brand_new.value|default:'' }}"
+     @click.outside="close"
+     @keydown.escape="escape">
+
+  <label for="{{ field.id_for_label }}" class="mb-1.5 flex items-baseline gap-2 text-[13px]/5 font-medium">
+    {{ field.label }}
+    <span aria-hidden="true" class="font-normal text-zinc-500">Optional</span>
+  </label>
+
+  <div class="flex items-center rounded-lg bg-white {% if field.errors %}border border-red-600 focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-red-600/15{% else %}border border-zinc-200 focus-within:border-zinc-700 focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-zinc-700/15{% endif %}">
+    <i data-lucide="search" class="ml-3 size-4 shrink-0 text-zinc-600"></i>
+    <input id="{{ field.id_for_label }}" x-ref="q" x-model="q" type="text" role="combobox" autocomplete="off"
+           aria-autocomplete="list" aria-controls="brand-list" aria-describedby="{{ field.auto_id }}-msg"
+           aria-invalid="{% if field.errors %}true{% else %}false{% endif %}"
+           x-bind:aria-expanded="open" x-bind:aria-activedescendant="activeId"
+           placeholder="{% if form.can_create_brand %}Search, or type a new Brand{% else %}Search Brands{% endif %}"
+           @click="show"
+           @input="typing"
+           @keydown.arrow-down.prevent="down"
+           @keydown.arrow-up.prevent="up"
+           @keydown.home="home"
+           @keydown.end="end"
+           @keydown.enter="enter"
+           @keydown.tab="close"
+           class="w-full min-w-0 bg-transparent px-2 py-2 text-[14px]/5 outline-none placeholder:text-zinc-500">
+  </div>
+
+  <input type="hidden" name="{{ field.html_name }}" x-bind:value="sel">
+  <input type="hidden" name="{{ form.brand_new.html_name }}" x-bind:value="fresh">
+
+  <p id="{{ field.auto_id }}-msg" class="mt-1.5 min-h-4 text-[12px]/4">
+    {% if field.errors %}
+      <span class="flex items-start gap-1.5 font-medium text-red-600">
+        <i data-lucide="alert-circle" class="mt-px size-3.5 shrink-0"></i>
+        <span>{{ field.errors.0 }}</span>
+      </span>
+    {% else %}
+      <span class="block text-zinc-500" x-text="help">{{ field.help_text }}</span>
+    {% endif %}
+  </p>
+
+  <p role="status" class="sr-only" x-text="count"></p>
+
+  <div x-show="open" x-cloak
+       class="absolute top-full right-0 left-0 z-20 mt-1 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
+
+    <div id="brand-list" role="listbox" aria-label="Brands" class="max-h-64 overflow-y-auto py-1">
+      <template x-for="(o, i) in list" x-bind:key="o.id">
+        <div x-bind:id="rowId(o)" role="option" x-bind:aria-selected="isSelected(o)"
+             @mousedown.prevent @click="pickRow(o)" @mousemove="hover(i)"
+             x-bind:class="rowClass(o, i)"
+             class="flex items-center gap-2.5 px-3 py-2 text-[13px]/5">
+          <span class="flex size-4 shrink-0 items-center justify-center" x-show="o.isNew" x-cloak>
+            <i data-lucide="plus" class="size-4 text-zinc-600"></i>
+          </span>
+          <span class="min-w-0 flex-1 truncate" x-text="rowLabel(o)"></span>
+        </div>
+      </template>
+    </div>
+    <div x-show="nothing" x-cloak class="px-4 py-6 text-center">
+      <p class="text-[13px]/5 font-medium">No Brand matches “<span x-text="q"></span>”</p>
+    </div>
+  </div>
+</div>

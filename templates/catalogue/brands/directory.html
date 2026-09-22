@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Brands · billow{% endblock %}
+
+{% block main %}
+{% comment %}
+  konspec index-page, as the Item directory: the band is page-header and the
+  body is the register panel, a table from md and stacked cards below it.
+  A row leads to the rename page only for those who may rename.
+{% endcomment %}
+<div data-kui="index-page/django" class="text-zinc-900">
+
+  <header class="border-b border-zinc-200 bg-white">
+    <div class="mx-auto max-w-[1600px] px-4 py-4 lg:px-6">
+      <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div class="min-w-0">
+          <h1 class="text-[24px]/7 font-semibold tracking-tight">Brands</h1>
+          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{{ brands|length }} on file</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          {% if perms.catalogue.add_brand %}
+          <a href="{% url 'record_brand' %}"
+             class="inline-flex h-9 items-center gap-2 rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+            <i data-lucide="plus" class="size-4"></i>New Brand
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-[1600px] space-y-4 px-4 py-5 lg:px-6">
+    {% include "core/messages.html" %}
+
+    {% if not brands %}
+      {% include "catalogue/brands/nothing_on_file.html" %}
+    {% else %}
+      <div data-kui="table/linked-rows" class="hidden overflow-hidden rounded-xl border border-zinc-300 bg-white md:block">
+        <table class="w-full text-[13px]/5">
+          <thead>
+            <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-[11px]/4 font-medium tracking-wider text-zinc-600 uppercase">
+              <th scope="col" class="px-4 py-2.5 font-medium">Brand</th>
+              <th scope="col" class="px-4 py-2.5 text-right font-medium">Items</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for brand in brands %}
+              <tr class="relative border-b border-zinc-100 last:border-0 hover:bg-zinc-100 has-[a:focus-visible]:bg-zinc-100">
+                <td class="px-4 py-2 font-medium">
+                  {% if perms.catalogue.change_brand %}
+                  <a href="{% url 'edit_brand' brand.pk %}" class="underline underline-offset-2 after:absolute after:inset-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ brand.name }}</a>
+                  {% else %}
+                  {{ brand.name }}
+                  {% endif %}
+                </td>
+                <td class="px-4 py-2 text-right tabular-nums">{{ brand.item_count }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div data-kui="card/clickable" class="grid items-start gap-3 sm:grid-cols-2 md:hidden">
+        {% for brand in brands %}
+          {% if perms.catalogue.change_brand %}
+          <a href="{% url 'edit_brand' brand.pk %}" class="group rounded-xl border border-zinc-300 bg-white p-4 transition hover:border-zinc-400 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+          {% else %}
+          <div class="rounded-xl border border-zinc-300 bg-white p-4">
+          {% endif %}
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="truncate text-[14px]/5 font-semibold">{{ brand.name }}</h3>
+                <p class="mt-0.5 truncate text-[12px]/4 tabular-nums text-zinc-600">{{ brand.item_count }} Item{{ brand.item_count|pluralize }}</p>
+              </div>
+              {% if perms.catalogue.change_brand %}
+              <i data-lucide="chevron-right" class="size-4 shrink-0 text-zinc-500 transition group-hover:text-zinc-900" aria-hidden="true"></i>
+              {% endif %}
+            </div>
+          {% if perms.catalogue.change_brand %}</a>{% else %}</div>{% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

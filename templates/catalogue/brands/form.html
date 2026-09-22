@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{% if brand %}Rename {{ brand.name }}{% else %}New Brand{% endif %} · billow{% endblock %}
+
+{% block main %}
+{% comment %}
+  konspec form-page/two-column under a page-header/back band, as the Item
+  pages are, with one card for the one field. Recording and renaming share
+  it, as nothing but the heading differs.
+{% endcomment %}
+<div data-kui="form-page/two-column" x-data="formPage" @beforeunload.window="guard" class="text-zinc-900">
+
+  <header data-kui="page-header/back" class="border-b border-zinc-200 bg-white">
+    <div class="mx-auto max-w-4xl px-4 py-4 lg:px-6">
+      <a href="{% url 'brand_directory' %}" class="inline-flex items-center gap-1.5 rounded text-[13px]/5 text-zinc-600 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+        <i data-lucide="chevron-left" class="size-4"></i>Brands
+      </a>
+
+      <div class="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div class="min-w-0">
+          <h1 class="text-[24px]/7 font-semibold tracking-tight">{% if brand %}Rename {{ brand.name }}{% else %}New Brand{% endif %}</h1>
+          <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% if brand %}Every Item sold under it follows the new name.{% else %}The maker Items are sold under, so all of theirs can be listed together.{% endif %}</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-4xl space-y-4 p-4 pb-6 lg:p-6">
+    {% include "core/messages.html" %}
+
+    <form method="post" novalidate x-ref="form" @input="arm" @change="arm" @submit="send">
+      {% csrf_token %}
+
+      {% if form.errors %}
+        <div class="mb-4">
+          <div data-kui="alert/form-errors" role="alert" tabindex="-1" x-data="formErrors"
+               class="rounded-lg border border-zinc-300 bg-white px-4 py-3 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+            <div class="flex items-start gap-3">
+              <i data-lucide="alert-circle" class="mt-0.5 size-4 shrink-0 text-red-600"></i>
+              <div class="min-w-0">
+                {% with count=form.invalid_fields|length %}
+                  <p class="text-[13px]/5 font-medium">This Brand was not saved{% if count %} — <span class="tabular-nums">{{ count }}</span> field{{ count|pluralize:" needs,s need" }} attention{% endif %}.</p>
+                {% endwith %}
+                <ul class="mt-2 space-y-1 text-[12px]/4 text-zinc-600">
+                  {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                  {% endfor %}
+                  {% for field in form.invalid_fields %}
+                    <li>
+                      <a href="#{{ field.id_for_label }}" class="font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ field.label }}</a>
+                      — {{ field.errors.0 }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+        <div class="border-b border-zinc-200 px-5 py-3.5">
+          <h2 class="text-[16px]/6 font-semibold">Brand</h2>
+        </div>
+        <div class="px-5 py-4">
+          <div class="grid gap-4 sm:grid-cols-2">
+            {% include "forms/field.html" with field=form.name %}
+          </div>
+        </div>
+      </div>
+
+      <div class="sticky bottom-0 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-300 bg-white px-4 py-3">
+        <p class="text-[12px]/4 tabular-nums text-zinc-600">
+          <span x-show="dirty" x-cloak class="flex items-center gap-1.5 font-medium text-zinc-900">
+            <i data-lucide="pencil" class="size-3.5 shrink-0 text-zinc-600"></i>Unsaved changes
+          </span>
+        </p>
+        <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <a href="{% url 'brand_directory' %}" x-ref="cancel" @click="cancel"
+             class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent px-4 text-[13px]/5 font-medium text-zinc-900 hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Cancel</a>
+          <button type="submit"
+                  class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Save</button>
+        </div>
+      </div>
+    </form>
+
+    <div x-show="leaving" x-cloak x-trap.noscroll="leaving" @keydown.escape.window="stay"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
+      <div role="alertdialog" aria-modal="true" aria-labelledby="brand-leave-t" aria-describedby="brand-leave-b"
+           class="w-full max-w-md rounded-xl border border-zinc-300 bg-white p-5 shadow-lg">
+        <h2 id="brand-leave-t" class="text-[16px]/6 font-semibold">Leave without saving?</h2>
+        <p id="brand-leave-b" class="mt-1.5 text-[13px]/5 text-zinc-600">
+          This Brand has changes that have not been saved. Leaving now loses them.
+        </p>
+        <div class="mt-5 flex flex-wrap items-center justify-end gap-2">
+          <button type="button" @click="stay"
+                  class="inline-flex h-9 items-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Keep editing</button>
+          <button type="button" @click="discard"
+                  class="inline-flex h-9 items-center rounded-lg border border-transparent px-4 text-[13px]/5 font-medium text-red-600 hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Discard changes</button>
+          <button type="button" @click="saveAndLeave"
+                  class="inline-flex h-9 items-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Save and leave</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

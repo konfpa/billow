@@ -5,11 +5,19 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from apps.catalogue.models import Item, ItemUnit
+from apps.catalogue.models import Brand, Item, ItemUnit
 from apps.core.forms import LINE_CONTROL, LINE_SELECT, StyledForm
 from apps.core.templatetags.ui import plain
 from apps.tax.rates import GSTRate
 from apps.tax.units import REPORTED_UNDER, UNITS
+
+
+class BrandForm(StyledForm):
+    class Meta:
+        model = Brand
+        fields = ("name",)
+        labels = {"name": "Name"}
+        help_texts = {"name": "As the maker writes it, such as Jaquar or Astral."}
 
 
 class ItemCodeField(forms.CharField):
@@ -128,16 +136,25 @@ class ItemForm(StyledForm):
         min_value=0,
         help_text="Per stock unit, as printed on the pack.",
     )
+    # The name of a Brand to create with the Item, posted beside `brand` by
+    # konspec combobox/create rather than as an invented id.
+    brand_new = forms.CharField(widget=forms.HiddenInput)
 
     class Meta:
         model = Item
-        fields = ("name", "kind", "code", "hsn_sac", "gst_rate")
+        fields = ("name", "kind", "code", "brand", "hsn_sac", "gst_rate")
         field_classes = {"code": ItemCodeField}
         labels = {"name": "Name"}
-        help_texts = {"code": "Leave blank for billow to assign the next one."}
+        help_texts = {
+            "code": "Leave blank for billow to assign the next one.",
+            "brand": "The maker it is sold under.",
+        }
+        widgets = {"brand": forms.HiddenInput}
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
+    def __init__(self, *args: object, user: object = None, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
+        self.user = user
+        self.new_brand: Brand | None = None
 
         for name, field in self.fields.items():
             # One list decides what an Item must answer, so a release that
@@ -175,6 +192,14 @@ class ItemForm(StyledForm):
         return self.units.is_valid() and item_is_valid
 
     @property
+    def brand_options(self) -> list[dict]:
+        return list(Brand.objects.values("id", "name"))
+
+    @property
+    def can_create_brand(self) -> bool:
+        return self.user is not None and self.user.has_perm("catalogue.add_brand")
+
+    @property
     def exact_rates(self) -> str:
         """Rates billow knows exactly, such as 1 ft = 0.3048 MTR, to prefill."""
         return json.dumps(
@@ -204,13 +229,35 @@ class ItemForm(StyledForm):
         cleaned = super().clean()
         if cleaned.get("kind") == Item.Kind.SERVICE and cleaned.get("mrp") is not None:
             self.add_error("mrp", "A Service is not packaged, so it has no MRP.")
+        if name := cleaned.get("brand_new"):
+            self.clean_new_brand(name)
         return cleaned
+
+    def clean_new_brand(self, name: str) -> None:
+        # The combobox offers to create only to those who may, so this is
+        # reached by a hand-made POST or a Role changed since the page loaded.
+        if not self.can_create_brand:
+            self.add_error(
+                "brand", "Adding a Brand needs the permission “Can add brand”."
+            )
+            return
+
+        brand = Brand(name=name)
+        try:
+            brand.full_clean()
+        except ValidationError as error:
+            self.add_error("brand", error.messages)
+        else:
+            self.new_brand = brand
 
     def clean_code(self) -> str:
         return self.cleaned_data["code"] or self.instance.code
 
     @transaction.atomic
     def save(self) -> Item:
+        if self.new_brand is not None:
+            self.new_brand.save()
+            self.instance.brand = self.new_brand
         item = super().save()
         unit = item.stock_unit or ItemUnit(item=item, is_stock_unit=True)
 
