@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
+from typing import Self
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
@@ -180,6 +181,23 @@ class Category(models.Model):
                 raise ValidationError({"name": f"{holder} is already a Category."})
 
 
+class ItemQuerySet(models.QuerySet):
+    def matching(self, query: str) -> Self:
+        """Those an Operator could mean by fragments of a name, an Item code or a Brand.
+
+        Every word typed has to match, in any order, so "elb ¾ fta" narrows
+        forty similar elbows to the one meant.
+        """
+        items = self
+        for word in query.split():
+            items = items.filter(
+                models.Q(name__icontains=word)
+                | models.Q(code__icontains=word)
+                | models.Q(brand__name__icontains=word)
+            )
+        return items
+
+
 class Item(models.Model):
     """One thing the Business sells, described once. See CONTEXT.md.
 
@@ -247,6 +265,7 @@ class Item(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = ItemQuerySet.as_manager()
     history = HistoricalRecords()
 
     class Meta:
