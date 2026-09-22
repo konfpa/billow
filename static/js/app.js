@@ -620,6 +620,19 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
+  // konspec alert-dialog, for a write worth interrupting over.
+  Alpine.data("confirmDialog", () => ({
+    open: false,
+
+    ask() {
+      this.open = true;
+    },
+
+    cancel() {
+      this.open = false;
+    },
+  }));
+
   Alpine.data("dismissible", () => ({
     show: true,
 

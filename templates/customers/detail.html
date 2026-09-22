@@ -6,9 +6,9 @@
 {% comment %}
   konspec form-page/readonly under a page-header/back band: the same sections
   in the same order as the Customer form, each a <dl> rather than a field.
-  Archiving is the record's own action, so it sits in the band, and it takes
-  no confirmation: nothing is deleted and Restore undoes it in one press,
-  which is below the bar alert-dialog sets for interrupting.
+  Archiving is the record's own action, so it sits in the band, behind a
+  konspec alert-dialog/django. The confirm is zinc rather than the variant's
+  red because nothing is deleted and Restore undoes it in one press.
   Archive and Restore take the zinc-300 edge rather than button/icons'
   zinc-200: on the white band the lighter edge left them unreadable as buttons.
 {% endcomment %}
@@ -49,12 +49,32 @@
                 </button>
               </form>
             {% else %}
-              <form method="post" action="{% url 'archive_customer' customer.pk %}">
-                {% csrf_token %}
-                <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+              <div data-kui="alert-dialog/django" x-data="confirmDialog">
+                <button type="button" @click="ask" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
                   <i data-lucide="archive" class="size-4 text-zinc-600"></i>Archive
                 </button>
-              </form>
+
+                <div x-show="open" x-cloak x-trap.noscroll="open" @keydown.escape.window="cancel"
+                     class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
+                  <div role="alertdialog" aria-modal="true" aria-labelledby="customer-archive-t" aria-describedby="customer-archive-b"
+                       class="w-full max-w-md rounded-xl border border-zinc-300 bg-white p-5 shadow-lg">
+                    <h2 id="customer-archive-t" class="text-[16px]/6 font-semibold">Archive {{ customer.name }}?</h2>
+                    <p id="customer-archive-b" class="mt-1.5 text-[13px]/5 text-zinc-600">
+                      They leave the ordinary directory and can no longer be picked for a new invoice. Every invoice already issued still names them, and Restore brings them back.
+                    </p>
+
+                    <form method="post" action="{% url 'archive_customer' customer.pk %}">
+                      {% csrf_token %}
+                      <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <button type="button" @click="cancel"
+                                class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Cancel</button>
+                        <button type="submit"
+                                class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Archive customer</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
             {% endif %}
           {% endif %}
           {% if perms.customers.change_customer %}
