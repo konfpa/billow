@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from django.contrib import messages
 from django.db.models import Count, Model, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from apps.catalogue.forms import BrandForm, CategoryForm, ItemForm
 from apps.catalogue.models import Brand, Category, Item
@@ -21,7 +22,7 @@ def warn_above_mrp(request: HttpRequest, item: Item) -> None:
         )
 
 
-def on_file[M: Model](choices: QuerySet[M], raw: str) -> M | None:
+def chosen[M: Model](choices: QuerySet[M], raw: str) -> M | None:
     """The choice `raw` names, or None for one not on file or not a number.
 
     A filter link somebody kept filters nothing rather than failing: it is
@@ -34,18 +35,22 @@ def on_file[M: Model](choices: QuerySet[M], raw: str) -> M | None:
 def item_directory(request: HttpRequest) -> HttpResponse:
     """Every Item on file, by name, with its code, stock unit, price and GST rate.
 
-    Narrowed, when asked, to the Items of one Brand, one Category, or both,
-    and to those matching every word typed into the search. A top-level
-    Category takes in the Items of those under it.
+    Or, asked for, every Item archived. Either is narrowed, when asked, to the
+    Items of one Brand, one Category, or both, and to those matching every word
+    typed into the search. A top-level Category takes in the Items of those
+    under it.
     """
-    everything = Item.objects.select_related(
-        "brand", "category__parent"
-    ).prefetch_related("units")
+    showing_archived = request.GET.get("show") == "archived"
+    everything = (
+        (Item.including_archived.archived() if showing_archived else Item.objects)
+        .select_related("brand", "category__parent")
+        .prefetch_related("units")
+    )
     brands = Brand.objects.all()
     categories = Category.objects.by_path()
 
-    brand = on_file(brands, request.GET.get("brand", ""))
-    category = on_file(categories, request.GET.get("category", ""))
+    brand = chosen(brands, request.GET.get("brand", ""))
+    category = chosen(categories, request.GET.get("category", ""))
     query = request.GET.get("q", "").strip()
 
     items = everything.matching(query)
@@ -64,6 +69,8 @@ def item_directory(request: HttpRequest) -> HttpResponse:
         empty = "catalogue/empty/no_match.html"
     elif brand or category:
         empty = "catalogue/empty/nothing_filtered.html"
+    elif showing_archived:
+        empty = "catalogue/empty/nothing_archived.html"
     else:
         empty = "catalogue/empty/nothing_on_file.html"
 
@@ -79,6 +86,7 @@ def item_directory(request: HttpRequest) -> HttpResponse:
             "categories": categories,
             "category": category,
             "query": query,
+            "showing_archived": showing_archived,
         },
     )
 
@@ -99,7 +107,7 @@ def duplicate_item(request: HttpRequest, pk: int) -> HttpResponse:
 
     Nothing is saved until the form is submitted, and then only the new Item.
     """
-    source = get_object_or_404(Item.objects.prefetch_related("units"), pk=pk)
+    source = get_object_or_404(Item.including_archived.prefetch_related("units"), pk=pk)
 
     if request.method != "POST":
         form = ItemForm(user=request.user, copying=source)
@@ -130,9 +138,9 @@ def save_new_item(request: HttpRequest, source: Item | None = None) -> HttpRespo
 def item_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """What is on file about an Item, as an invoice line will copy it."""
     item = get_object_or_404(
-        Item.objects.select_related("brand", "category__parent").prefetch_related(
-            "units"
-        ),
+        Item.including_archived.select_related(
+            "brand", "category__parent"
+        ).prefetch_related("units"),
         pk=pk,
     )
     other_units = [
@@ -150,7 +158,7 @@ def item_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @requires("catalogue.change_item")
 def edit_item(request: HttpRequest, pk: int) -> HttpResponse:
     """Correct an Item's details, its stock unit or its price."""
-    item = get_object_or_404(Item.objects.prefetch_related("units"), pk=pk)
+    item = get_object_or_404(Item.including_archived.prefetch_related("units"), pk=pk)
 
     if request.method != "POST":
         form = ItemForm(instance=item, user=request.user)
@@ -159,7 +167,9 @@ def edit_item(request: HttpRequest, pk: int) -> HttpResponse:
     # Bound to its own instance: a form that fails validation still writes what
     # it could clean onto the instance it holds, and `item` is what the page
     # shows as on file.
-    form = ItemForm(request.POST, instance=Item.objects.get(pk=pk), user=request.user)
+    form = ItemForm(
+        request.POST, instance=Item.including_archived.get(pk=pk), user=request.user
+    )
 
     if not form.is_valid():
         # Rendered rather than redirected, so that everything already typed is
@@ -172,10 +182,37 @@ def edit_item(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("item_detail", pk=pk)
 
 
+@requires("catalogue.archive_item")
+@require_POST
+def archive_item(request: HttpRequest, pk: int) -> HttpResponse:
+    """Withdraw an Item the Business no longer sells from the directory."""
+    item = get_object_or_404(Item.including_archived, pk=pk)
+    item.archive()
+
+    messages.success(request, f"{item.name} is archived.")
+    return redirect("item_detail", pk=pk)
+
+
+@requires("catalogue.archive_item")
+@require_POST
+def restore_item(request: HttpRequest, pk: int) -> HttpResponse:
+    """Bring an Item back into sale, as the Item it always was."""
+    item = get_object_or_404(Item.including_archived, pk=pk)
+    item.restore()
+
+    messages.success(request, f"{item.name} is back on file.")
+    return redirect("item_detail", pk=pk)
+
+
+# The annotation joins past the default manager, so the archived are left out
+# here as the Item directory leaves them out.
+ITEMS_ON_FILE = Count("items", filter=Q(items__archived_at__isnull=True))
+
+
 @requires("catalogue.view_brand")
 def brand_directory(request: HttpRequest) -> HttpResponse:
     """Every Brand on file, by name, with how many Items are sold under it."""
-    brands = Brand.objects.annotate(item_count=Count("items")).order_by("name")
+    brands = Brand.objects.annotate(item_count=ITEMS_ON_FILE).order_by("name")
     return render(request, "catalogue/brands/directory.html", {"brands": brands})
 
 
@@ -217,7 +254,7 @@ def category_directory(request: HttpRequest) -> HttpResponse:
     A top-level Category's count takes in the Items of those under it, as
     filtering the Item directory by it does.
     """
-    categories = list(Category.objects.by_path().annotate(item_count=Count("items")))
+    categories = list(Category.objects.by_path().annotate(item_count=ITEMS_ON_FILE))
     by_pk = {category.pk: category for category in categories}
     for category in categories:
         if category.parent_id is not None:

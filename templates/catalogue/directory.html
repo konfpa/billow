@@ -8,16 +8,17 @@
   the search form, and the body is the register panel, a table from md and
   stacked cards below it. The Brand and Category filters are select/filter's
   dense selects in the same GET form as the search box, applied on change by
-  filterSelect, so all three combine.
+  filterSelect, so all three combine. The On file / Archived tabs are
+  tabs/django, links rather than a tablist, since each one is a page load.
 {% endcomment %}
 <div data-kui="index-page/django" class="text-zinc-900">
 
   <header class="border-b border-zinc-200 bg-white">
-    <div class="mx-auto max-w-[1600px] px-4 py-4 lg:px-6">
+    <div class="mx-auto max-w-[1600px] px-4 pt-4 lg:px-6">
       <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div class="min-w-0">
           <h1 class="text-[24px]/7 font-semibold tracking-tight">Items</h1>
-          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% if query or brand or category %}{{ items|length }} of {{ total }}{% else %}{{ total }}{% endif %} on file{% if brand %} from {{ brand.name }}{% endif %}{% if category %} in {{ category }}{% endif %}{% if query %} match{{ items|length|pluralize:"es," }} “{{ query }}”{% endif %}</p>
+          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% if query or brand or category %}{{ items|length }} of {{ total }}{% else %}{{ total }}{% endif %} {% if showing_archived %}archived{% else %}on file{% endif %}{% if brand %} from {{ brand.name }}{% endif %}{% if category %} in {{ category }}{% endif %}{% if query %} match{{ items|length|pluralize:"es," }} “{{ query }}”{% endif %}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           {% if perms.catalogue.add_item %}
@@ -77,8 +78,28 @@
           {% endif %}
         </div>
         {% endif %}
+        {% if showing_archived %}<input type="hidden" name="show" value="archived">{% endif %}
         <button type="submit" class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15 md:shrink-0">Search</button>
       </form>
+
+      {% comment %}
+        The nav's own border-b is left off and its row's -mb-px lands on the
+        band's border instead, as page-header joins tabs to its bottom edge.
+      {% endcomment %}
+      <nav data-kui="tabs/django" aria-label="Item lists" class="mt-4">
+        <div class="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <a href="{% url 'item_directory' %}"
+             {% if not showing_archived %}aria-current="page"{% endif %}
+             class="shrink-0 whitespace-nowrap rounded-t border-b-2 pb-2.5 text-[13px]/5 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-zinc-700/15 {% if not showing_archived %}border-zinc-900 font-semibold text-zinc-900{% else %}border-transparent text-zinc-600 hover:text-zinc-900{% endif %}">
+            On file
+          </a>
+          <a href="{% url 'item_directory' %}?show=archived"
+             {% if showing_archived %}aria-current="page"{% endif %}
+             class="shrink-0 whitespace-nowrap rounded-t border-b-2 pb-2.5 text-[13px]/5 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-zinc-700/15 {% if showing_archived %}border-zinc-900 font-semibold text-zinc-900{% else %}border-transparent text-zinc-600 hover:text-zinc-900{% endif %}">
+            Archived
+          </a>
+        </div>
+      </nav>
     </div>
   </header>
 

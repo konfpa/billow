@@ -2,12 +2,12 @@
 
 An Operator may do only what their Roles grant, and a User with no Role can
 do nothing but sign in. Roles are Django Groups holding Django's model
-permissions (`view`, `add` and `change` per model, plus `archive_customer`,
-which covers restoring as well), and only a Superuser defines or grants
-them. Every view declares the permission it requires, and a test walking the
-URLconf fails on any view that declares none and is not on its short exempt
-list, so a view added later is refused to everyone until someone decides who
-may use it.
+permissions (`view`, `add` and `change` per model, plus `archive_customer`
+and `archive_item`, each of which covers restoring as well), and only a
+Superuser defines or grants them. Every view declares the permission it
+requires, and a test walking the URLconf fails on any view that declares
+none and is not on its short exempt list, so a view added later is refused
+to everyone until someone decides who may use it.
 
 ## Considered Options
 
