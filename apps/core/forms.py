@@ -21,6 +21,10 @@ LINE_CONTROL = (
     "min-w-0 flex-1 bg-transparent px-2 py-1.5 text-right text-[14px]/5 "
     "tabular-nums outline-none md:text-[13px]/5"
 )
+LINE_TEXT = (
+    "w-full min-w-0 bg-transparent px-2.5 py-1.5 text-[14px]/5 outline-none "
+    "placeholder:text-zinc-500 md:text-[13px]/5"
+)
 
 
 class StyledForm(forms.ModelForm):

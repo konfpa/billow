@@ -100,7 +100,7 @@
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-3.5">
         <div class="min-w-0">
           <h2 class="text-[16px]/6 font-semibold">Lines</h2>
-          <p class="mt-0.5 text-[12px]/4 text-zinc-600">Goods as the bill lists them, each in any unit the Item is in, at the rate before tax.</p>
+          <p class="mt-0.5 text-[12px]/4 text-zinc-600">As the bill lists them, at the rate before tax: an Item in any unit it is in, or a One-off line for freight and anything else the catalogue does not hold.</p>
         </div>
         <p class="text-[12px]/4 tabular-nums text-zinc-600" x-text="lineCount"></p>
       </div>
@@ -119,12 +119,15 @@
 
       <div x-ref="rows">
         {% for line_form in form.lines %}
-          {% include "purchases/line_row.html" with position=forloop.counter %}
+          {% include "purchases/line_row.html" with position=forloop.counter one_off=line_form.is_one_off %}
         {% endfor %}
       </div>
 
       <template x-ref="blank">
         {% include "purchases/line_row.html" with line_form=form.lines.empty_form %}
+      </template>
+      <template x-ref="blankOneOff">
+        {% include "purchases/line_row.html" with line_form=form.lines.empty_form one_off=True %}
       </template>
 
       <!-- empty-state's shape: what to do, not "No lines" -->
@@ -134,15 +137,21 @@
         </span>
         <p class="mt-3 text-[14px]/5 font-semibold">No lines on this bill yet</p>
         <p class="mx-auto mt-1 max-w-[46ch] text-[12px]/4 text-zinc-600">
-          A Purchase needs at least one line before it can be saved. Add the Item, the quantity and the rate the Supplier billed.
+          A Purchase needs at least one line before it can be saved. Add the Item, or a One-off line, with the quantity and the rate the Supplier billed.
         </p>
       </div>
 
       <div class="flex flex-wrap items-start justify-between gap-3 border-t border-zinc-200 px-4 py-3">
-        <button type="button" x-ref="add" @click="add"
-                class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-[13px]/5 font-medium hover:bg-zinc-100">
-          <i data-lucide="plus" class="size-4"></i>Add line
-        </button>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" x-ref="add" @click="add"
+                  class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-[13px]/5 font-medium hover:bg-zinc-100">
+            <i data-lucide="plus" class="size-4"></i>Add line
+          </button>
+          <button type="button" @click="addOneOff"
+                  class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-[13px]/5 font-medium hover:bg-zinc-100">
+            <i data-lucide="plus" class="size-4"></i>Add One-off line
+          </button>
+        </div>
         <dl class="w-full space-y-1.5 text-[13px]/5 sm:w-64">
           <div x-show="hasBillDiscount" x-cloak class="flex items-baseline justify-between gap-3">
             <dt class="text-zinc-600">Lines</dt>

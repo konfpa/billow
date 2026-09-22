@@ -9,15 +9,15 @@ from django.utils.dateformat import format as date_format
 
 from apps.business.models import Business
 from apps.catalogue.models import Item, ItemQuerySet, ItemUnit
-from apps.core.forms import LINE_CONTROL, LINE_SELECT, StyledForm
+from apps.core.forms import LINE_CONTROL, LINE_SELECT, LINE_TEXT, StyledForm
 from apps.core.templatetags.ui import plain, rupees
 from apps.purchases.models import Purchase, PurchaseLine
 from apps.suppliers.models import Supplier
 from apps.tax.rates import GSTRate
 
 
-def goods_on_file() -> ItemQuerySet:
-    return Item.objects.filter(kind=Item.Kind.GOODS).prefetch_related("units")
+def items_on_file() -> ItemQuerySet:
+    return Item.objects.prefetch_related("units")
 
 
 def units_of(item: Item) -> list[ItemUnit]:
@@ -35,14 +35,32 @@ def blank_when_none(form: forms.ModelForm, name: str) -> None:
 class PurchaseLineForm(StyledForm):
     # Chosen by the line's Item picker rather than typed, and offered as the
     # chosen Item's own units, so it is checked against that Item in clean().
-    unit = forms.CharField(widget=forms.Select)
+    unit = forms.CharField(widget=forms.Select, required=False)
 
     class Meta:
         model = PurchaseLine
-        fields = ("item", "unit", "quantity", "rate", "discount_percent", "gst_rate")
-        labels = {"rate": "Rate", "discount_percent": "Discount", "gst_rate": "GST"}
+        fields = (
+            "item",
+            "name",
+            "hsn_sac",
+            "unit",
+            "quantity",
+            "rate",
+            "discount_percent",
+            "gst_rate",
+        )
+        labels = {
+            "name": "Name",
+            "rate": "Rate",
+            "discount_percent": "Discount",
+            "gst_rate": "GST",
+        }
         widgets = {
             "item": forms.HiddenInput,
+            "name": forms.TextInput(attrs={"placeholder": "Freight, loading…"}),
+            "hsn_sac": forms.TextInput(
+                attrs={"inputmode": "numeric", "placeholder": "HSN/SAC"}
+            ),
             "quantity": forms.TextInput(attrs={"inputmode": "decimal"}),
             "rate": forms.TextInput(attrs={"inputmode": "decimal"}),
             "discount_percent": forms.TextInput(attrs={"inputmode": "decimal"}),
@@ -50,9 +68,9 @@ class PurchaseLineForm(StyledForm):
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
-        self.fields["item"].queryset = goods_on_file()
+        self.fields["item"].queryset = items_on_file()
         self.fields["item"].error_messages["invalid_choice"] = (
-            "Choose Goods on file from the list."
+            "Choose an Item on file from the list."
         )
         # Left blank, the line takes the Item's own rate.
         self.fields["gst_rate"].required = False
@@ -63,6 +81,27 @@ class PurchaseLineForm(StyledForm):
             self.fields[name].widget.attrs["class"] = LINE_SELECT
         for name in ("quantity", "rate", "discount_percent"):
             self.fields[name].widget.attrs["class"] = LINE_CONTROL
+        for name in ("name", "hsn_sac"):
+            self.fields[name].widget.attrs["class"] = LINE_TEXT
+
+    @property
+    def is_one_off(self) -> bool:
+        """Whether this is a One-off line rather than an Item line.
+
+        Read off which row was posted, since only a One-off row sends a name
+        and a code, so a row left without its Item is told to choose one rather
+        than to name itself.
+        """
+        if self.is_bound:
+            return any(
+                self.add_prefix(name) in self.data for name in ("name", "hsn_sac")
+            )
+        return self.instance.pk is not None and self.instance.item_id is None
+
+    @property
+    def gst_rate_options(self) -> list[tuple[str, str]]:
+        """A One-off line's GST rates: it has no Item's rate to fall back on."""
+        return [(str(value), label) for value, label in GSTRate.choices]
 
     @property
     def chosen_item(self) -> Item | None:
@@ -72,7 +111,7 @@ class PurchaseLineForm(StyledForm):
             return raw
         if not str(raw or "").isdigit():
             return None
-        return goods_on_file().filter(pk=raw).first()
+        return items_on_file().filter(pk=raw).first()
 
     @property
     def unit_options(self) -> list[str]:
@@ -81,8 +120,13 @@ class PurchaseLineForm(StyledForm):
 
     def clean(self) -> dict:
         cleaned = super().clean()
+        if self.is_one_off:
+            return self.clean_one_off(cleaned)
+
         item = cleaned.get("item")
         if item is None:
+            if "item" not in self.errors:
+                self.add_error("item", self.fields["item"].error_messages["required"])
             return cleaned
 
         unit = next(
@@ -96,6 +140,24 @@ class PurchaseLineForm(StyledForm):
 
         if cleaned.get("gst_rate") in (None, ""):
             cleaned["gst_rate"] = item.gst_rate
+        return cleaned
+
+    def clean_one_off(self, cleaned: dict) -> dict:
+        if self["item"].value():
+            self.add_error(
+                "name", "A line is either an Item or a One-off line, never both."
+            )
+            return cleaned
+
+        required = {
+            "name": "Name the line as the bill does.",
+            "hsn_sac": "Give the HSN or SAC the bill prints.",
+            "gst_rate": "Choose the GST rate the bill charges.",
+        }
+        for name, message in required.items():
+            if name not in self.errors and cleaned.get(name) in (None, ""):
+                self.add_error(name, message)
+        cleaned["unit"] = ""
         return cleaned
 
     def clean_discount_percent(self) -> Decimal:
@@ -272,7 +334,7 @@ class PurchaseForm(StyledForm):
 
     @property
     def item_options(self) -> list[dict]:
-        """Goods on file for the line pickers, searchable by name, code and Brand."""
+        """Items on file for the line pickers, searchable by name, code and Brand."""
         return [
             {
                 "id": item.pk,
@@ -285,7 +347,7 @@ class PurchaseForm(StyledForm):
                     for unit in units_of(item)
                 ],
             }
-            for item in goods_on_file().select_related("brand")
+            for item in items_on_file().select_related("brand")
         ]
 
     @property

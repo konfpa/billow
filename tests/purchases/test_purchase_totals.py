@@ -26,8 +26,14 @@ def totals(
     )
 
 
-def line(
-    quantity="1", rate="100", gst_rate="18.00", stock_units_in_one="1", discount="0"
+def line(  # noqa: PLR0913
+    quantity="1",
+    rate="100",
+    gst_rate="18.00",
+    stock_units_in_one="1",
+    discount="0",
+    *,
+    moves_stock=True,
 ):
     return Line(
         quantity=Decimal(quantity),
@@ -35,6 +41,7 @@ def line(
         gst_rate=Decimal(gst_rate),
         stock_units_in_one=Decimal(stock_units_in_one),
         discount_percent=Decimal(discount),
+        moves_stock=moves_stock,
     )
 
 
@@ -285,3 +292,38 @@ def test_the_suggestion_does_not_depend_on_the_round_off_given():
     result = totals(line(quantity="1", rate="860"), round_off="-0.80")
 
     assert result.suggested_round_off == Decimal("0.20")
+
+
+def test_a_goods_line_moves_stock():
+    assert totals(line()).lines[0].moves_stock
+
+
+def test_a_line_moving_no_stock_is_taxed_and_totalled_but_not_costed():
+    # Goods, and freight billed as a One-off line.
+    result = totals(
+        line(quantity="10", rate="100"),
+        line(quantity="1", rate="200", gst_rate="5.00", moves_stock=False),
+    )
+
+    goods, freight = result.lines
+    assert not freight.moves_stock
+    assert freight.taxable_value == Decimal("200.00")
+    assert freight.cgst == Decimal("5.00")
+    assert freight.stock_quantity == Decimal("0.000")
+    assert freight.cost_per_stock_unit == Decimal("0.00")
+    assert goods.cost_per_stock_unit == Decimal("100.00")
+    assert [rate.gst_rate for rate in result.by_rate] == [
+        Decimal("5.00"),
+        Decimal("18.00"),
+    ]
+    assert result.grand_total == Decimal("1390.00")
+
+
+def test_a_line_moving_no_stock_bears_its_share_of_the_bill_discount():
+    result = totals(
+        line(quantity="1", rate="300"),
+        line(quantity="1", rate="100", moves_stock=False),
+        bill_discount="40",
+    )
+
+    assert result.lines[1].taxable_value == Decimal("90.00")

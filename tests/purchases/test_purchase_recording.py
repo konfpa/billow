@@ -5,7 +5,7 @@ import pytest
 from django.urls import reverse
 
 from apps.purchases.models import Purchase
-from tests.purchases.conftest import BILL_DATE, goods, line, submitted
+from tests.purchases.conftest import BILL_DATE, line, submitted
 
 RECORD = reverse("record_purchase")
 
@@ -188,18 +188,7 @@ def test_an_archived_item_cannot_be_chosen(client, signed_in, supplier, elbow):
     response = client.post(RECORD, submitted(supplier, line(elbow)))
 
     assert "ELB-075" not in page
-    assert "Choose Goods on file from the list." in response.content.decode()
-    assert not Purchase.objects.exists()
-
-
-@pytest.mark.django_db
-def test_a_service_cannot_be_chosen_as_goods(client, signed_in, supplier):
-    fitting = goods("Fitting", "SVC-FIT", kind="service")
-
-    page = client.get(RECORD).content.decode()
-    client.post(RECORD, submitted(supplier, line(fitting)))
-
-    assert "SVC-FIT" not in page
+    assert "Choose an Item on file from the list." in response.content.decode()
     assert not Purchase.objects.exists()
 
 

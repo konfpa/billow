@@ -12,6 +12,7 @@ from apps.catalogue.models import Item
 from apps.core.models import state_field
 from apps.purchases.totals import Line, Totals, purchase_totals
 from apps.suppliers.models import Supplier
+from apps.tax.hsn_sac import validate_hsn_or_sac
 from apps.tax.rates import GSTRate
 from apps.tax.units import UNITS
 
@@ -159,18 +160,34 @@ class Purchase(models.Model):
 
 
 class PurchaseLine(models.Model):
-    """One line of a Purchase: Goods from the catalogue, as the Supplier billed them."""
+    """One line of a Purchase, as the Supplier billed it.
+
+    Either an Item line, for Goods or a Service in the catalogue, or a One-off
+    line carrying its own name and code, for freight and the like. See
+    CONTEXT.md, One-off line.
+    """
 
     purchase = models.ForeignKey(
         Purchase, on_delete=models.CASCADE, related_name="lines"
     )
     item = models.ForeignKey(
-        Item, on_delete=models.PROTECT, related_name="purchase_lines"
+        Item,
+        on_delete=models.PROTECT,
+        related_name="purchase_lines",
+        null=True,
+        blank=True,
+    )
+    name = models.CharField(max_length=255, blank=True)
+    hsn_sac = models.CharField(
+        max_length=8,
+        blank=True,
+        validators=[validate_hsn_or_sac],
+        verbose_name="HSN or SAC",
     )
     # The unit and what it holds are copied rather than linked, so an Item's
     # units can be edited without the bills that used one changing under it.
-    unit = models.CharField(max_length=3, choices=UNITS)
-    stock_units_in_one = models.DecimalField(max_digits=18, decimal_places=6)
+    unit = models.CharField(max_length=3, choices=UNITS, blank=True)
+    stock_units_in_one = models.DecimalField(max_digits=18, decimal_places=6, default=1)
     quantity = models.DecimalField(
         max_digits=12, decimal_places=3, validators=[validate_positive]
     )
@@ -204,9 +221,22 @@ class PurchaseLine(models.Model):
                 condition=models.Q(discount_percent__range=(0, 100)),
                 name="line_discount_is_a_percentage",
             ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(item__isnull=False, name="", hsn_sac="")
+                    | (
+                        models.Q(item__isnull=True, unit="")
+                        & ~models.Q(name="")
+                        & ~models.Q(hsn_sac="")
+                    )
+                ),
+                name="line_is_an_item_or_one_off",
+            ),
         ]
 
     def __str__(self) -> str:
+        if self.item is None:
+            return f"{self.quantity} {self.name}"
         return f"{self.quantity} {self.unit} {self.item}"
 
     def as_line(self) -> Line:
@@ -216,4 +246,5 @@ class PurchaseLine(models.Model):
             gst_rate=self.gst_rate,
             stock_units_in_one=self.stock_units_in_one,
             discount_percent=self.discount_percent,
+            moves_stock=self.item is not None and self.item.kind == Item.Kind.GOODS,
         )

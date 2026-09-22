@@ -34,3 +34,14 @@ def validate_sac(code: str) -> None:
     if not SAC_SHAPE.fullmatch(code):
         msg = "A SAC is 6 digits beginning 99."
         raise ValidationError(msg, code="sac_shape")
+
+
+def validate_hsn_or_sac(code: str) -> None:
+    """Refuse anything that is neither, for a line that names no Item and so no kind."""
+    if SAC_SHAPE.fullmatch(code):
+        return
+    try:
+        validate_hsn(code)
+    except ValidationError as error:
+        msg = "An HSN code is 4, 6 or 8 digits, and a SAC is 6 digits beginning 99."
+        raise ValidationError(msg, code="hsn_sac_shape") from error

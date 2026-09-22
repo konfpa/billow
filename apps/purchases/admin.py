@@ -30,6 +30,8 @@ class PurchaseLineInline(ReadOnlyAdmin, admin.TabularInline):
     model = PurchaseLine
     fields = (
         "item",
+        "name",
+        "hsn_sac",
         "unit",
         "stock_units_in_one",
         "quantity",

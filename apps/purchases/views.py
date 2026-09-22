@@ -19,7 +19,7 @@ def purchase_directory(request: HttpRequest) -> HttpResponse:
     purchases = [
         (purchase, purchase.totals(business))
         for purchase in Purchase.objects.select_related("supplier").prefetch_related(
-            "lines"
+            "lines__item"
         )
     ]
     return render(request, "purchases/directory.html", {"purchases": purchases})

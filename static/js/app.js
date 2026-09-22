@@ -665,7 +665,8 @@ document.addEventListener("alpine:init", () => {
       this.supplier = this.tax.suppliers[form.elements.supplier.value] ?? null;
       const within = this.supplier?.state === this.tax.businessState;
       const lines = this.rows().map((row) => {
-        const item = itemOptions().find((o) => String(o.id) === row.querySelector("[data-item]").value);
+        // A One-off line has no Item, so its own GST rate is the only one.
+        const item = itemOptions().find((o) => String(o.id) === row.querySelector("[data-item]")?.value);
         return {
           value: linePaise(row),
           rate: Number(row.querySelector('[name$="-gst_rate"]').value || item?.gstRate || 0),
@@ -766,8 +767,16 @@ document.addEventListener("alpine:init", () => {
     // TOTAL_FORMS counts every line ever issued, removed ones included, so a
     // new line never reuses the index of one waiting to be deleted.
     add() {
+      this.addFrom(this.$refs.blank, "[role=combobox]");
+    },
+
+    addOneOff() {
+      this.addFrom(this.$refs.blankOneOff, 'input[name$="-name"]');
+    },
+
+    addFrom(template, first) {
       const index = Number(this.$refs.total.value);
-      const blank = this.$refs.blank.content.firstElementChild.outerHTML;
+      const blank = template.content.firstElementChild.outerHTML;
       const holder = document.createElement("div");
       holder.innerHTML = blank.replaceAll("__prefix__", index);
       const row = holder.firstElementChild;
@@ -778,7 +787,7 @@ document.addEventListener("alpine:init", () => {
       this.$refs.rows.append(row);
       this.$refs.total.value = index + 1;
       this.shown++;
-      this.$nextTick(() => row.querySelector("[role=combobox]").focus());
+      this.$nextTick(() => row.querySelector(first).focus());
     },
 
     // A removed line is marked and hidden rather than dropped, so a refused
@@ -971,6 +980,28 @@ document.addEventListener("alpine:init", () => {
       event.preventDefault();
       const o = this.list[this.ai];
       if (o) this.pickRow(o);
+    },
+
+    dropLine() {
+      this.$dispatch("drop-line");
+    },
+  }));
+
+  // A One-off line of the Purchase form: typed rather than picked, so all it
+  // keeps is its running amount.
+  Alpine.data("oneOffLine", () => ({
+    amount: 0,
+
+    init() {
+      this.compute();
+    },
+
+    get amountLabel() {
+      return rupees(this.amount);
+    },
+
+    compute() {
+      this.amount = linePaise(this.$el.closest("fieldset"));
     },
 
     dropLine() {
@@ -1203,11 +1234,11 @@ document.addEventListener("alpine:init", () => {
   }));
 });
 
-// The Goods on the Purchase form, read once and shared by every line.
-let goods = null;
+// The Items on the Purchase form, read once and shared by every line.
+let items = null;
 function itemOptions() {
-  goods ??= JSON.parse(document.getElementById("item-options").textContent);
-  return goods;
+  items ??= JSON.parse(document.getElementById("item-options").textContent);
+  return items;
 }
 
 // A line's quantity at its rate less its own discount, in paise, each rounded

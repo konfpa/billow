@@ -115,9 +115,9 @@ classified by a SAC code and never counted in stock.
 _Avoid_: Labour, charge, job
 
 **One-off line**:
-An invoice line typed straight onto the invoice with its own name, code, rate
-and price, for something the Business has no Item for. It leaves the catalogue
-untouched.
+An invoice or Purchase line typed straight onto the document with its own
+name, code, rate and price, for something the Business has no Item for, such
+as freight. It leaves the catalogue untouched and never moves stock.
 _Avoid_: Misc item, ad hoc item, custom line, free-text line
 
 **Stock unit**:
@@ -143,8 +143,9 @@ same GSTIN may then be on file once on each side.
 _Avoid_: Vendor, seller, party
 
 **Purchase**:
-A Supplier's bill recorded in billow, whose lines bring Goods into stock at a
-cost. Identified by the Supplier and the bill number printed on it, which the
+A Supplier's bill recorded in billow, whose Goods lines bring Goods into
+stock at a cost; its Service and One-off lines are taxed and totalled but move
+no stock. Identified by the Supplier and the bill number printed on it, which the
 Supplier may not repeat within a financial year. A copy of someone else's
 document rather than one the Business issues, so a wrong one is corrected or
 removed rather than reversed.
