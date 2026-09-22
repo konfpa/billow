@@ -18,8 +18,9 @@
       <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% now "l d M Y" %} · signed in as {{ user.email }}</p>
     </div>
 
-    {% if perms.customers.view_customer %}
+    {% if perms.customers.view_customer or perms.suppliers.view_supplier %}
     <div class="grid items-start gap-3 sm:grid-cols-2">
+      {% if perms.customers.view_customer %}
       <section data-kui="card/default" aria-labelledby="home-customers-h" class="min-w-0 overflow-hidden rounded-xl border border-zinc-300 bg-white">
         <div class="border-b border-zinc-200 px-5 py-3.5">
           <h2 id="home-customers-h" class="text-[14px]/5 font-semibold">Customers</h2>
@@ -29,7 +30,21 @@
           <a href="{% url 'customer_directory' %}" class="mt-2 inline-block text-[13px]/5 font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Open the directory</a>
         </div>
       </section>
+      {% endif %}
 
+      {% if perms.suppliers.view_supplier %}
+      <section data-kui="card/default" aria-labelledby="home-suppliers-h" class="min-w-0 overflow-hidden rounded-xl border border-zinc-300 bg-white">
+        <div class="border-b border-zinc-200 px-5 py-3.5">
+          <h2 id="home-suppliers-h" class="text-[14px]/5 font-semibold">Suppliers</h2>
+        </div>
+        <div class="px-5 py-4 text-[13px]/5">
+          <p class="text-zinc-600">Everyone the Business buys from, and the registration their Purchases are taxed by.</p>
+          <a href="{% url 'supplier_directory' %}" class="mt-2 inline-block text-[13px]/5 font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Open the directory</a>
+        </div>
+      </section>
+      {% endif %}
+
+      {% if perms.customers.view_customer %}
       <section data-kui="card/default" aria-labelledby="home-invoices-h" class="min-w-0 overflow-hidden rounded-xl border border-zinc-300 bg-white">
         <div class="border-b border-zinc-200 px-5 py-3.5">
           <h2 id="home-invoices-h" class="text-[14px]/5 font-semibold">Invoices</h2>
@@ -39,6 +54,7 @@
           <p class="mt-2 text-zinc-500">Invoicing arrives in a later release.</p>
         </div>
       </section>
+      {% endif %}
     </div>
     {% else %}
     {% include "core/empty/no_work.html" %}

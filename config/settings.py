@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "apps.business",
     "apps.core",
     "apps.customers",
+    "apps.suppliers",
     "apps.catalogue",
 ]
 
