@@ -82,7 +82,9 @@
         </div>
         {% endif %}
         {% if showing_archived %}<input type="hidden" name="show" value="archived">{% endif %}
-        <button type="submit" class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15 md:shrink-0">Search</button>
+        <button type="submit" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15 md:shrink-0">
+          <i data-lucide="search" class="size-4 text-zinc-600"></i>Search
+        </button>
       </form>
 
       {% comment %}
