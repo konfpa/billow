@@ -282,3 +282,32 @@ def test_reaching_an_archived_customer_is_spelt_out(archived):
 
     assert list(Customer.objects.all()) == [on_file]
     assert list(Customer.including_archived.archived()) == [archived]
+
+
+@pytest.mark.django_db
+def test_archiving_from_the_directory_returns_to_the_directory(
+    client,
+    signed_in,
+    customer,
+):
+    response = client.post(archive_url(customer), {"next": f"{DIRECTORY}?q=Sharma"})
+
+    assert response.url == f"{DIRECTORY}?q=Sharma"
+
+
+@pytest.mark.django_db
+def test_restoring_from_the_directory_returns_to_the_archived_list(
+    client,
+    signed_in,
+    archived,
+):
+    response = client.post(restore_url(archived), {"next": ARCHIVED})
+
+    assert response.url == ARCHIVED
+
+
+@pytest.mark.django_db
+def test_archiving_never_follows_a_next_off_the_site(client, signed_in, customer):
+    response = client.post(archive_url(customer), {"next": "https://evil.example.com/"})
+
+    assert response.url == detail_url(customer)

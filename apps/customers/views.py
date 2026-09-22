@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from apps.core.access import requires
@@ -130,7 +131,7 @@ def archive_customer(request: HttpRequest, pk: int) -> HttpResponse:
     customer.archive()
 
     messages.success(request, f"{customer.name} is archived.")
-    return redirect("customer_detail", pk=pk)
+    return back(request, customer)
 
 
 @requires("customers.archive_customer")
@@ -141,4 +142,19 @@ def restore_customer(request: HttpRequest, pk: int) -> HttpResponse:
     customer.restore()
 
     messages.success(request, f"{customer.name} is back on file.")
-    return redirect("customer_detail", pk=pk)
+    return back(request, customer)
+
+
+def back(request: HttpRequest, customer: Customer) -> HttpResponse:
+    """Return to the page the act was taken from, or else the Customer's own.
+
+    The directory's row menu posts where it was, so archiving from the list
+    lands back on the list. Only a path on this site is followed, or a forged
+    form could send an Operator anywhere.
+    """
+    target = request.POST.get("next", "")
+    if url_has_allowed_host_and_scheme(
+        target, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return redirect(target)
+    return redirect("customer_detail", pk=customer.pk)
