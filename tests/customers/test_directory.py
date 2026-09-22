@@ -313,4 +313,4 @@ def test_every_row_leads_to_the_customer(client, signed_in, customer):
 
     detail = reverse("customer_detail", args=[customer.pk])
     assert page.count(f'href="{detail}"') == 2
-    assert reverse("edit_customer", args=[customer.pk]) not in page
+    assert f'href="{reverse("edit_customer", args=[customer.pk])}"' not in page

@@ -633,6 +633,127 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
+  // konspec dropdown/context-menu over the Customer directory. One menu
+  // serves every row, so the row it is about is held as state and each row
+  // carries its own name and URLs.
+  Alpine.data("rowMenu", () => ({
+    open: false,
+    confirming: false,
+    x: 0,
+    y: 0,
+    row: null,
+    opener: null,
+
+    items() {
+      return [...this.$refs.menu.querySelectorAll("[role=menuitem]")];
+    },
+
+    // Height depends on which items the permissions left in, so the flip
+    // upwards is measured a frame after x-show has displayed the panel.
+    showAt(cx, cy, row, opener) {
+      this.row = row;
+      this.opener = opener;
+      this.x = Math.max(8, Math.min(cx, window.innerWidth - 224));
+      this.y = cy;
+      this.open = true;
+      this.$nextTick(() =>
+        requestAnimationFrame(() => {
+          const h = this.$refs.menu.offsetHeight;
+          if (cy + h > window.innerHeight - 8) this.y = Math.max(8, cy - h);
+          this.items()[0]?.focus();
+        }),
+      );
+    },
+
+    fromRow(event) {
+      const row = event.currentTarget;
+      this.showAt(event.clientX, event.clientY, row, row.querySelector("a"));
+    },
+
+    close(toOpener) {
+      if (!this.open) return;
+      this.open = false;
+      if (toOpener) this.opener?.focus();
+    },
+
+    closeQuietly() {
+      this.close(false);
+    },
+
+    // A left click on another row has to put the menu away too, not only a
+    // click outside the table.
+    dismiss(event) {
+      if (this.open && !this.$refs.menu.contains(event.target)) this.close(false);
+    },
+
+    escape(event) {
+      if (!this.open) return;
+      event.stopPropagation();
+      this.close(true);
+    },
+
+    move(step) {
+      const i = this.items();
+      const at = i.indexOf(document.activeElement);
+      i[(at + step + i.length) % i.length]?.focus();
+    },
+
+    next() {
+      this.move(1);
+    },
+
+    prev() {
+      this.move(-1);
+    },
+
+    toFirst() {
+      this.items()[0]?.focus();
+    },
+
+    toLast() {
+      this.items().at(-1)?.focus();
+    },
+
+    // Focus goes back to the row's link first, so the dialog's trap has
+    // somewhere to return it when it closes.
+    askArchive() {
+      this.close(true);
+      this.confirming = true;
+    },
+
+    cancel() {
+      this.confirming = false;
+    },
+
+    tint(row) {
+      return (this.open || this.confirming) && this.row === row ? "[&>td]:bg-zinc-100" : "";
+    },
+
+    get menuLabel() {
+      return this.row ? `Actions for ${this.row.dataset.name}` : "Row actions";
+    },
+
+    get menuStyle() {
+      return `left: ${this.x}px; top: ${this.y}px`;
+    },
+
+    get name() {
+      return this.row?.dataset.name ?? "";
+    },
+
+    get openUrl() {
+      return this.row?.dataset.open;
+    },
+
+    get editUrl() {
+      return this.row?.dataset.edit;
+    },
+
+    get actUrl() {
+      return this.row?.dataset.act;
+    },
+  }));
+
   Alpine.data("dismissible", () => ({
     show: true,
 
