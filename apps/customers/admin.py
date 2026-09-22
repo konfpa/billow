@@ -8,7 +8,7 @@ from apps.customers.models import Customer
 if TYPE_CHECKING:
     from django.http import HttpRequest
 
-    from apps.customers.models import CustomerQuerySet
+    from apps.core.models import CounterpartyQuerySet
 
 
 @admin.register(Customer)
@@ -38,7 +38,7 @@ class CustomerAdmin(SimpleHistoryAdmin):
     readonly_fields = fields
     list_display = ("name", "legal_name", "city", "state", "gstin", "archived_at")
 
-    def get_queryset(self, request: HttpRequest) -> CustomerQuerySet:  # noqa: ARG002
+    def get_queryset(self, request: HttpRequest) -> CounterpartyQuerySet:  # noqa: ARG002
         # The default manager leaves the archived out, and the admin is where
         # a Superuser goes to read what happened to one.
         return Customer.including_archived.all()
