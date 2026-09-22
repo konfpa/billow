@@ -621,6 +621,8 @@ document.addEventListener("alpine:init", () => {
     tax: { businessState: "", suppliers: {} },
     billDate: "",
     supplier: null,
+    linesTotal: 0,
+    billDiscount: 0,
     taxable: 0,
     halfTax: 0,
     igst: 0,
@@ -653,24 +655,37 @@ document.addEventListener("alpine:init", () => {
       this.billDate = event.target.value;
     },
 
-    // In paise, and tax rounded on each line, as the server rounds it.
+    // In paise, with tax rounded on each line and the Bill discount shared
+    // out as the server does both, so the preview never differs by a paisa.
     recount() {
       const form = this.$el.closest("form");
       this.supplier = this.tax.suppliers[form.elements.supplier.value] ?? null;
       const within = this.supplier?.state === this.tax.businessState;
-      let taxable = 0;
+      const lines = this.rows().map((row) => {
+        const item = itemOptions().find((o) => String(o.id) === row.querySelector("[data-item]").value);
+        return {
+          value: linePaise(row),
+          rate: Number(row.querySelector('[name$="-gst_rate"]').value || item?.gstRate || 0),
+        };
+      });
+      const whole = lines.reduce((sum, line) => sum + line.value, 0);
+      const discount = whole ? paiseOf(form.elements.bill_discount.value) : 0;
+      let running = 0;
+      let shared = 0;
       let half = 0;
       let igst = 0;
-      for (const row of this.rows()) {
-        const item = itemOptions().find((o) => String(o.id) === row.querySelector("[data-item]").value);
-        const value = linePaise(row);
-        const rate = Number(row.querySelector('[name$="-gst_rate"]').value || item?.gstRate || 0);
-        taxable += value;
+      for (const line of lines) {
+        running += line.value;
+        const upto = Math.round(discount * running / whole);
+        const value = line.value - (upto - shared);
+        shared = upto;
         if (!this.supplier?.gstin) continue;
-        if (within) half += Math.round(value * rate / 200);
-        else igst += Math.round(value * rate / 100);
+        if (within) half += Math.round(value * line.rate / 200);
+        else igst += Math.round(value * line.rate / 100);
       }
-      this.taxable = taxable;
+      this.linesTotal = whole;
+      this.billDiscount = discount;
+      this.taxable = whole - discount;
       this.halfTax = half;
       this.igst = igst;
     },
@@ -685,6 +700,18 @@ document.addEventListener("alpine:init", () => {
 
     get untaxed() {
       return this.supplier !== null && !this.supplier.gstin;
+    },
+
+    get hasBillDiscount() {
+      return this.billDiscount > 0;
+    },
+
+    get linesLabel() {
+      return rupees(this.linesTotal);
+    },
+
+    get billDiscountLabel() {
+      return `−${rupees(this.billDiscount)}`;
     },
 
     get taxableLabel() {
@@ -1137,12 +1164,19 @@ function itemOptions() {
   return goods;
 }
 
-// A line's quantity at its rate, in paise. toPrecision drops the float noise
-// that would otherwise round 83.325 down.
+// A line's quantity at its rate less its own discount, in paise, each rounded
+// as the server rounds it. toPrecision drops the float noise that would
+// otherwise round 83.325 down.
 function linePaise(row) {
   const quantity = Number(row.querySelector('[name$="-quantity"]').value) || 0;
   const rate = Number(row.querySelector('[name$="-rate"]').value) || 0;
-  return Math.round(Number((quantity * rate * 100).toPrecision(12)));
+  const percent = Number(row.querySelector('[name$="-discount_percent"]').value) || 0;
+  const gross = paiseOf(quantity * rate);
+  return gross - paiseOf(gross * percent / 10000);
+}
+
+function paiseOf(amount) {
+  return Math.round(Number(((Number(amount) || 0) * 100).toPrecision(12)));
 }
 
 function rupees(paise) {

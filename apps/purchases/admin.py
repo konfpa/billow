@@ -28,7 +28,15 @@ class ReadOnlyAdmin:
 
 class PurchaseLineInline(ReadOnlyAdmin, admin.TabularInline):
     model = PurchaseLine
-    fields = ("item", "unit", "stock_units_in_one", "quantity", "rate", "gst_rate")
+    fields = (
+        "item",
+        "unit",
+        "stock_units_in_one",
+        "quantity",
+        "rate",
+        "discount_percent",
+        "gst_rate",
+    )
     readonly_fields = fields
 
 
@@ -41,6 +49,7 @@ class PurchaseAdmin(ReadOnlyAdmin, SimpleHistoryAdmin):
         "received_date",
         "supplier_gstin",
         "supplier_state",
+        "bill_discount",
         "created_at",
         "updated_at",
     )

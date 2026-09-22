@@ -56,6 +56,7 @@
           {% include "forms/field.html" with field=form.bill_number %}
           {% include "forms/field.html" with field=form.bill_date %}
           {% include "forms/field.html" with field=form.received_date %}
+          {% include "forms/field.html" with field=form.bill_discount %}
         </div>
       </div>
     </div>
@@ -80,13 +81,14 @@
       </div>
 
       <div aria-hidden="true"
-           class="hidden gap-2 border-b border-zinc-200 px-4 py-2 text-[11px]/4 font-medium uppercase tracking-wider text-zinc-600 md:grid md:grid-cols-[minmax(0,1fr)_5.5rem_6rem_7rem_6rem_7rem_2.25rem]">
+           class="hidden gap-2 border-b border-zinc-200 px-4 py-2 text-[11px]/4 font-medium uppercase tracking-wider text-zinc-600 md:grid md:grid-cols-[minmax(0,1fr)_5.5rem_6rem_7rem_5rem_6rem_7rem_2.25rem]">
         <span>Item</span>
         <span>Unit</span>
         <span class="text-right">Quantity</span>
         <span class="text-right">Rate</span>
+        <span class="text-right">Disc.</span>
         <span>GST</span>
-        <span class="text-right">Taxable value</span>
+        <span class="text-right">Amount</span>
         <span></span>
       </div>
 
@@ -117,6 +119,14 @@
           <i data-lucide="plus" class="size-4"></i>Add line
         </button>
         <dl class="w-full space-y-1.5 text-[13px]/5 sm:w-64">
+          <div x-show="hasBillDiscount" x-cloak class="flex items-baseline justify-between gap-3">
+            <dt class="text-zinc-600">Lines</dt>
+            <dd><output aria-live="off" class="font-medium tabular-nums" x-text="linesLabel"></output></dd>
+          </div>
+          <div x-show="hasBillDiscount" x-cloak class="flex items-baseline justify-between gap-3">
+            <dt class="text-zinc-600">Bill discount</dt>
+            <dd><output aria-live="off" class="font-medium tabular-nums" x-text="billDiscountLabel"></output></dd>
+          </div>
           <div class="flex items-baseline justify-between gap-3">
             <dt class="text-zinc-600">Taxable value</dt>
             <dd><output aria-live="off" class="font-medium tabular-nums" x-text="taxableLabel"></output></dd>

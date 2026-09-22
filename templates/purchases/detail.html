@@ -75,8 +75,9 @@
             <th scope="col" class="px-4 py-2.5 font-medium">Item</th>
             <th scope="col" class="px-4 py-2.5 text-right font-medium">Quantity</th>
             <th scope="col" class="px-4 py-2.5 text-right font-medium">Rate</th>
+            <th scope="col" class="px-4 py-2.5 text-right font-medium">Discount</th>
             <th scope="col" class="px-4 py-2.5 text-right font-medium">GST</th>
-            <th scope="col" class="px-4 py-2.5 text-right font-medium">Taxable value</th>
+            <th scope="col" class="px-4 py-2.5 text-right font-medium">Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -88,38 +89,49 @@
               </td>
               <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line.quantity|plain }} {{ line.unit }}</td>
               <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line.rate|rupees }}</td>
+              <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{% if line.discount_percent %}{{ line.discount_percent|plain }}%{% else %}—{% endif %}</td>
               <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line.get_gst_rate_display }}</td>
-              <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line_totals.taxable_value|rupees }}</td>
+              <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line_totals.discounted|rupees }}</td>
             </tr>
           {% endfor %}
         </tbody>
         <tfoot class="bg-zinc-50">
-          <tr class="border-t border-zinc-200">
-            <th scope="row" colspan="4" class="px-4 py-2 text-left text-[12px]/4 font-medium text-zinc-600">Taxable value</th>
+          {% if totals.bill_discount %}
+            <tr class="border-t border-zinc-200">
+              <th scope="row" colspan="5" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">Lines</th>
+              <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">{{ totals.discounted|rupees }}</td>
+            </tr>
+            <tr>
+              <th scope="row" colspan="5" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">Bill discount</th>
+              <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">−{{ totals.bill_discount|rupees }}</td>
+            </tr>
+          {% endif %}
+          <tr{% if not totals.bill_discount %} class="border-t border-zinc-200"{% endif %}>
+            <th scope="row" colspan="5" class="px-4 py-2 text-left text-[12px]/4 font-medium text-zinc-600">Taxable value</th>
             <td class="px-4 py-2 text-right font-medium tabular-nums whitespace-nowrap">{{ totals.taxable_value|rupees }}</td>
           </tr>
           {% if tax == "none" %}
             <tr>
-              <th scope="row" colspan="4" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">No tax, from an unregistered Supplier</th>
+              <th scope="row" colspan="5" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">No tax, from an unregistered Supplier</th>
               <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">{{ totals.tax|rupees }}</td>
             </tr>
           {% elif tax == "cgst_sgst" %}
             <tr>
-              <th scope="row" colspan="4" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">CGST</th>
+              <th scope="row" colspan="5" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">CGST</th>
               <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">{{ totals.cgst|rupees }}</td>
             </tr>
             <tr>
-              <th scope="row" colspan="4" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">SGST</th>
+              <th scope="row" colspan="5" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">SGST</th>
               <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">{{ totals.sgst|rupees }}</td>
             </tr>
           {% else %}
             <tr>
-              <th scope="row" colspan="4" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">IGST</th>
+              <th scope="row" colspan="5" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">IGST</th>
               <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">{{ totals.igst|rupees }}</td>
             </tr>
           {% endif %}
           <tr>
-            <th scope="row" colspan="4" class="px-4 pt-1 pb-2.5 text-right text-[13px]/5 font-semibold">Grand total</th>
+            <th scope="row" colspan="5" class="px-4 pt-1 pb-2.5 text-right text-[13px]/5 font-semibold">Grand total</th>
             <td class="px-4 pt-1 pb-2.5 text-right text-[14px]/5 font-semibold tabular-nums whitespace-nowrap">{{ totals.grand_total|rupees }}</td>
           </tr>
         </tfoot>
@@ -130,15 +142,25 @@
           <div class="px-4 py-3">
             <div class="flex items-baseline justify-between gap-3">
               <span class="text-[13px]/5 font-medium">{{ line.item.name }}</span>
-              <span class="shrink-0 text-[13px]/5 tabular-nums">{{ line_totals.taxable_value|rupees }}</span>
+              <span class="shrink-0 text-[13px]/5 tabular-nums">{{ line_totals.discounted|rupees }}</span>
             </div>
             <p class="mt-0.5 text-[12px]/4 tabular-nums text-zinc-500">
-              {{ line.item.code }} · {{ line.quantity|plain }} {{ line.unit }} at {{ line.rate|rupees }} · GST {{ line.get_gst_rate_display }}
+              {{ line.item.code }} · {{ line.quantity|plain }} {{ line.unit }} at {{ line.rate|rupees }}{% if line.discount_percent %} less {{ line.discount_percent|plain }}%{% endif %} · GST {{ line.get_gst_rate_display }}
             </p>
           </div>
         {% endfor %}
       </div>
       <dl class="space-y-1 border-t border-zinc-200 bg-zinc-50 px-4 py-3 md:hidden">
+        {% if totals.bill_discount %}
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-[12px]/4 text-zinc-600">Lines</dt>
+            <dd class="text-[13px]/5 tabular-nums">{{ totals.discounted|rupees }}</dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-[12px]/4 text-zinc-600">Bill discount</dt>
+            <dd class="text-[13px]/5 tabular-nums">−{{ totals.bill_discount|rupees }}</dd>
+          </div>
+        {% endif %}
         <div class="flex items-baseline justify-between gap-3">
           <dt class="text-[12px]/4 text-zinc-600">Taxable value</dt>
           <dd class="text-[13px]/5 font-medium tabular-nums">{{ totals.taxable_value|rupees }}</dd>
