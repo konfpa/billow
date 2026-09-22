@@ -626,6 +626,9 @@ document.addEventListener("alpine:init", () => {
     taxable: 0,
     halfTax: 0,
     igst: 0,
+    suggestedRoundOff: 0,
+    roundOff: 0,
+    billed: null,
 
     init() {
       this.tax = JSON.parse(this.$el.dataset.tax);
@@ -688,6 +691,12 @@ document.addEventListener("alpine:init", () => {
       this.taxable = whole - discount;
       this.halfTax = half;
       this.igst = igst;
+
+      this.suggestedRoundOff = Math.round(this.amount / 100) * 100 - this.amount;
+      const typed = form.elements.round_off.value.trim();
+      this.roundOff = typed ? paiseOf(typed) : this.suggestedRoundOff;
+      const billed = form.elements.billed_total.value.trim();
+      this.billed = billed ? paiseOf(billed) : null;
     },
 
     get splitsTax() {
@@ -726,8 +735,32 @@ document.addEventListener("alpine:init", () => {
       return rupees(this.igst);
     },
 
+    get amount() {
+      return this.taxable + 2 * this.halfTax + this.igst;
+    },
+
+    get grandTotal() {
+      return this.amount + this.roundOff;
+    },
+
     get totalLabel() {
-      return rupees(this.taxable + 2 * this.halfTax + this.igst);
+      return rupees(this.grandTotal);
+    },
+
+    get roundOffHint() {
+      return (this.suggestedRoundOff / 100).toFixed(2);
+    },
+
+    get roundOffLabel() {
+      return signedRupees(this.roundOff);
+    },
+
+    get differs() {
+      return this.billed !== null && this.billed !== this.grandTotal;
+    },
+
+    get differenceLabel() {
+      return rupees(Math.abs(this.grandTotal - (this.billed ?? 0)));
     },
 
     // TOTAL_FORMS counts every line ever issued, removed ones included, so a
@@ -762,6 +795,19 @@ document.addEventListener("alpine:init", () => {
       this.shown--;
       this.recount();
       (near ? near.querySelector("[data-remove]") : this.$refs.add).focus();
+    },
+  }));
+
+  // konspec alert/action over the grand-total check. Saving past it posts
+  // the two totals it was shown, so a later change to either warns again.
+  Alpine.data("totalCheck", () => ({
+    init() {
+      this.$el.focus();
+    },
+
+    confirm() {
+      this.$refs.confirmed.value = this.$refs.confirmed.dataset.confirmation;
+      this.$refs.confirmed.form.requestSubmit();
     },
   }));
 
@@ -1181,6 +1227,10 @@ function paiseOf(amount) {
 
 function rupees(paise) {
   return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function signedRupees(paise) {
+  return paise < 0 ? `-${rupees(-paise)}` : rupees(paise);
 }
 
 function readableSize(bytes) {

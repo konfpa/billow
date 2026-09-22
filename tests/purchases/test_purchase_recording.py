@@ -20,7 +20,12 @@ def test_a_purchase_is_recorded_and_lands_on_its_page(
 ):
     response = client.post(
         RECORD,
-        submitted(supplier, line(elbow), line(pipe, quantity="3", rate="410.00")),
+        submitted(
+            supplier,
+            line(elbow),
+            line(pipe, quantity="3", rate="410.00"),
+            billed_total="2472",
+        ),
     )
 
     purchase = Purchase.objects.get()
@@ -106,7 +111,9 @@ def test_the_received_date_can_differ_from_the_bill_date(
 
 @pytest.mark.django_db
 def test_a_line_takes_the_item_gst_rate_by_default(client, signed_in, supplier, pipe):
-    client.post(RECORD, submitted(supplier, line(pipe, gst_rate="")))
+    client.post(
+        RECORD, submitted(supplier, line(pipe, gst_rate=""), billed_total="1050")
+    )
 
     assert Purchase.objects.get().lines.get().gst_rate == Decimal("5.00")
 
@@ -120,7 +127,10 @@ def test_a_line_gst_rate_can_be_changed(client, signed_in, supplier, pipe):
 
 @pytest.mark.django_db
 def test_a_line_may_be_in_any_unit_of_the_item(client, signed_in, supplier, pipe):
-    client.post(RECORD, submitted(supplier, line(pipe, unit="BDL", quantity="2")))
+    client.post(
+        RECORD,
+        submitted(supplier, line(pipe, unit="BDL", quantity="2"), billed_total="210"),
+    )
 
     recorded = Purchase.objects.get().lines.get()
     assert recorded.unit == "BDL"
@@ -150,7 +160,10 @@ def test_a_quantity_of_zero_or_less_is_refused(
 
 @pytest.mark.django_db
 def test_a_line_at_no_charge_is_accepted(client, signed_in, supplier, elbow):
-    client.post(RECORD, submitted(supplier, line(elbow, quantity="1", rate="0")))
+    client.post(
+        RECORD,
+        submitted(supplier, line(elbow, quantity="1", rate="0"), billed_total="0"),
+    )
 
     assert Purchase.objects.get().lines.get().rate == Decimal("0.00")
 

@@ -50,6 +50,8 @@ class PurchaseAdmin(ReadOnlyAdmin, SimpleHistoryAdmin):
         "supplier_gstin",
         "supplier_state",
         "bill_discount",
+        "round_off",
+        "billed_total",
         "created_at",
         "updated_at",
     )

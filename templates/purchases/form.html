@@ -1,3 +1,4 @@
+{% load ui %}
 {% comment %}
   The body of konspec form-page/two-column, as the Item form is: the error
   summary, the required key, a card for the bill, the lines as
@@ -39,6 +40,28 @@
     </div>
   {% endif %}
 
+  {% if form.total_check %}
+    {% comment %}
+      konspec alert/action, focused on load as alert/form-errors is, since the
+      page it arrives on is a refused save. Its action is a plain button, so
+      Enter in a field still presses Save rather than confirming.
+    {% endcomment %}
+    {% with check=form.total_check %}
+      <div class="mb-4">
+        <div data-kui="alert/action" tabindex="-1" x-data="totalCheck"
+             class="flex flex-wrap items-start gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+          <i data-lucide="alert-triangle" class="mt-0.5 size-4 shrink-0 text-amber-700"></i>
+          <div class="min-w-[16rem] flex-1">
+            <p class="text-[13px]/5 font-medium tabular-nums">billow totals this bill to {{ check.calculated|rupees }}; the bill says {{ check.billed|rupees }}, a difference of {{ check.difference|rupees }}.</p>
+            <p class="mt-0.5 text-[12px]/4 text-zinc-600">Check each line against the bill. If the Supplier added it up wrongly, save it as it is and billow keeps both totals.</p>
+          </div>
+          <input type="hidden" name="{{ form.confirmed_total.html_name }}" value="" data-confirmation="{{ check.confirmation }}" x-ref="confirmed">
+          <button type="button" @click="confirm" class="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[13px]/5 font-medium hover:bg-zinc-100 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Save anyway</button>
+        </div>
+      </div>
+    {% endwith %}
+  {% endif %}
+
   <p class="text-[12px]/4 text-zinc-600">
     Every field is required unless its label says <span class="font-medium text-zinc-900">Optional</span>.
   </p>
@@ -57,6 +80,8 @@
           {% include "forms/field.html" with field=form.bill_date %}
           {% include "forms/field.html" with field=form.received_date %}
           {% include "forms/field.html" with field=form.bill_discount %}
+          {% include "forms/field.html" with field=form.round_off %}
+          {% include "forms/field.html" with field=form.billed_total %}
         </div>
       </div>
     </div>
@@ -147,9 +172,17 @@
             <dt class="text-zinc-600">Tax</dt>
             <dd class="text-zinc-600">None, unregistered</dd>
           </div>
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-zinc-600">Round-off</dt>
+            <dd><output aria-live="off" class="font-medium tabular-nums" x-text="roundOffLabel"></output></dd>
+          </div>
           <div class="flex items-baseline justify-between gap-3 border-t border-zinc-100 pt-1.5">
             <dt class="font-medium">Grand total</dt>
             <dd><output aria-live="off" class="text-[16px]/6 font-semibold tabular-nums" x-text="totalLabel"></output></dd>
+          </div>
+          <div x-show="differs" x-cloak class="flex items-baseline justify-between gap-3">
+            <dt class="text-zinc-600">Differs from the bill by</dt>
+            <dd><output aria-live="off" class="font-medium tabular-nums" x-text="differenceLabel"></output></dd>
           </div>
         </dl>
       </div>

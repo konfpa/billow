@@ -131,9 +131,19 @@
             </tr>
           {% endif %}
           <tr>
+            <th scope="row" colspan="5" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">Round-off</th>
+            <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">{{ totals.round_off|rupees }}</td>
+          </tr>
+          <tr>
             <th scope="row" colspan="5" class="px-4 pt-1 pb-2.5 text-right text-[13px]/5 font-semibold">Grand total</th>
             <td class="px-4 pt-1 pb-2.5 text-right text-[14px]/5 font-semibold tabular-nums whitespace-nowrap">{{ totals.grand_total|rupees }}</td>
           </tr>
+          {% if purchase.billed_total != totals.grand_total %}
+            <tr>
+              <th scope="row" colspan="5" class="px-4 pb-2.5 text-right text-[12px]/4 font-medium text-zinc-600">Grand total on the bill</th>
+              <td class="px-4 pb-2.5 text-right tabular-nums whitespace-nowrap">{{ purchase.billed_total|rupees }}</td>
+            </tr>
+          {% endif %}
         </tfoot>
       </table>
 
@@ -186,9 +196,19 @@
           </div>
         {% endif %}
         <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-[12px]/4 text-zinc-600">Round-off</dt>
+          <dd class="text-[13px]/5 tabular-nums">{{ totals.round_off|rupees }}</dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-3">
           <dt class="text-[13px]/5 font-semibold">Grand total</dt>
           <dd class="text-[14px]/5 font-semibold tabular-nums">{{ totals.grand_total|rupees }}</dd>
         </div>
+        {% if purchase.billed_total != totals.grand_total %}
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-[12px]/4 text-zinc-600">Grand total on the bill</dt>
+            <dd class="text-[13px]/5 tabular-nums">{{ purchase.billed_total|rupees }}</dd>
+          </div>
+        {% endif %}
       </dl>
     </div>
 

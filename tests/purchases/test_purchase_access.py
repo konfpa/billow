@@ -18,6 +18,7 @@ def purchase(supplier, elbow):
         bill_number="A-1",
         bill_date=datetime.date(2026, 9, 1),
         received_date=datetime.date(2026, 9, 1),
+        billed_total=118,
     )
     PurchaseLine.objects.create(
         purchase=bill,
