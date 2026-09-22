@@ -18,7 +18,7 @@
       <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% now "l d M Y" %} · signed in as {{ user.email }}</p>
     </div>
 
-    {% if perms.customers.view_customer or perms.suppliers.view_supplier %}
+    {% if perms.customers.view_customer or perms.suppliers.view_supplier or perms.purchases.view_purchase %}
     <div class="grid items-start gap-3 sm:grid-cols-2">
       {% if perms.customers.view_customer %}
       <section data-kui="card/default" aria-labelledby="home-customers-h" class="min-w-0 overflow-hidden rounded-xl border border-zinc-300 bg-white">
@@ -40,6 +40,18 @@
         <div class="px-5 py-4 text-[13px]/5">
           <p class="text-zinc-600">Everyone the Business buys from, and the registration their Purchases are taxed by.</p>
           <a href="{% url 'supplier_directory' %}" class="mt-2 inline-block text-[13px]/5 font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Open the directory</a>
+        </div>
+      </section>
+      {% endif %}
+
+      {% if perms.purchases.view_purchase %}
+      <section data-kui="card/default" aria-labelledby="home-purchases-h" class="min-w-0 overflow-hidden rounded-xl border border-zinc-300 bg-white">
+        <div class="border-b border-zinc-200 px-5 py-3.5">
+          <h2 id="home-purchases-h" class="text-[14px]/5 font-semibold">Purchases</h2>
+        </div>
+        <div class="px-5 py-4 text-[13px]/5">
+          <p class="text-zinc-600">Suppliers' bills, line by line, with the tax each one carried.</p>
+          <a href="{% url 'purchase_directory' %}" class="mt-2 inline-block text-[13px]/5 font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Open the directory</a>
         </div>
       </section>
       {% endif %}

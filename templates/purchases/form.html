@@ -1,0 +1,181 @@
+{% comment %}
+  The body of konspec form-page/two-column, as the Item form is: the error
+  summary, the required key, a card for the bill, the lines as
+  form-page/line-items, the action bar and the unsaved-changes dialog. The
+  running totals are a preview worked out in purchaseLines; the server
+  totals the bill again when it is saved.
+{% endcomment %}
+{{ form.item_options|json_script:"item-options" }}
+<form method="post" novalidate x-ref="form" @input="arm" @change="arm" @submit="send">
+  {% csrf_token %}
+
+  {% if form.errors or form.summary or form.lines.non_form_errors %}
+    <div class="mb-4">
+      <div data-kui="alert/form-errors" role="alert" tabindex="-1" x-data="formErrors"
+           class="rounded-lg border border-zinc-300 bg-white px-4 py-3 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+        <div class="flex items-start gap-3">
+          <i data-lucide="alert-circle" class="mt-0.5 size-4 shrink-0 text-red-600"></i>
+          <div class="min-w-0">
+            {% with count=form.summary|length %}
+              <p class="text-[13px]/5 font-medium">This Purchase was not saved{% if count %} — <span class="tabular-nums">{{ count }}</span> field{{ count|pluralize:" needs,s need" }} attention{% endif %}.</p>
+            {% endwith %}
+            <ul class="mt-2 space-y-1 text-[12px]/4 text-zinc-600">
+              {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+              {% for error in form.lines.non_form_errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+              {% for label, field in form.summary %}
+                <li>
+                  <a href="#{{ field.id_for_label }}" class="font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ label }}</a>
+                  — {{ field.errors.0 }}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <p class="text-[12px]/4 text-zinc-600">
+    Every field is required unless its label says <span class="font-medium text-zinc-900">Optional</span>.
+  </p>
+
+  <div class="mt-3 space-y-4" x-data="purchaseLines" data-tax="{{ form.tax_context }}"
+       @input="recount" @change="recount" @drop-line="removeLine">
+
+    <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-5 py-3.5">
+        <h2 class="text-[16px]/6 font-semibold">Bill</h2>
+      </div>
+      <div class="px-5 py-4">
+        <div class="grid gap-4 sm:grid-cols-2" @input="followBillDate">
+          {% include "forms/field.html" with field=form.supplier %}
+          {% include "forms/field.html" with field=form.bill_number %}
+          {% include "forms/field.html" with field=form.bill_date %}
+          {% include "forms/field.html" with field=form.received_date %}
+        </div>
+      </div>
+    </div>
+
+    {% comment %}
+      konspec form-page/line-items, with the server rendering the rows rather
+      than Alpine, so a refused save comes back with each line's errors. The
+      card is not overflow-hidden: each line's Item list opens past its edge.
+    {% endcomment %}
+    <div data-kui="form-page/line-items" class="rounded-xl border border-zinc-300 bg-white">
+      <input type="hidden" name="{{ form.lines.management_form.TOTAL_FORMS.html_name }}" id="{{ form.lines.management_form.TOTAL_FORMS.auto_id }}" value="{{ form.lines.total_form_count }}" x-ref="total">
+      {{ form.lines.management_form.INITIAL_FORMS }}
+      {{ form.lines.management_form.MIN_NUM_FORMS }}
+      {{ form.lines.management_form.MAX_NUM_FORMS }}
+
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-3.5">
+        <div class="min-w-0">
+          <h2 class="text-[16px]/6 font-semibold">Lines</h2>
+          <p class="mt-0.5 text-[12px]/4 text-zinc-600">Goods as the bill lists them, each in any unit the Item is in, at the rate before tax.</p>
+        </div>
+        <p class="text-[12px]/4 tabular-nums text-zinc-600" x-text="lineCount"></p>
+      </div>
+
+      <div aria-hidden="true"
+           class="hidden gap-2 border-b border-zinc-200 px-4 py-2 text-[11px]/4 font-medium uppercase tracking-wider text-zinc-600 md:grid md:grid-cols-[minmax(0,1fr)_5.5rem_6rem_7rem_6rem_7rem_2.25rem]">
+        <span>Item</span>
+        <span>Unit</span>
+        <span class="text-right">Quantity</span>
+        <span class="text-right">Rate</span>
+        <span>GST</span>
+        <span class="text-right">Taxable value</span>
+        <span></span>
+      </div>
+
+      <div x-ref="rows">
+        {% for line_form in form.lines %}
+          {% include "purchases/line_row.html" with position=forloop.counter %}
+        {% endfor %}
+      </div>
+
+      <template x-ref="blank">
+        {% include "purchases/line_row.html" with line_form=form.lines.empty_form %}
+      </template>
+
+      <!-- empty-state's shape: what to do, not "No lines" -->
+      <div x-show="empty" x-cloak class="px-4 py-10 text-center">
+        <span class="mx-auto flex size-10 items-center justify-center rounded-full bg-zinc-200 ring-1 ring-inset ring-zinc-300">
+          <i data-lucide="package" class="size-5 text-zinc-600"></i>
+        </span>
+        <p class="mt-3 text-[14px]/5 font-semibold">No lines on this bill yet</p>
+        <p class="mx-auto mt-1 max-w-[46ch] text-[12px]/4 text-zinc-600">
+          A Purchase needs at least one line before it can be saved. Add the Item, the quantity and the rate the Supplier billed.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-start justify-between gap-3 border-t border-zinc-200 px-4 py-3">
+        <button type="button" x-ref="add" @click="add"
+                class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-[13px]/5 font-medium hover:bg-zinc-100">
+          <i data-lucide="plus" class="size-4"></i>Add line
+        </button>
+        <dl class="w-full space-y-1.5 text-[13px]/5 sm:w-64">
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-zinc-600">Taxable value</dt>
+            <dd><output aria-live="off" class="font-medium tabular-nums" x-text="taxableLabel"></output></dd>
+          </div>
+          <div x-show="splitsTax" class="flex items-baseline justify-between gap-3">
+            <dt class="text-zinc-600">CGST</dt>
+            <dd><output aria-live="off" class="font-medium tabular-nums" x-text="halfTaxLabel"></output></dd>
+          </div>
+          <div x-show="splitsTax" class="flex items-baseline justify-between gap-3">
+            <dt class="text-zinc-600">SGST</dt>
+            <dd><output aria-live="off" class="font-medium tabular-nums" x-text="halfTaxLabel"></output></dd>
+          </div>
+          <div x-show="chargesIgst" x-cloak class="flex items-baseline justify-between gap-3">
+            <dt class="text-zinc-600">IGST</dt>
+            <dd><output aria-live="off" class="font-medium tabular-nums" x-text="igstLabel"></output></dd>
+          </div>
+          <div x-show="untaxed" x-cloak class="flex items-baseline justify-between gap-3">
+            <dt class="text-zinc-600">Tax</dt>
+            <dd class="text-zinc-600">None, unregistered</dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 border-t border-zinc-100 pt-1.5">
+            <dt class="font-medium">Grand total</dt>
+            <dd><output aria-live="off" class="text-[16px]/6 font-semibold tabular-nums" x-text="totalLabel"></output></dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="sticky bottom-0 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-300 bg-white px-4 py-3">
+    <p class="text-[12px]/4 tabular-nums text-zinc-600">
+      <span x-show="dirty" x-cloak class="flex items-center gap-1.5 font-medium text-zinc-900">
+        <i data-lucide="pencil" class="size-3.5 shrink-0 text-zinc-600"></i>Unsaved changes
+      </span>
+    </p>
+    <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <a href="{% url 'purchase_directory' %}" x-ref="cancel" @click="cancel"
+         class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-transparent px-4 text-[13px]/5 font-medium text-zinc-900 hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15"><i data-lucide="x" class="size-4 text-zinc-600"></i>Cancel</a>
+      <button type="submit"
+              class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15"><i data-lucide="check" class="size-4"></i>Save</button>
+    </div>
+  </div>
+</form>
+
+<div x-show="leaving" x-cloak x-trap.noscroll="leaving" @keydown.escape.window="stay"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
+  <div role="alertdialog" aria-modal="true" aria-labelledby="purchase-leave-t" aria-describedby="purchase-leave-b"
+       class="w-full max-w-md rounded-xl border border-zinc-300 bg-white p-5 shadow-lg">
+    <h2 id="purchase-leave-t" class="text-[16px]/6 font-semibold">Leave without saving?</h2>
+    <p id="purchase-leave-b" class="mt-1.5 text-[13px]/5 text-zinc-600">
+      This Purchase has changes that have not been saved. Leaving now loses them.
+    </p>
+    <div class="mt-5 flex flex-wrap items-center justify-end gap-2">
+      <button type="button" @click="stay"
+              class="inline-flex h-9 items-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Keep editing</button>
+      <button type="button" @click="discard"
+              class="inline-flex h-9 items-center rounded-lg border border-transparent px-4 text-[13px]/5 font-medium text-red-600 hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Discard changes</button>
+      <button type="button" @click="saveAndLeave"
+              class="inline-flex h-9 items-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Save and leave</button>
+    </div>
+  </div>
+</div>

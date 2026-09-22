@@ -44,3 +44,16 @@ def initials(name: str) -> str:
 @register.filter
 def plain(number: Decimal) -> str:
     return f"{number.normalize():f}"
+
+
+# Grouped the Indian way, as bills print it: ₹1,23,456.78.
+@register.filter
+def rupees(amount: Decimal) -> str:
+    whole, paise = f"{abs(amount):.2f}".split(".")
+    head, tail = whole[:-3], whole[-3:]
+    groups = []
+    while head:
+        groups.insert(0, head[-2:])
+        head = head[:-2]
+    sign = "-" if amount < 0 else ""
+    return f"{sign}₹{','.join([*groups, tail])}.{paise}"
