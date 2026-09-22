@@ -84,10 +84,15 @@
           {% for line, line_totals in lines %}
             <tr class="border-b border-zinc-100">
               <td class="px-4 py-2.5">
-                <span class="block">{{ line.item.name }}</span>
-                <span class="block text-[12px]/4 tabular-nums text-zinc-500">{{ line.item.code }}</span>
+                {% if line.item %}
+                  <span class="block">{{ line.item.name }}</span>
+                  <span class="block text-[12px]/4 tabular-nums text-zinc-500">{{ line.item.code }}</span>
+                {% else %}
+                  <span class="block">{{ line.name }}</span>
+                  <span class="block text-[12px]/4 tabular-nums text-zinc-500">One-off · HSN/SAC {{ line.hsn_sac }}</span>
+                {% endif %}
               </td>
-              <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line.quantity|plain }} {{ line.unit }}</td>
+              <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line.quantity|plain }}{% if line.unit %} {{ line.unit }}{% endif %}</td>
               <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line.rate|rupees }}</td>
               <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{% if line.discount_percent %}{{ line.discount_percent|plain }}%{% else %}—{% endif %}</td>
               <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line.get_gst_rate_display }}</td>
@@ -151,11 +156,11 @@
         {% for line, line_totals in lines %}
           <div class="px-4 py-3">
             <div class="flex items-baseline justify-between gap-3">
-              <span class="text-[13px]/5 font-medium">{{ line.item.name }}</span>
+              <span class="text-[13px]/5 font-medium">{% if line.item %}{{ line.item.name }}{% else %}{{ line.name }}{% endif %}</span>
               <span class="shrink-0 text-[13px]/5 tabular-nums">{{ line_totals.discounted|rupees }}</span>
             </div>
             <p class="mt-0.5 text-[12px]/4 tabular-nums text-zinc-500">
-              {{ line.item.code }} · {{ line.quantity|plain }} {{ line.unit }} at {{ line.rate|rupees }}{% if line.discount_percent %} less {{ line.discount_percent|plain }}%{% endif %} · GST {{ line.get_gst_rate_display }}
+              {% if line.item %}{{ line.item.code }}{% else %}One-off · HSN/SAC {{ line.hsn_sac }}{% endif %} · {{ line.quantity|plain }}{% if line.unit %} {{ line.unit }}{% endif %} at {{ line.rate|rupees }}{% if line.discount_percent %} less {{ line.discount_percent|plain }}%{% endif %} · GST {{ line.get_gst_rate_display }}
             </p>
           </div>
         {% endfor %}

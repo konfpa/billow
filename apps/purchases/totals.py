@@ -13,6 +13,7 @@ PAISE = Decimal("0.01")
 QUANTITY_STEP = Decimal("0.001")
 HUNDRED = Decimal(100)
 NOTHING = Decimal("0.00")
+NOTHING_IN_STOCK = Decimal("0.000")
 
 
 def paise(amount: Decimal) -> Decimal:
@@ -27,6 +28,9 @@ class Line:
     # How many of the Item's stock unit one of the billed unit holds.
     stock_units_in_one: Decimal = Decimal(1)
     discount_percent: Decimal = Decimal(0)
+    # Only Goods from the catalogue come into stock; a Service or a One-off
+    # line such as freight is taxed and totalled but never counted.
+    moves_stock: bool = True
 
     @property
     def gross(self) -> Decimal:
@@ -63,6 +67,7 @@ class LineTotals(Tax):
     gross: Decimal
     line_discount: Decimal
     bill_discount: Decimal
+    moves_stock: bool
     stock_quantity: Decimal
     cost_per_stock_unit: Decimal
 
@@ -137,15 +142,18 @@ def purchase_totals(  # noqa: PLR0913
         cost = taxable_value
         if not business_registered:
             cost += cgst + sgst + igst
-        stock_quantity = (line.quantity * line.stock_units_in_one).quantize(
-            QUANTITY_STEP, ROUND_HALF_UP
-        )
+        stock_quantity = NOTHING_IN_STOCK
+        if line.moves_stock:
+            stock_quantity = (line.quantity * line.stock_units_in_one).quantize(
+                QUANTITY_STEP, ROUND_HALF_UP
+            )
 
         totalled.append(
             LineTotals(
                 gross=line.gross,
                 line_discount=line.discount,
                 bill_discount=share,
+                moves_stock=line.moves_stock,
                 taxable_value=taxable_value,
                 cgst=cgst,
                 sgst=sgst,
