@@ -308,9 +308,25 @@ document.addEventListener("alpine:init", () => {
   // Save and a refused save can still show it.
   Alpine.data("unitRows", () => ({
     shown: 0,
+    exactRates: {},
 
     init() {
       this.shown = this.rows().length;
+      this.exactRates = JSON.parse(this.$el.dataset.exactRates);
+    },
+
+    // Picking ft on an Item stocked in MTR fills in 0.3048. A rate the
+    // Operator typed is left alone; one this filled in follows the unit.
+    prefill(event) {
+      const unit = event.target;
+      if (!unit.name.endsWith("-code")) return;
+
+      const rate = unit.closest("fieldset").querySelector('[name$="-rate"]');
+      if (rate.value && rate.value !== rate.dataset.prefilled) return;
+
+      const stock = unit.form.elements.stock_unit.value;
+      rate.value = this.exactRates[unit.value]?.[stock] ?? "";
+      rate.dataset.prefilled = rate.value;
     },
 
     rows() {

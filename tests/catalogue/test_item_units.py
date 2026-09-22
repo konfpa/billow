@@ -326,3 +326,15 @@ def test_a_goods_item_turned_service_with_further_units_is_refused(client, signe
     item.refresh_from_db()
     assert item.kind == Item.Kind.GOODS
     assert response.context["form"].units.non_form_errors()
+
+
+@pytest.mark.django_db
+def test_the_form_knows_the_exact_rate_of_a_unit_against_its_gst_code(
+    client, signed_in
+):
+    page = client.get(RECORD).content.decode()
+
+    assert (
+        'data-exact-rates="{&quot;ft&quot;: {&quot;MTR&quot;: &quot;0.3048&quot;}, '
+        '&quot;in&quot;: {&quot;CMS&quot;: &quot;2.54&quot;}}"'
+    ) in page

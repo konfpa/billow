@@ -87,7 +87,7 @@
       konspec form-page/line-items, with the server rendering the rows rather
       than Alpine, so a refused save comes back with each row's errors.
     {% endcomment %}
-    <div class="rounded-xl border border-zinc-300 bg-white" x-data="unitRows">
+    <div class="rounded-xl border border-zinc-300 bg-white" x-data="unitRows" data-exact-rates="{{ form.exact_rates }}">
       <input type="hidden" name="{{ form.units.management_form.TOTAL_FORMS.html_name }}" id="{{ form.units.management_form.TOTAL_FORMS.auto_id }}" value="{{ form.units.total_form_count }}" x-ref="total">
       {{ form.units.management_form.INITIAL_FORMS }}
       {{ form.units.management_form.MIN_NUM_FORMS }}
@@ -108,7 +108,7 @@
         <span></span>
       </div>
 
-      <div x-ref="rows">
+      <div x-ref="rows" @change="prefill">
         {% for unit_form in form.units %}
           {% include "catalogue/unit_row.html" with position=forloop.counter %}
         {% endfor %}
