@@ -54,3 +54,14 @@ def test_the_admin_shows_who_created_an_item(superuser_client, superuser):
     ).content.decode()
 
     assert "Priya Nair" in page
+
+
+@pytest.mark.django_db
+def test_the_admin_lists_archived_items(superuser_client, item):
+    item.archive()
+
+    page = superuser_client.get(
+        reverse("admin:catalogue_item_changelist")
+    ).content.decode()
+
+    assert "Jaquar Florentine tap, chrome" in page

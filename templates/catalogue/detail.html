@@ -7,28 +7,61 @@
 {% comment %}
   konspec form-page/readonly under a page-header/back band: the same sections
   in the same order as the Item form, each a <dl> rather than a field.
+  Archiving sits in the band and takes no confirmation, as for a Customer:
+  nothing is deleted and Restore undoes it in one press.
+  Duplicate, Archive and Restore take the zinc-300 edge rather than button/icons'
+  zinc-200: on the white band the lighter edge left them unreadable as buttons.
 {% endcomment %}
 <div data-kui="form-page/readonly" class="text-zinc-900">
 
   <header data-kui="page-header/back" class="border-b border-zinc-200 bg-white">
     <div class="mx-auto max-w-4xl px-4 py-4 lg:px-6">
-      <a href="{% url 'item_directory' %}" class="inline-flex items-center gap-1.5 rounded text-[13px]/5 text-zinc-600 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      <a href="{% url 'item_directory' %}{% if item.is_archived %}?show=archived{% endif %}" class="inline-flex items-center gap-1.5 rounded text-[13px]/5 text-zinc-600 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
         <i data-lucide="chevron-left" class="size-4"></i>Items
       </a>
 
       <div class="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div class="min-w-0">
-          <h1 class="text-[24px]/7 font-semibold tracking-tight">{{ item.name }}</h1>
-          <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{{ item.code }} · {{ item.get_kind_display }}</p>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 class="text-[24px]/7 font-semibold tracking-tight">{{ item.name }}</h1>
+            {% if item.is_archived %}
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-zinc-200 px-2.5 py-0.5 text-[12px]/4 font-medium text-zinc-700 ring-1 ring-inset ring-zinc-300">
+                <span class="size-1.5 rounded-full bg-zinc-400" aria-hidden="true"></span>Archived
+              </span>
+            {% endif %}
+          </div>
+          <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">
+            {% if item.is_archived %}
+              {{ item.code }} · Archived on {{ item.archived_at|date:"j F Y" }}, and out of the directory. Every invoice already issued still names it.
+            {% else %}
+              {{ item.code }} · {{ item.get_kind_display }}
+            {% endif %}
+          </p>
         </div>
 
-        {% if perms.catalogue.add_item or perms.catalogue.change_item %}
         <div class="flex flex-wrap items-center gap-2">
           {% if perms.catalogue.add_item %}
           <a href="{% url 'duplicate_item' item.pk %}"
              class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
             <i data-lucide="copy" class="size-4 text-zinc-600"></i>Duplicate
           </a>
+          {% endif %}
+          {% if perms.catalogue.archive_item %}
+            {% if item.is_archived %}
+              <form method="post" action="{% url 'restore_item' item.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+                  <i data-lucide="archive-restore" class="size-4 text-zinc-600"></i>Restore
+                </button>
+              </form>
+            {% else %}
+              <form method="post" action="{% url 'archive_item' item.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+                  <i data-lucide="archive" class="size-4 text-zinc-600"></i>Archive
+                </button>
+              </form>
+            {% endif %}
           {% endif %}
           {% if perms.catalogue.change_item %}
           <a href="{% url 'edit_item' item.pk %}"
@@ -37,7 +70,6 @@
           </a>
           {% endif %}
         </div>
-        {% endif %}
       </div>
     </div>
   </header>

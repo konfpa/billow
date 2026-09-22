@@ -1,0 +1,15 @@
+{% comment %}
+  konspec empty-state/nothing-yet, for the archived list. No Item is recorded
+  archived, so it offers no action.
+{% endcomment %}
+<div data-kui="empty-state/nothing-yet" class="rounded-xl border border-zinc-300 bg-white">
+  <div class="flex min-h-72 flex-col items-center justify-center px-6 py-12 text-center">
+    <span class="flex size-10 items-center justify-center rounded-full bg-zinc-200 ring-1 ring-inset ring-zinc-300">
+      <i data-lucide="archive" class="size-5 text-zinc-600"></i>
+    </span>
+    <h2 class="mt-3 text-[16px]/6 font-semibold">Nothing archived</h2>
+    <p class="mt-1 max-w-sm text-[13px]/5 text-zinc-600">
+      An Item the Business no longer sells is archived rather than deleted, and waits here in case it is sold again.
+    </p>
+  </div>
+</div>

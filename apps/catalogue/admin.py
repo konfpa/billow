@@ -8,6 +8,8 @@ from apps.catalogue.models import Brand, Category, Item, ItemUnit
 if TYPE_CHECKING:
     from django.http import HttpRequest
 
+    from apps.catalogue.models import ItemQuerySet
+
 
 class ReadOnlyAdmin:
     """Shown here and changed elsewhere, as Customers are.
@@ -42,6 +44,7 @@ class ItemAdmin(ReadOnlyAdmin, SimpleHistoryAdmin):
         "category",
         "hsn_sac",
         "gst_rate",
+        "archived_at",
         "created_at",
         "updated_at",
     )
@@ -54,9 +57,15 @@ class ItemAdmin(ReadOnlyAdmin, SimpleHistoryAdmin):
         "category",
         "hsn_sac",
         "gst_rate",
+        "archived_at",
     )
     list_filter = ("brand", "category")
     inlines = (ItemUnitInline,)
+
+    def get_queryset(self, request: HttpRequest) -> ItemQuerySet:  # noqa: ARG002
+        # The default manager leaves the archived out, and the admin is where
+        # a Superuser goes to read what happened to one.
+        return Item.including_archived.all()
 
 
 @admin.register(Brand)

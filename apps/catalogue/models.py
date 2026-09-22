@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import IntegrityError, models, transaction
 from django.db.models.functions import Cast, Coalesce, Lower, Substr
+from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
 from apps.tax.hsn_sac import validate_hsn, validate_sac
@@ -182,6 +183,14 @@ class Category(models.Model):
 
 
 class ItemQuerySet(models.QuerySet):
+    def on_file(self) -> Self:
+        """The ordinary directory: everything the Business still sells."""
+        return self.filter(archived_at__isnull=True)
+
+    def archived(self) -> Self:
+        """The ones withdrawn from everyday use, reached by asking for them."""
+        return self.filter(archived_at__isnull=False)
+
     def matching(self, query: str) -> Self:
         """Those an Operator could mean by fragments of a name, an Item code or a Brand.
 
@@ -196,6 +205,16 @@ class ItemQuerySet(models.QuerySet):
                 | models.Q(brand__name__icontains=word)
             )
         return items
+
+
+class OnFileManager(models.Manager.from_queryset(ItemQuerySet)):
+    """The default manager, which leaves the archived Items out, as for Customers.
+
+    See docs/adr/0008-a-customer-is-archived-never-deleted.md.
+    """
+
+    def get_queryset(self) -> ItemQuerySet:
+        return super().get_queryset().on_file()
 
 
 class Item(models.Model):
@@ -262,14 +281,22 @@ class Item(models.Model):
         related_name="items",
     )
 
+    archived_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    objects = ItemQuerySet.as_manager()
+    # Declared first, so it is the default manager; related traversal uses
+    # `_base_manager`, which still reaches an archived Item.
+    objects = OnFileManager()
+    including_archived = ItemQuerySet.as_manager()
     history = HistoricalRecords()
 
     class Meta:
         ordering = ("name",)
+        # Apart from change_item, so correcting a price does not also let
+        # someone withdraw an Item from sale. Covers restoring.
+        permissions = [("archive_item", "Can archive item")]
         constraints = [
             # Made structural so that two Operators saving at once, or a
             # `loaddata`, cannot leave one label meaning two Items.
@@ -301,6 +328,26 @@ class Item(models.Model):
     def stock_unit(self) -> ItemUnit | None:
         """The unit this Item is counted in. Read through `units` to use a prefetch."""
         return next((unit for unit in self.units.all() if unit.is_stock_unit), None)
+
+    @property
+    def is_archived(self) -> bool:
+        return self.archived_at is not None
+
+    def archive(self) -> None:
+        """Withdraw an Item the Business no longer sells, keeping the row."""
+        if self.is_archived:
+            return
+
+        self.archived_at = timezone.now()
+        self.save(update_fields=["archived_at", "updated_at"])
+
+    def restore(self) -> None:
+        """Return an Item to sale, as the Item it always was."""
+        if not self.is_archived:
+            return
+
+        self.archived_at = None
+        self.save(update_fields=["archived_at", "updated_at"])
 
     def quote(self, quantity: Decimal, unit: ItemUnit) -> Quote:
         """The stock quantity and unit price of `quantity` sold in `unit`.
@@ -339,11 +386,18 @@ class Item(models.Model):
         super().clean()
 
         if self.code:
-            holder = Item.objects.filter(code=self.code).exclude(pk=self.pk).first()
+            holder = (
+                Item.including_archived.filter(code=self.code)
+                .exclude(pk=self.pk)
+                .first()
+            )
             if holder is not None:
-                raise ValidationError(
-                    {"code": f"{holder.name} already holds this Item code."}
-                )
+                # Told where to find one that is archived, since the directory
+                # the Operator just searched does not show it.
+                msg = f"{holder.name} already holds this Item code."
+                if holder.is_archived:
+                    msg = f"{msg} It is archived, and can be restored."
+                raise ValidationError({"code": msg})
 
         if not self.hsn_sac or not self.kind:
             return
@@ -356,11 +410,13 @@ class Item(models.Model):
 
 
 def next_item_code() -> str:
-    """One past the highest `I-` code on file, which skips any already taken."""
+    """One past the highest `I-` code held, archived or not, so none is reused."""
     # An Operator may type an `I-` code too long for a bigint, and counting it
     # would fail every assignment after it; such a code can never be reached.
     highest = (
-        Item.objects.filter(code__regex=rf"^{ASSIGNED_CODE_PREFIX}[0-9]{{1,18}}$")
+        Item.including_archived.filter(
+            code__regex=rf"^{ASSIGNED_CODE_PREFIX}[0-9]{{1,18}}$"
+        )
         .annotate(
             number=Cast(
                 Substr("code", len(ASSIGNED_CODE_PREFIX) + 1), models.BigIntegerField()
