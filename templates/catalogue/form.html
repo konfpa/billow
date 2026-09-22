@@ -76,9 +76,12 @@
         <h2 class="text-[16px]/6 font-semibold">Unit and price</h2>
       </div>
       <div class="px-5 py-4">
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="grid gap-4 sm:grid-cols-3">
           {% include "forms/field.html" with field=form.stock_unit %}
           {% include "forms/field.html" with field=form.selling_price %}
+          <div x-data="goodsOnly" x-show="applies"{% if form.kind.value == "service" %} x-cloak{% endif %}>
+            {% include "forms/field.html" with field=form.mrp %}
+          </div>
         </div>
       </div>
     </div>
@@ -101,10 +104,11 @@
       </div>
 
       <div aria-hidden="true"
-           class="hidden gap-2 border-b border-zinc-200 px-4 py-2 text-[11px]/4 font-medium uppercase tracking-wider text-zinc-600 md:grid md:grid-cols-[minmax(0,1fr)_7rem_7rem_2.25rem]">
+           class="hidden gap-2 border-b border-zinc-200 px-4 py-2 text-[11px]/4 font-medium uppercase tracking-wider text-zinc-600 md:grid md:grid-cols-[minmax(0,1fr)_7rem_7rem_7rem_2.25rem]">
         <span>Unit</span>
         <span class="text-right">Stock units in one</span>
         <span class="text-right">Price · Optional</span>
+        <span class="text-right">MRP · Optional</span>
         <span></span>
       </div>
 
