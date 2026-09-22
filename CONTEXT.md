@@ -144,8 +144,28 @@ _Avoid_: Vendor, seller, party
 
 **Purchase**:
 A Supplier's bill recorded in billow, whose lines bring Goods into stock at a
-cost.
-_Avoid_: Purchase bill, GRN, inward, stock-in
+cost. Identified by the Supplier and the bill number printed on it, which the
+Supplier may not repeat within a financial year. A copy of someone else's
+document rather than one the Business issues, so a wrong one is corrected or
+removed rather than reversed.
+_Avoid_: Purchase invoice, purchase bill, GRN, inward, stock-in
+
+**Received date**:
+The day a Purchase's Goods arrived, and the day its Stock movements are dated.
+Distinct from the bill date printed by the Supplier, which it usually equals.
+_Avoid_: Inward date, GRN date, entry date
+
+**Bill discount**:
+A discount a Supplier prints across a whole Purchase rather than on one line.
+It lowers the taxable value, and so the tax and the cost, of every line in
+proportion to that line's share. A discount given after tax, off what is
+payable, is about payment and is not recorded.
+_Avoid_: Trade discount, cash discount, overall discount
+
+**Round-off**:
+The paise a Supplier adds or takes off to bring a Purchase to a whole rupee,
+never more than a rupee either way.
+_Avoid_: Adjustment, rounding difference
 
 **Opening stock**:
 The quantity and cost of each Item on hand on the day billow starts counting
@@ -154,8 +174,9 @@ _Avoid_: Initial stock, stock-take, balance brought forward
 
 **Stock start date**:
 The date the Business begins counting stock, recorded by the Business rather
-than fixed by billow. Invoices and Purchases before it move no stock; Opening
-stock is counted as of it.
+than fixed by billow, and free to change. Stock on hand counts only movements
+on or after it; Opening stock is counted as of it. Until it is set, no stock is
+counted at all.
 _Avoid_: Go-live date, cut-over, inventory start
 
 **Stock movement**:
