@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Suppliers · billow{% endblock %}
+
+{% block main %}
+{% comment %}
+  konspec index-page: the band is page-header with the search form and the
+  On file / Archived tabs, and the body is the register panel. The tabs are
+  tabs/django, links rather than a tablist, since each one is a page load.
+  Each row's actions are a konspec dropdown/context-menu, opened by
+  right-click. It leaves out the variant's row button on purpose: the row
+  is already a link to the Supplier's page, where every item in the menu
+  is a button, so the menu is only a shortcut and never the one route.
+  Archive opens the same alert-dialog as that page; Restore takes none
+  there either.
+{% endcomment %}
+<div data-kui="index-page/django" class="text-zinc-900">
+
+  <header class="border-b border-zinc-200 bg-white">
+    <div class="mx-auto max-w-[1600px] px-4 pt-4 lg:px-6">
+
+      <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div class="min-w-0">
+          <h1 class="text-[24px]/7 font-semibold tracking-tight">Suppliers</h1>
+          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">
+            {% if query %}{{ suppliers|length }} of {{ total }}{% else %}{{ total }}{% endif %}
+            {% if showing_archived %}archived{% else %}on file{% endif %}{% if query %} match{{ suppliers|length|pluralize:"es," }} “{{ query }}”{% endif %}
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          {% if perms.suppliers.add_supplier %}
+          <a href="{% url 'record_supplier' %}"
+             class="inline-flex h-9 items-center gap-2 rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+            <i data-lucide="plus" class="size-4"></i>New Supplier
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <form method="get" action="{% url 'supplier_directory' %}" role="search" class="mt-4 flex flex-col gap-2 md:flex-row md:items-center">
+        <div class="md:max-w-sm md:flex-1">
+          <label for="supplier-search" class="sr-only">Search by name or GSTIN</label>
+          <div class="flex items-center rounded-lg border border-zinc-200 bg-white focus-within:border-zinc-700 focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-zinc-700/15">
+            <i data-lucide="search" class="ml-3 size-4 shrink-0 text-zinc-600"></i>
+            <input id="supplier-search" type="search" name="q" value="{{ query }}" enterkeyhint="search"
+                   autocomplete="off" spellcheck="false" placeholder="Search by name or GSTIN"
+                   class="w-full min-w-0 bg-transparent px-2 py-2 text-[13px]/5 outline-none placeholder:text-zinc-500">
+          </div>
+        </div>
+        {% if showing_archived %}<input type="hidden" name="show" value="archived">{% endif %}
+        <button type="submit" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15 md:shrink-0">
+          <i data-lucide="search" class="size-4 text-zinc-600"></i>Search
+        </button>
+      </form>
+
+      {% comment %}
+        The nav's own border-b is left off and its row's -mb-px lands on the
+        band's border instead, as page-header joins tabs to its bottom edge.
+      {% endcomment %}
+      <nav data-kui="tabs/django" aria-label="Supplier lists" class="mt-4">
+        <div class="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <a href="{% url 'supplier_directory' %}"
+             {% if not showing_archived %}aria-current="page"{% endif %}
+             class="shrink-0 whitespace-nowrap rounded-t border-b-2 pb-2.5 text-[13px]/5 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-zinc-700/15 {% if not showing_archived %}border-zinc-900 font-semibold text-zinc-900{% else %}border-transparent text-zinc-600 hover:text-zinc-900{% endif %}">
+            On file
+          </a>
+          <a href="{% url 'supplier_directory' %}?show=archived"
+             {% if showing_archived %}aria-current="page"{% endif %}
+             class="shrink-0 whitespace-nowrap rounded-t border-b-2 pb-2.5 text-[13px]/5 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-zinc-700/15 {% if showing_archived %}border-zinc-900 font-semibold text-zinc-900{% else %}border-transparent text-zinc-600 hover:text-zinc-900{% endif %}">
+            Archived
+          </a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-[1600px] space-y-4 px-4 py-5 lg:px-6">
+    {% include "core/messages.html" %}
+
+    {% if empty %}
+      {% include empty %}
+    {% else %}
+      <div data-kui="dropdown/context-menu" x-data="rowMenu"
+           @click="dismiss" @click.outside="closeQuietly" @scroll.window="closeQuietly" @keydown.escape="escape">
+      <div data-kui="table/linked-rows" class="hidden overflow-hidden rounded-xl border border-zinc-300 bg-white md:block">
+        <table class="w-full text-[13px]/5">
+          <thead>
+            <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-[11px]/4 font-medium tracking-wider text-zinc-600 uppercase">
+              <th scope="col" class="px-4 py-2.5 font-medium">Supplier</th>
+              <th scope="col" class="px-4 py-2.5 font-medium">GSTIN</th>
+              <th scope="col" class="px-4 py-2.5 font-medium">City</th>
+              <th scope="col" class="px-4 py-2.5 font-medium">State</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for supplier in suppliers %}
+              <tr @contextmenu.prevent="fromRow" x-bind:class="tint($el)"
+                  data-name="{{ supplier.name }}"
+                  data-open="{% url 'supplier_detail' supplier.pk %}"
+                  data-edit="{% url 'edit_supplier' supplier.pk %}"
+                  data-act="{% if showing_archived %}{% url 'restore_supplier' supplier.pk %}{% else %}{% url 'archive_supplier' supplier.pk %}{% endif %}"
+                  class="relative border-b border-zinc-100 last:border-0 hover:bg-zinc-100 has-[a:focus-visible]:bg-zinc-100">
+                <td class="px-4 py-2 font-medium">
+                  <a href="{% url 'supplier_detail' supplier.pk %}" class="underline underline-offset-2 after:absolute after:inset-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ supplier.name }}</a>
+                </td>
+                <td class="px-4 py-2 tabular-nums">{% if supplier.is_registered %}{{ supplier.gstin }}{% else %}<span class="text-zinc-600">Unregistered</span>{% endif %}</td>
+                <td class="px-4 py-2">{{ supplier.city }}</td>
+                <td class="px-4 py-2">{{ supplier.get_state_display }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div x-show="open" x-cloak x-ref="menu" role="menu"
+           x-bind:aria-label="menuLabel"
+           x-bind:style="menuStyle"
+           @keydown.arrow-down.prevent="next" @keydown.arrow-up.prevent="prev"
+           @keydown.home.prevent="toFirst" @keydown.end.prevent="toLast"
+           @keydown.tab="closeQuietly"
+           class="fixed z-40 w-52 overflow-hidden rounded-xl border border-zinc-300 bg-white py-1 shadow-lg">
+        <a role="menuitem" tabindex="-1" x-bind:href="openUrl"
+           class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]/5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-2 focus:-outline-offset-2 focus:outline-zinc-700">
+          <i data-lucide="eye" class="size-4 text-zinc-600"></i>Open supplier
+        </a>
+        {% if perms.suppliers.change_supplier %}
+          <a role="menuitem" tabindex="-1" x-bind:href="editUrl"
+             class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]/5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-2 focus:-outline-offset-2 focus:outline-zinc-700">
+            <i data-lucide="pencil" class="size-4 text-zinc-600"></i>Edit supplier
+          </a>
+        {% endif %}
+        {% if perms.suppliers.archive_supplier %}
+          <div role="separator" class="my-1 h-px bg-zinc-100"></div>
+          {% if showing_archived %}
+            <button type="submit" form="supplier-act" role="menuitem" tabindex="-1"
+                    class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]/5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-2 focus:-outline-offset-2 focus:outline-zinc-700">
+              <i data-lucide="archive-restore" class="size-4 text-zinc-600"></i>Restore supplier
+            </button>
+          {% else %}
+            <button type="button" role="menuitem" tabindex="-1" @click="askArchive"
+                    class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]/5 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-2 focus:-outline-offset-2 focus:outline-zinc-700">
+              <i data-lucide="archive" class="size-4 text-zinc-600"></i>Archive supplier
+            </button>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      {% if perms.suppliers.archive_supplier %}
+        {% if showing_archived %}
+          <form id="supplier-act" method="post" x-bind:action="actUrl" hidden>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          </form>
+        {% else %}
+          <div x-show="confirming" x-cloak x-trap.noscroll="confirming" @keydown.escape.window="cancel"
+               class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
+            <div role="alertdialog" aria-modal="true" aria-labelledby="supplier-archive-t" aria-describedby="supplier-archive-b"
+                 class="w-full max-w-md rounded-xl border border-zinc-300 bg-white p-5 shadow-lg">
+              <h2 id="supplier-archive-t" class="text-[16px]/6 font-semibold">Archive <span x-text="name"></span>?</h2>
+              <p id="supplier-archive-b" class="mt-1.5 text-[13px]/5 text-zinc-600">
+                They leave the ordinary directory and can no longer be picked for a new Purchase. Every Purchase already recorded still names them, and Restore brings them back.
+              </p>
+
+              <form method="post" x-bind:action="actUrl">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <button type="button" @click="cancel"
+                          class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Cancel</button>
+                  <button type="submit"
+                          class="inline-flex h-9 items-center justify-center rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Archive supplier</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+      </div>
+
+      <div data-kui="card/clickable" class="grid items-start gap-3 sm:grid-cols-2 md:hidden">
+        {% for supplier in suppliers %}
+          <a href="{% url 'supplier_detail' supplier.pk %}" class="group rounded-xl border border-zinc-300 bg-white p-4 transition hover:border-zinc-400 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="truncate text-[14px]/5 font-semibold">{{ supplier.name }}</h3>
+                <p class="mt-0.5 truncate text-[12px]/4 text-zinc-600">{{ supplier.city }} · {{ supplier.get_state_display }}</p>
+              </div>
+              <i data-lucide="chevron-right" class="size-4 shrink-0 text-zinc-500 transition group-hover:text-zinc-900" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 flex items-center justify-between gap-2">
+              <span class="text-[11px]/4 font-medium tracking-wider text-zinc-600 uppercase">GSTIN</span>
+              {% if supplier.is_registered %}
+                <span class="text-[13px]/5 font-medium tabular-nums">{{ supplier.gstin }}</span>
+              {% else %}
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-zinc-200 px-2 py-0.5 text-[11px]/4 font-medium text-zinc-700 ring-1 ring-inset ring-zinc-300">
+                  <span class="size-1.5 rounded-full bg-zinc-500" aria-hidden="true"></span>Unregistered
+                </span>
+              {% endif %}
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -43,3 +43,29 @@ def test_without_viewing_customers_the_directory_is_not_offered(
     page = client.get(HOME).content.decode()
 
     assert "Open the directory" not in page
+
+
+@pytest.mark.django_db
+def test_viewing_suppliers_offers_their_directory(client, business, powerless):
+    powerless.groups.add(role("Looker", "suppliers.view_supplier"))
+    client.force_login(powerless)
+
+    page = client.get(HOME).content.decode()
+
+    assert 'id="home-suppliers-h"' in page
+    assert reverse("supplier_directory") in page
+    assert 'id="home-customers-h"' not in page
+    assert NO_WORK not in page
+
+
+@pytest.mark.django_db
+def test_without_viewing_suppliers_their_directory_is_not_offered(
+    client, business, powerless
+):
+    powerless.groups.add(role("Looker", "customers.view_customer"))
+    client.force_login(powerless)
+
+    page = client.get(HOME).content.decode()
+
+    assert 'id="home-suppliers-h"' not in page
+    assert reverse("supplier_directory") not in page
