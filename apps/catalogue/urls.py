@@ -10,4 +10,7 @@ urlpatterns = [
     path("brands/", views.brand_directory, name="brand_directory"),
     path("brands/new/", views.record_brand, name="record_brand"),
     path("brands/<int:pk>/edit/", views.edit_brand, name="edit_brand"),
+    path("categories/", views.category_directory, name="category_directory"),
+    path("categories/new/", views.record_category, name="record_category"),
+    path("categories/<int:pk>/edit/", views.edit_category, name="edit_category"),
 ]

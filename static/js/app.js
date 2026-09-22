@@ -402,11 +402,12 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
-  // konspec combobox/create over the Item form's Brand. It posts the id of a
-  // Brand on file as `brand`, or a name to create as `brand_new`; the server
-  // decides whether a new one may be made. Emptying the box takes the Brand
-  // away, since a Brand is optional.
-  Alpine.data("brandPicker", () => ({
+  // konspec combobox/create over the Item form's Brand or Category. It posts
+  // the id of a record on file, or a name to create; the server decides
+  // whether a new one may be made. Emptying the box takes the record away,
+  // since both are optional. A nested picker reads "Fittings > Tee" as Tee
+  // under Fittings, written as the options are, "Fittings › Tee".
+  Alpine.data("picker", () => ({
     open: false,
     typed: false,
     q: "",
@@ -415,12 +416,23 @@ document.addEventListener("alpine:init", () => {
     ai: 0,
     options: [],
     canCreate: false,
+    nested: false,
+    kind: "",
+    noun: "",
+    plural: "",
+    hint: "",
 
     init() {
-      this.options = JSON.parse(document.getElementById("brand-options").textContent);
-      this.canCreate = this.$el.dataset.canCreate === "true";
-      this.sel = this.$el.dataset.selected;
-      this.fresh = this.$el.dataset.fresh;
+      const data = this.$el.dataset;
+      this.options = JSON.parse(document.getElementById(data.options).textContent);
+      this.canCreate = data.canCreate === "true";
+      this.nested = data.nested === "true";
+      this.kind = data.kind;
+      this.noun = data.noun;
+      this.plural = data.plural;
+      this.hint = data.help;
+      this.sel = data.selected;
+      this.fresh = data.fresh;
       if (this.fresh) this.sel = "";
       this.q = this.label;
     },
@@ -431,7 +443,12 @@ document.addEventListener("alpine:init", () => {
     },
 
     get term() {
-      return this.q.trim();
+      if (!this.nested) return this.q.trim();
+      return this.q
+        .split(/[›>]/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join(" › ");
     },
 
     get found() {
@@ -440,7 +457,7 @@ document.addEventListener("alpine:init", () => {
       return this.options.filter((o) => o.name.toLowerCase().includes(s));
     },
 
-    // Offered only for a name no Brand has in any capitals, as the server
+    // Offered only for a name no record has in any capitals, as the server
     // would refuse it.
     get creating() {
       const s = this.term.toLowerCase();
@@ -464,13 +481,15 @@ document.addEventListener("alpine:init", () => {
 
     get count() {
       if (!this.open) return "";
-      return this.found.length === 1 ? "1 Brand matches" : `${this.found.length} Brands match`;
+      return this.found.length === 1
+        ? `1 ${this.noun} matches`
+        : `${this.found.length} ${this.plural} match`;
     },
 
     get help() {
       return this.fresh
-        ? `New Brand — ${this.fresh} is created when the Item is saved.`
-        : "The maker it is sold under.";
+        ? `New ${this.noun} — ${this.fresh} is created when the Item is saved.`
+        : this.hint;
     },
 
     get activeId() {
@@ -478,11 +497,11 @@ document.addEventListener("alpine:init", () => {
     },
 
     rowId(o) {
-      return `brand-option-${o.id}`;
+      return `${this.kind}-option-${o.id}`;
     },
 
     rowLabel(o) {
-      return o.isNew ? `Add new Brand: “${o.name}”` : o.name;
+      return o.isNew ? `Add new ${this.noun}: “${o.name}”` : o.name;
     },
 
     rowClass(o, i) {

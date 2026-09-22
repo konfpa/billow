@@ -5,7 +5,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from apps.catalogue.models import Brand, Item, ItemUnit
+from apps.catalogue.models import Brand, Category, Item, ItemUnit
 from apps.core.forms import LINE_CONTROL, LINE_SELECT, StyledForm
 from apps.core.templatetags.ui import plain
 from apps.tax.rates import GSTRate
@@ -18,6 +18,27 @@ class BrandForm(StyledForm):
         fields = ("name",)
         labels = {"name": "Name"}
         help_texts = {"name": "As the maker writes it, such as Jaquar or Astral."}
+
+
+class CategoryForm(StyledForm):
+    class Meta:
+        model = Category
+        fields = ("name", "parent")
+        labels = {"name": "Name", "parent": "Under"}
+        help_texts = {
+            "name": "Such as Fittings, or Elbow under Fittings.",
+            "parent": "Leave blank for a top-level Category.",
+        }
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        # Only top-level Categories are offered, but any is accepted, so a
+        # deeper one posted by hand is refused by the model, saying why.
+        top_level = Category.objects.filter(parent=None).exclude(pk=self.instance.pk)
+        self.fields["parent"].widget.choices = [
+            ("", "Nothing, it is top-level"),
+            *((category.pk, category.name) for category in top_level),
+        ]
 
 
 class ItemCodeField(forms.CharField):
@@ -139,22 +160,26 @@ class ItemForm(StyledForm):
     # The name of a Brand to create with the Item, posted beside `brand` by
     # konspec combobox/create rather than as an invented id.
     brand_new = forms.CharField(widget=forms.HiddenInput)
+    # Likewise a Category, typed as Fittings › Tee to go under Fittings.
+    category_new = forms.CharField(widget=forms.HiddenInput)
 
     class Meta:
         model = Item
-        fields = ("name", "kind", "code", "brand", "hsn_sac", "gst_rate")
+        fields = ("name", "kind", "code", "brand", "category", "hsn_sac", "gst_rate")
         field_classes = {"code": ItemCodeField}
         labels = {"name": "Name"}
         help_texts = {
             "code": "Leave blank for billow to assign the next one.",
             "brand": "The maker it is sold under.",
+            "category": "Where it sits in the catalogue, such as Fittings › Elbow.",
         }
-        widgets = {"brand": forms.HiddenInput}
+        widgets = {"brand": forms.HiddenInput, "category": forms.HiddenInput}
 
     def __init__(self, *args: object, user: object = None, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
         self.user = user
         self.new_brand: Brand | None = None
+        self.new_category: Category | None = None
 
         for name, field in self.fields.items():
             # One list decides what an Item must answer, so a release that
@@ -176,6 +201,10 @@ class ItemForm(StyledForm):
 
         if self.instance.pk:
             self.fields["code"].help_text = "Leave blank to keep the code on file."
+        if self.can_create_category:
+            self.fields[
+                "category"
+            ].help_text += " Type Parent › Child to add one under another."
 
         self.units = UnitFormSet(
             self.data if self.is_bound else None,
@@ -198,6 +227,17 @@ class ItemForm(StyledForm):
     @property
     def can_create_brand(self) -> bool:
         return self.user is not None and self.user.has_perm("catalogue.add_brand")
+
+    @property
+    def category_options(self) -> list[dict]:
+        return [
+            {"id": category.pk, "name": str(category)}
+            for category in Category.objects.by_path()
+        ]
+
+    @property
+    def can_create_category(self) -> bool:
+        return self.user is not None and self.user.has_perm("catalogue.add_category")
 
     @property
     def exact_rates(self) -> str:
@@ -231,6 +271,8 @@ class ItemForm(StyledForm):
             self.add_error("mrp", "A Service is not packaged, so it has no MRP.")
         if name := cleaned.get("brand_new"):
             self.clean_new_brand(name)
+        if path := cleaned.get("category_new"):
+            self.clean_new_category(path)
         return cleaned
 
     def clean_new_brand(self, name: str) -> None:
@@ -250,6 +292,28 @@ class ItemForm(StyledForm):
         else:
             self.new_brand = brand
 
+    def clean_new_category(self, path: str) -> None:
+        if not self.can_create_category:
+            self.add_error(
+                "category", "Adding a Category needs the permission “Can add category”."
+            )
+            return
+
+        try:
+            category = Category.from_path(path)
+            parent = category.parent
+            if parent is not None and parent.pk is None:
+                parent.full_clean()
+                # The parent is checked on its own; with no pk yet it cannot
+                # be checked as part of the child's uniqueness.
+                category.full_clean(exclude=["parent"])
+            else:
+                category.full_clean()
+        except ValidationError as error:
+            self.add_error("category", error.messages)
+        else:
+            self.new_category = category
+
     def clean_code(self) -> str:
         return self.cleaned_data["code"] or self.instance.code
 
@@ -258,6 +322,12 @@ class ItemForm(StyledForm):
         if self.new_brand is not None:
             self.new_brand.save()
             self.instance.brand = self.new_brand
+        if self.new_category is not None:
+            parent = self.new_category.parent
+            if parent is not None and parent.pk is None:
+                parent.save()
+            self.new_category.save()
+            self.instance.category = self.new_category
         item = super().save()
         unit = item.stock_unit or ItemUnit(item=item, is_stock_unit=True)
 
