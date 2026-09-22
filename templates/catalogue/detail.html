@@ -22,12 +22,20 @@
           <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{{ item.code }} · {{ item.get_kind_display }}</p>
         </div>
 
-        {% if perms.catalogue.change_item %}
+        {% if perms.catalogue.add_item or perms.catalogue.change_item %}
         <div class="flex flex-wrap items-center gap-2">
+          {% if perms.catalogue.add_item %}
+          <a href="{% url 'duplicate_item' item.pk %}"
+             class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+            <i data-lucide="copy" class="size-4 text-zinc-600"></i>Duplicate
+          </a>
+          {% endif %}
+          {% if perms.catalogue.change_item %}
           <a href="{% url 'edit_item' item.pk %}"
              class="inline-flex h-9 items-center gap-2 rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
             <i data-lucide="pencil" class="size-4"></i>Edit
           </a>
+          {% endif %}
         </div>
         {% endif %}
       </div>

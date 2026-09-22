@@ -136,6 +136,22 @@ UnitFormSet = forms.inlineformset_factory(
 )
 
 
+def copied_from(item: Item) -> dict:
+    """The Item form's starting point for duplicating `item`: all but its code."""
+    unit = item.stock_unit
+    return {
+        "name": item.name,
+        "kind": item.kind,
+        "brand": item.brand_id,
+        "category": item.category_id,
+        "hsn_sac": item.hsn_sac,
+        "gst_rate": item.gst_rate,
+        "stock_unit": unit.code,
+        "selling_price": unit.selling_price,
+        "mrp": unit.mrp,
+    }
+
+
 class ItemForm(StyledForm):
     """An Item, its stock unit and any other units, recorded and edited together."""
 
@@ -175,7 +191,15 @@ class ItemForm(StyledForm):
         }
         widgets = {"brand": forms.HiddenInput, "category": forms.HiddenInput}
 
-    def __init__(self, *args: object, user: object = None, **kwargs: object) -> None:
+    def __init__(
+        self,
+        *args: object,
+        user: object = None,
+        copying: Item | None = None,
+        **kwargs: object,
+    ) -> None:
+        if copying is not None:
+            kwargs["initial"] = copied_from(copying)
         super().__init__(*args, **kwargs)
         self.user = user
         self.new_brand: Brand | None = None
@@ -213,6 +237,20 @@ class ItemForm(StyledForm):
             prefix="units",
         )
         self.units.item_form = self
+        if copying is not None:
+            # Offered as rows not yet on file, so saving creates them for the
+            # new Item rather than taking the source's.
+            self.units.initial_extra = [
+                {
+                    "code": unit.code,
+                    "rate": unit.rate,
+                    "selling_price": unit.selling_price,
+                    "mrp": unit.mrp,
+                }
+                for unit in sorted(copying.units.all(), key=lambda unit: unit.pk)
+                if not unit.is_stock_unit
+            ]
+            self.units.extra = len(self.units.initial_extra)
 
     def is_valid(self) -> bool:
         # The Item first: its kind and stock unit are what the units are
