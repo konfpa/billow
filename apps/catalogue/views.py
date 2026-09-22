@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from django.contrib import messages
@@ -40,7 +41,16 @@ def record_item(request: HttpRequest) -> HttpResponse:
 def item_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """What is on file about an Item, as an invoice line will copy it."""
     item = get_object_or_404(Item.objects.prefetch_related("units"), pk=pk)
-    return render(request, "catalogue/detail.html", {"item": item})
+    further_units = [
+        (unit, item.quote(Decimal(1), unit))
+        for unit in sorted(item.units.all(), key=lambda unit: unit.pk)
+        if not unit.is_stock_unit
+    ]
+    return render(
+        request,
+        "catalogue/detail.html",
+        {"item": item, "further_units": further_units},
+    )
 
 
 @requires("catalogue.change_item")

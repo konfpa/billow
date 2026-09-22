@@ -303,6 +303,58 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
+  // konspec form-page/line-items over a Django formset. A removed row is
+  // marked and hidden rather than dropped, so a unit on file is deleted on
+  // Save and a refused save can still show it.
+  Alpine.data("unitRows", () => ({
+    shown: 0,
+
+    init() {
+      this.shown = this.rows().length;
+    },
+
+    rows() {
+      return [...this.$refs.rows.querySelectorAll(":scope > fieldset:not([hidden])")];
+    },
+
+    get empty() {
+      return this.shown === 0;
+    },
+
+    // TOTAL_FORMS counts every row ever issued, removed ones included, so a
+    // new row never reuses the index of one waiting to be deleted.
+    add() {
+      const index = Number(this.$refs.total.value);
+      const blank = this.$refs.blank.content.firstElementChild.outerHTML;
+      const holder = document.createElement("div");
+      holder.innerHTML = blank.replaceAll("__prefix__", index);
+      const row = holder.firstElementChild;
+      row.querySelector("legend").textContent = `Further unit ${index + 1}`;
+      row.querySelector("button").setAttribute("aria-label", `Remove further unit ${index + 1}`);
+
+      this.$refs.rows.append(row);
+      this.$refs.total.value = index + 1;
+      this.shown++;
+      row.querySelector("select").focus();
+    },
+
+    // The pressed button is about to be hidden, and focus would drop to
+    // <body>, so it moves to the next row's Remove, or to Add unit.
+    remove(event) {
+      const row = event.currentTarget.closest("fieldset");
+      const rows = this.rows();
+      const near = rows[rows.indexOf(row) + 1] || rows[rows.indexOf(row) - 1];
+
+      const deleted = row.querySelector("[data-delete]");
+      deleted.value = "on";
+      // Removing a unit is an edit, so formPage's guard has to hear of it.
+      deleted.dispatchEvent(new Event("change", { bubbles: true }));
+      row.hidden = true;
+      this.shown--;
+      (near ? near.querySelector("button") : this.$refs.add).focus();
+    },
+  }));
+
   Alpine.data("dismissible", () => ({
     show: true,
 

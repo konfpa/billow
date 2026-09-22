@@ -19,7 +19,7 @@ def test_an_operator_records_a_goods_item(client, signed_in):
     assert item.kind == Item.Kind.GOODS
     assert item.hsn_sac == "848180"
     assert item.gst_rate == Decimal("18.00")
-    assert item.stock_unit.uqc == "NOS"
+    assert item.stock_unit.code == "NOS"
     assert item.stock_unit.rate == 1
     assert item.stock_unit.selling_price == Decimal("1450.00")
     assert "Jaquar Florentine tap, chrome is saved." in response.content.decode()

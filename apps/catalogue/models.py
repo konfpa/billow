@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal
+
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import IntegrityError, models, transaction
@@ -6,10 +9,24 @@ from simple_history.models import HistoricalRecords
 
 from apps.tax.hsn_sac import validate_hsn, validate_sac
 from apps.tax.rates import GSTRate
-from apps.tax.units import UQC
+from apps.tax.units import REPORTED_UNDER, UNITS
 
 ASSIGNED_CODE_PREFIX = "I-"
 CODE_ATTEMPTS = 3
+
+QUANTITY_STEP = Decimal("0.001")
+PRICE_STEP = Decimal("0.01")
+
+
+@dataclass(frozen=True)
+class Quote:
+    """What a quantity sold in one of an Item's units comes to."""
+
+    stock_quantity: Decimal
+    unit_price: Decimal | None
+    # True when no price of the unit's own applies, and the stock unit's
+    # price times the rate stands in for it.
+    derived: bool
 
 
 class Item(models.Model):
@@ -100,6 +117,26 @@ class Item(models.Model):
         """The unit this Item is counted in. Read through `units` to use a prefetch."""
         return next((unit for unit in self.units.all() if unit.is_stock_unit), None)
 
+    def quote(self, quantity: Decimal, unit: ItemUnit) -> Quote:
+        """The stock quantity and unit price of `quantity` sold in `unit`.
+
+        The only place unit arithmetic happens, so invoices and stock
+        movements can never convert or price the same sale two ways.
+        """
+        if unit.item_id != self.pk:
+            msg = f"{unit} is not a unit of {self}."
+            raise ValueError(msg)
+
+        stock_quantity = (quantity * unit.rate).quantize(QUANTITY_STEP, ROUND_HALF_UP)
+        if unit.selling_price is not None or unit.is_stock_unit:
+            return Quote(stock_quantity, unit.selling_price, derived=False)
+
+        stock_price = self.stock_unit.selling_price
+        if stock_price is None:
+            return Quote(stock_quantity, None, derived=False)
+        price = (stock_price * unit.rate).quantize(PRICE_STEP, ROUND_HALF_UP)
+        return Quote(stock_quantity, price, derived=True)
+
     def clean(self) -> None:
         super().clean()
 
@@ -136,6 +173,23 @@ def next_item_code() -> str:
     return f"{ASSIGNED_CODE_PREFIX}{(highest or 0) + 1:04d}"
 
 
+def gst_quantity(quantity: Decimal, unit: str) -> tuple[Decimal, str]:
+    """A quantity as a GST return reports it, and the GST unit code it is in.
+
+    Only where GST reads a quantity is a unit without a code of its own
+    converted; its value and tax are untouched, only the unit changes.
+    """
+    code, factor = REPORTED_UNDER.get(unit, (unit, Decimal(1)))
+    return (quantity * factor).quantize(QUANTITY_STEP, ROUND_HALF_UP), code
+
+
+def validate_positive(rate: Decimal) -> None:
+    # A rate of zero or less would make stock vanish or run backwards.
+    if rate <= 0:
+        msg = "One unit holds more than zero of the stock unit."
+        raise ValidationError(msg)
+
+
 class ItemUnit(models.Model):
     """A unit an Item is bought or sold in, defined by its rate against the stock unit.
 
@@ -144,11 +198,12 @@ class ItemUnit(models.Model):
     """
 
     item = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="units")
-    uqc = models.CharField(max_length=3, choices=UQC, verbose_name="unit")
+    code = models.CharField(max_length=3, choices=UNITS, verbose_name="unit")
     rate = models.DecimalField(
         max_digits=18,
         decimal_places=6,
         default=1,
+        validators=[validate_positive],
         help_text="How many of the stock unit one of this unit holds.",
     )
     is_stock_unit = models.BooleanField(default=False)
@@ -167,7 +222,13 @@ class ItemUnit(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["item", "uqc"], name="one_row_per_unit"),
+            # Checked at commit, so a stock unit and another unit can trade
+            # places in one edit.
+            models.UniqueConstraint(
+                fields=["item", "code"],
+                name="one_row_per_unit",
+                deferrable=models.Deferrable.DEFERRED,
+            ),
             models.UniqueConstraint(
                 fields=["item"],
                 condition=models.Q(is_stock_unit=True),
@@ -183,4 +244,4 @@ class ItemUnit(models.Model):
         ]
 
     def __str__(self) -> str:
-        return self.uqc
+        return self.code

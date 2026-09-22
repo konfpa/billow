@@ -36,7 +36,7 @@ def test_an_operator_changes_an_items_details(client, signed_in, item):
     assert item.kind == Item.Kind.SERVICE
     assert item.hsn_sac == "995461"
     assert item.gst_rate == Decimal("5.00")
-    assert item.stock_unit.uqc == "OTH"
+    assert item.stock_unit.code == "OTH"
     assert item.stock_unit.selling_price == Decimal(300)
     assert Item.objects.count() == 1
     assert ItemUnit.objects.count() == 1
@@ -97,7 +97,7 @@ def test_a_refused_edit_leaves_the_unit_and_price_alone(client, signed_in, item)
     )
 
     item.refresh_from_db()
-    assert item.stock_unit.uqc == "NOS"
+    assert item.stock_unit.code == "NOS"
     assert item.stock_unit.selling_price == Decimal("1450.00")
 
 
@@ -143,7 +143,7 @@ def test_a_new_stock_unit_names_the_operator_who_chose_it(client, signed_in, ite
     client.post(edit_url(item), submitted(stock_unit="SET"))
 
     unit = item.stock_unit.history.latest()
-    assert unit.uqc == "SET"
+    assert unit.code == "SET"
     assert unit.history_user == signed_in
 
 

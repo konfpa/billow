@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 
 
@@ -53,3 +55,26 @@ class UQC(models.TextChoices):
     UGS = "UGS", "UGS · US gallons"
     UNT = "UNT", "UNT · Units"
     YDS = "YDS", "YDS · Yards"
+
+
+class OwnUnit(models.TextChoices):
+    """Units a hardware shop sells in that have no GST unit code of their own.
+
+    A pipe is stocked and sold by the foot, so the Operator, the invoice and
+    stock keep the unit itself, and only a return converts it, by
+    REPORTED_UNDER. Operators do not edit this list.
+    """
+
+    FEET = "ft", "ft · Feet"
+    INCHES = "in", "in · Inches"
+
+
+# Exact by definition, so a return converts without drift.
+REPORTED_UNDER = {
+    OwnUnit.FEET: (UQC.MTR, Decimal("0.3048")),
+    OwnUnit.INCHES: (UQC.CMS, Decimal("2.54")),
+}
+
+# Everything an Item's units are chosen from, in one alphabetical list so
+# feet sits where an Operator looks for it.
+UNITS = sorted([*UQC.choices, *OwnUnit.choices], key=lambda choice: choice[0].lower())

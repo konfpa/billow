@@ -13,6 +13,15 @@ TEXTAREA = (
     "placeholder:text-zinc-500"
 )
 
+# konspec form-page/line-items' compact controls, for a row of a formset.
+LINE_SELECT = (
+    "w-full bg-transparent px-3 py-1.5 text-[14px]/5 outline-none md:text-[13px]/5"
+)
+LINE_CONTROL = (
+    "min-w-0 flex-1 bg-transparent px-2 py-1.5 text-right text-[14px]/5 "
+    "tabular-nums outline-none md:text-[13px]/5"
+)
+
 
 class StyledForm(forms.ModelForm):
     """A ModelForm whose controls are dressed and wired the way konspec asks.
