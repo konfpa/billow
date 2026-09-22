@@ -87,16 +87,16 @@
           <dt class="text-zinc-600">Selling price, including GST</dt>
           <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if unit.selling_price is not None %}₹{{ unit.selling_price }} per {{ unit.code }}{% else %}No price{% endif %}</dd>
         </div>
-        {% for further, quote in further_units %}
+        {% for other, quote in other_units %}
         <div class="border-t border-zinc-100 pt-4">
-          <dt class="text-zinc-600">{{ further.get_code_display }}</dt>
-          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">1 {{ further.code }} = {{ further.rate|plain }} {{ unit.code }}</dd>
+          <dt class="text-zinc-600">{{ other.get_code_display }}</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">1 {{ other.code }} = {{ other.rate|plain }} {{ unit.code }}</dd>
         </div>
         <div class="sm:border-t sm:border-zinc-100 sm:pt-4">
           <dt class="text-zinc-600">Selling price, including GST</dt>
           <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">
-            {% if quote.unit_price is None %}No price{% else %}₹{{ quote.unit_price }} per {{ further.code }}
-            <span class="font-normal text-zinc-600">· {% if quote.derived %}Derived from the stock unit{% else %}Own price{% endif %}</span>{% endif %}
+            {% if quote.unit_price is None %}No price{% else %}₹{{ quote.unit_price }} per {{ other.code }}
+            <span class="font-normal text-zinc-600">· {% if quote.derived %}worked out as ₹{{ unit.selling_price }} per {{ unit.code }} × {{ other.rate|plain }}{% else %}set for this unit{% endif %}</span>{% endif %}
           </dd>
         </div>
         {% endfor %}

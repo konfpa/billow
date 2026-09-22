@@ -41,7 +41,7 @@ def record_item(request: HttpRequest) -> HttpResponse:
 def item_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """What is on file about an Item, as an invoice line will copy it."""
     item = get_object_or_404(Item.objects.prefetch_related("units"), pk=pk)
-    further_units = [
+    other_units = [
         (unit, item.quote(Decimal(1), unit))
         for unit in sorted(item.units.all(), key=lambda unit: unit.pk)
         if not unit.is_stock_unit
@@ -49,7 +49,7 @@ def item_detail(request: HttpRequest, pk: int) -> HttpResponse:
     return render(
         request,
         "catalogue/detail.html",
-        {"item": item, "further_units": further_units},
+        {"item": item, "other_units": other_units},
     )
 
 

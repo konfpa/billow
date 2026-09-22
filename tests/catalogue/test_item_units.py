@@ -47,7 +47,7 @@ def on_file(pcs, **changes):
     }
 
 
-def further_units(item):
+def other_units(item):
     return {
         unit.code: (unit.rate, unit.selling_price)
         for unit in item.units.filter(is_stock_unit=False)
@@ -55,7 +55,7 @@ def further_units(item):
 
 
 @pytest.mark.django_db
-def test_a_goods_item_is_recorded_with_further_units(client, signed_in):
+def test_a_goods_item_is_recorded_with_other_units(client, signed_in):
     client.post(
         RECORD,
         submitted(PIECE, {"code": "BDL", "rate": "200", "selling_price": ""}, **PIPE),
@@ -63,7 +63,7 @@ def test_a_goods_item_is_recorded_with_further_units(client, signed_in):
 
     item = Item.objects.get()
     assert item.stock_unit.code == "ft"
-    assert further_units(item) == {
+    assert other_units(item) == {
         "PCS": (Decimal(20), Decimal(220)),
         "BDL": (Decimal(200), None),
     }
@@ -73,7 +73,7 @@ def test_a_goods_item_is_recorded_with_further_units(client, signed_in):
 def test_a_rate_takes_decimals(client, signed_in):
     client.post(RECORD, submitted({"code": "PCS", "rate": "9.8425"}, **PIPE))
 
-    assert further_units(Item.objects.get())["PCS"][0] == Decimal("9.8425")
+    assert other_units(Item.objects.get())["PCS"][0] == Decimal("9.8425")
 
 
 @pytest.mark.django_db
@@ -139,7 +139,7 @@ def test_a_service_with_more_than_one_unit_is_refused(client, signed_in):
 
     assert not Item.objects.exists()
     page = response.content.decode()
-    assert "A Service is sold in one unit, so it has no further units." in page
+    assert "A Service is sold in one unit, so it has no other units." in page
 
 
 @pytest.mark.django_db
@@ -149,7 +149,7 @@ def test_a_blank_unit_row_is_ignored(client, signed_in):
     )
 
     assert response.status_code == 302
-    assert further_units(Item.objects.get()) == {}
+    assert other_units(Item.objects.get()) == {}
 
 
 @pytest.mark.django_db
@@ -194,7 +194,8 @@ def test_the_detail_page_shows_every_unit_its_rate_and_own_price(client, signed_
 
     assert "1 PCS = 20 ft" in page
     assert "₹220.00" in page
-    assert "Own price" in page
+    assert "₹220.00 per PCS" in page
+    assert "set for this unit" in page
 
 
 @pytest.mark.django_db
@@ -208,11 +209,11 @@ def test_the_detail_page_marks_a_derived_price(client, signed_in):
 
     assert "1 PCS = 9.8425 ft" in page
     assert "₹118.11" in page
-    assert "Derived" in page
+    assert "worked out as ₹12.00 per ft × 9.8425" in page  # noqa: RUF001
 
 
 @pytest.mark.django_db
-def test_the_edit_form_arrives_with_the_further_units(client, signed_in):
+def test_the_edit_form_arrives_with_the_other_units(client, signed_in):
     item, pcs = pipe_on_file()
 
     units = client.get(edit_url(item)).context["form"].units
@@ -229,7 +230,7 @@ def test_a_unit_is_changed(client, signed_in):
         submitted(on_file(pcs, rate="19.5", selling_price=""), **PIPE),
     )
 
-    assert further_units(item) == {"PCS": (Decimal("19.5"), None)}
+    assert other_units(item) == {"PCS": (Decimal("19.5"), None)}
     latest = pcs.history.latest()
     assert latest.history_type == "~"
     assert latest.history_user == signed_in
@@ -241,7 +242,7 @@ def test_a_unit_is_removed(client, signed_in):
 
     client.post(edit_url(item), submitted(on_file(pcs, DELETE="on"), **PIPE))
 
-    assert further_units(item) == {}
+    assert other_units(item) == {}
     latest = ItemUnit.history.filter(id=pcs.pk).latest()
     assert latest.history_type == "-"
     assert latest.history_user == signed_in
@@ -282,11 +283,11 @@ def test_a_removed_unit_may_be_chosen_again(client, signed_in):
     )
 
     assert response.status_code == 302
-    assert further_units(item) == {"PCS": (Decimal(10), None)}
+    assert other_units(item) == {"PCS": (Decimal(10), None)}
 
 
 @pytest.mark.django_db
-def test_the_stock_unit_and_a_further_unit_trade_places(client, signed_in):
+def test_the_stock_unit_and_another_unit_trade_places(client, signed_in):
     item, pcs = pipe_on_file()
 
     response = client.post(
@@ -299,7 +300,7 @@ def test_the_stock_unit_and_a_further_unit_trade_places(client, signed_in):
 
     assert response.status_code == 302
     assert item.stock_unit.code == "PCS"
-    assert further_units(item) == {"ft": (Decimal("0.05"), Decimal(12))}
+    assert other_units(item) == {"ft": (Decimal("0.05"), Decimal(12))}
 
 
 @pytest.mark.django_db
@@ -311,11 +312,11 @@ def test_a_refused_edit_leaves_the_units_alone(client, signed_in):
         submitted(on_file(pcs, rate="5"), {"code": "PCS", "rate": "1"}, **PIPE),
     )
 
-    assert further_units(item) == {"PCS": (Decimal(20), Decimal(220))}
+    assert other_units(item) == {"PCS": (Decimal(20), Decimal(220))}
 
 
 @pytest.mark.django_db
-def test_a_goods_item_turned_service_with_further_units_is_refused(client, signed_in):
+def test_a_goods_item_turned_service_with_other_units_is_refused(client, signed_in):
     item, pcs = pipe_on_file()
 
     response = client.post(
@@ -338,3 +339,21 @@ def test_the_form_knows_the_exact_rate_of_a_unit_against_its_gst_code(
         'data-exact-rates="{&quot;ft&quot;: {&quot;MTR&quot;: &quot;0.3048&quot;}, '
         '&quot;in&quot;: {&quot;CMS&quot;: &quot;2.54&quot;}}"'
     ) in page
+
+
+@pytest.mark.django_db
+def test_a_service_starts_with_the_other_units_hidden(client, signed_in):
+    service = record(
+        name="Tap fitting", kind=Item.Kind.SERVICE, hsn_sac="995461", price="300"
+    )
+
+    page = client.get(edit_url(service)).content.decode()
+
+    assert 'x-data="unitRows" x-show="applies" x-cloak' in page
+
+
+@pytest.mark.django_db
+def test_goods_start_with_the_other_units_shown(client, signed_in, item):
+    page = client.get(edit_url(item)).content.decode()
+
+    assert 'x-data="unitRows" x-show="applies" data-' in page

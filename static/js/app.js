@@ -309,10 +309,20 @@ document.addEventListener("alpine:init", () => {
   Alpine.data("unitRows", () => ({
     shown: 0,
     exactRates: {},
+    service: false,
 
     init() {
       this.shown = this.rows().length;
       this.exactRates = JSON.parse(this.$el.dataset.exactRates);
+      const kind = this.$el.closest("form").elements.kind;
+      this.service = kind.value === "service";
+      kind.addEventListener("change", () => (this.service = kind.value === "service"));
+    },
+
+    // A Service is sold in one unit. Rows it already has stay in view, so
+    // the refusal they cause can be answered by removing them.
+    get applies() {
+      return !this.service || this.shown > 0;
     },
 
     // Picking ft on an Item stocked in MTR fills in 0.3048. A rate the
@@ -345,8 +355,8 @@ document.addEventListener("alpine:init", () => {
       const holder = document.createElement("div");
       holder.innerHTML = blank.replaceAll("__prefix__", index);
       const row = holder.firstElementChild;
-      row.querySelector("legend").textContent = `Further unit ${index + 1}`;
-      row.querySelector("button").setAttribute("aria-label", `Remove further unit ${index + 1}`);
+      row.querySelector("legend").textContent = `Other unit ${index + 1}`;
+      row.querySelector("button").setAttribute("aria-label", `Remove other unit ${index + 1}`);
 
       this.$refs.rows.append(row);
       this.$refs.total.value = index + 1;

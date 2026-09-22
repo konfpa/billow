@@ -87,7 +87,7 @@
       konspec form-page/line-items, with the server rendering the rows rather
       than Alpine, so a refused save comes back with each row's errors.
     {% endcomment %}
-    <div class="rounded-xl border border-zinc-300 bg-white" x-data="unitRows" data-exact-rates="{{ form.exact_rates }}">
+    <div class="rounded-xl border border-zinc-300 bg-white" x-data="unitRows" x-show="applies"{% if form.kind.value == "service" %} x-cloak{% endif %} data-exact-rates="{{ form.exact_rates }}">
       <input type="hidden" name="{{ form.units.management_form.TOTAL_FORMS.html_name }}" id="{{ form.units.management_form.TOTAL_FORMS.auto_id }}" value="{{ form.units.total_form_count }}" x-ref="total">
       {{ form.units.management_form.INITIAL_FORMS }}
       {{ form.units.management_form.MIN_NUM_FORMS }}
@@ -95,7 +95,7 @@
 
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-5 py-3.5">
         <div class="min-w-0">
-          <h2 class="text-[16px]/6 font-semibold">Further units</h2>
+          <h2 class="text-[16px]/6 font-semibold">Other units</h2>
           <p class="mt-0.5 text-[12px]/4 text-zinc-600">Goods only. For each, say how many of the stock unit one of it holds: a 20 ft pipe sold by the piece is PCS, 20.</p>
         </div>
       </div>

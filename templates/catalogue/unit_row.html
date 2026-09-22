@@ -2,7 +2,7 @@
   One line of konspec form-page/line-items, as a Django formset form.
 {% endcomment %}
 <fieldset class="border-b border-zinc-100 last:border-0" {% if unit_form.DELETE.value %}hidden{% endif %}>
-  <legend class="sr-only">Further unit {{ position }}</legend>
+  <legend class="sr-only">Other unit {{ position }}</legend>
   {{ unit_form.id }}
   <input type="hidden" name="{{ unit_form.DELETE.html_name }}" value="{% if unit_form.DELETE.value %}on{% endif %}" data-delete>
 
@@ -40,7 +40,7 @@
     {% endwith %}
 
     <div class="md:pt-0.5">
-      <button type="button" @click="remove" aria-label="Remove further unit {{ position }}"
+      <button type="button" @click="remove" aria-label="Remove other unit {{ position }}"
               class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white text-[13px]/5 font-medium text-zinc-600 hover:bg-zinc-100 hover:text-red-600 md:size-9 md:w-auto md:border-transparent">
         <i data-lucide="trash-2" class="size-4"></i>
         <span class="md:hidden">Remove this unit</span>

@@ -24,7 +24,7 @@ TAP = {
 
 
 def units(*rows):
-    """The further units as the form posts them.
+    """The other units as the form posts them.
 
     Rows on file carry an `id` and come first.
     """
