@@ -25,3 +25,12 @@ Correcting stock always means recording an adjustment with a reason, never
 editing a number. Negative stock is expected in the data and is surfaced by a
 report rather than prevented. Changing an Item's stock unit after movements
 exist means converting every one of them.
+
+## The Stock start date
+
+Every Goods line on a Purchase is recorded as a Stock movement whatever its
+date, and the Stock start date only decides which movements stock on hand
+counts: those on or after it. Until the date is set, no stock is counted.
+Deciding at recording time instead, and skipping movements dated earlier,
+would make the date impossible to move without regenerating movements from
+every Purchase; filtering when counting means moving it rewrites nothing.
