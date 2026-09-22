@@ -1,20 +1,19 @@
 {% comment %}
-  konspec empty-state/filtered, with the filters in the page's band rather
-  than as chips. No create here: the Items may be on file under no Brand or
-  Category.
+  konspec empty-state/no-results, without its own search toolbar: the search
+  is in the page's band. No create here, as the Item may well exist.
 {% endcomment %}
-<div data-kui="empty-state/filtered" class="rounded-xl border border-zinc-300 bg-white">
+<div data-kui="empty-state/no-results" class="rounded-xl border border-zinc-300 bg-white">
   <div class="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
     <span class="flex size-10 items-center justify-center rounded-full bg-zinc-200 ring-1 ring-inset ring-zinc-300">
-      <i data-lucide="filter-x" class="size-5 text-zinc-600"></i>
+      <i data-lucide="search-x" class="size-5 text-zinc-600"></i>
     </span>
-    <h2 class="mt-3 text-[16px]/6 font-semibold">No Items{% if brand %} from {{ brand.name }}{% endif %}{% if category %} in {{ category }}{% endif %}</h2>
+    <h2 class="mt-3 text-[16px]/6 font-semibold">No Item matches “{{ query }}”{% if brand %} from {{ brand.name }}{% endif %}{% if category %} in {{ category }}{% endif %}</h2>
     <p class="mt-1 max-w-sm text-[13px]/5 text-zinc-600">
-      There {{ total|pluralize:"is,are" }} <span class="font-medium text-zinc-900 tabular-nums">{{ total }}</span> Item{{ total|pluralize }} on file, and none is{% if brand %} sold under {{ brand.name }}{% endif %}{% if category %} in {{ category }}{% endif %}.
+      No Item{% if brand %} from {{ brand.name }}{% endif %}{% if category %} in {{ category }}{% endif %} has every word of that in its name, Item code or Brand.{% if brand or category %} It may be on file <a href="{% url 'item_directory' %}{% querystring brand=None category=None %}" class="font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">elsewhere in the catalogue</a>.{% endif %}
     </p>
-    <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
-      <a href="{% url 'item_directory' %}"
-         class="text-[13px]/5 font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Clear the filter{% if brand and category %}s{% endif %}</a>
-    </div>
+    <a href="{% url 'item_directory' %}{% querystring q=None %}"
+       class="mt-4 inline-flex h-9 items-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      Clear the search
+    </a>
   </div>
 </div>

@@ -34,8 +34,9 @@ def on_file[M: Model](choices: QuerySet[M], raw: str) -> M | None:
 def item_directory(request: HttpRequest) -> HttpResponse:
     """Every Item on file, by name, with its code, stock unit, price and GST rate.
 
-    Narrowed, when asked, to the Items of one Brand, one Category, or both.
-    A top-level Category takes in the Items of those under it.
+    Narrowed, when asked, to the Items of one Brand, one Category, or both,
+    and to those matching every word typed into the search. A top-level
+    Category takes in the Items of those under it.
     """
     everything = Item.objects.select_related(
         "brand", "category__parent"
@@ -45,12 +46,26 @@ def item_directory(request: HttpRequest) -> HttpResponse:
 
     brand = on_file(brands, request.GET.get("brand", ""))
     category = on_file(categories, request.GET.get("category", ""))
+    query = request.GET.get("q", "").strip()
 
-    items = everything
+    items = everything.matching(query)
     if brand:
         items = items.filter(brand=brand)
     if category:
         items = items.filter(Q(category=category) | Q(category__parent=category))
+
+    # Which nothing this is gets decided here rather than in the template,
+    # where every one of them is just an empty list. A search that matches
+    # nothing is a no-match even inside a filter, since the Item may be on
+    # file under another Brand or Category.
+    if items:
+        empty = None
+    elif query:
+        empty = "catalogue/empty/no_match.html"
+    elif brand or category:
+        empty = "catalogue/empty/nothing_filtered.html"
+    else:
+        empty = "catalogue/empty/nothing_on_file.html"
 
     return render(
         request,
@@ -58,10 +73,12 @@ def item_directory(request: HttpRequest) -> HttpResponse:
         {
             "items": items,
             "total": everything.count(),
+            "empty": empty,
             "brands": brands,
             "brand": brand,
             "categories": categories,
             "category": category,
+            "query": query,
         },
     )
 
