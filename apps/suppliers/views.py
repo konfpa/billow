@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from apps.business.models import Business
 from apps.core.access import requires
 from apps.core.redirects import back
 from apps.suppliers.forms import SupplierForm
@@ -76,9 +77,22 @@ def record_supplier(request: HttpRequest) -> HttpResponse:
 
 @requires("suppliers.view_supplier")
 def supplier_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    """What is on file about a Supplier."""
+    """What is on file about a Supplier, and their Purchases to whoever may see them."""
     supplier = get_object_or_404(Supplier.including_archived, pk=pk)
-    return render(request, "suppliers/detail.html", {"supplier": supplier})
+
+    purchases = None
+    if request.user.has_perm("purchases.view_purchase"):
+        business = Business.load()
+        purchases = [
+            (purchase, purchase.totals(business))
+            for purchase in supplier.purchases.prefetch_related("lines__item")
+        ]
+
+    return render(
+        request,
+        "suppliers/detail.html",
+        {"supplier": supplier, "purchases": purchases},
+    )
 
 
 @requires("suppliers.change_supplier")

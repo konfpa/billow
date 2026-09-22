@@ -2,17 +2,17 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from django.contrib import messages
-from django.db.models import Count, Model, Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.catalogue.forms import BrandForm, CategoryForm, ItemForm
 from apps.catalogue.models import Brand, Category, Item
 from apps.core.access import requires
+from apps.core.filters import chosen
 from apps.core.redirects import back
 
 if TYPE_CHECKING:
-    from django.db.models import QuerySet
     from django.http import HttpRequest, HttpResponse
 
 
@@ -21,15 +21,6 @@ def warn_above_mrp(request: HttpRequest, item: Item) -> None:
         messages.warning(
             request, f"{unit.code} sells at ₹{price}, above its MRP of ₹{unit.mrp}."
         )
-
-
-def chosen[M: Model](choices: QuerySet[M], raw: str) -> M | None:
-    """The choice `raw` names, or None for one not on file or not a number.
-
-    A filter link somebody kept filters nothing rather than failing: it is
-    not a mistake to report.
-    """
-    return choices.filter(pk=raw).first() if raw.isdigit() else None
 
 
 @requires("catalogue.view_item")

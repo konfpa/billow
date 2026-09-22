@@ -1,0 +1,20 @@
+{% comment %}
+  konspec empty-state/filtered, with the filters in the page's band rather
+  than as chips. No create here: the bill may be on file under another
+  Supplier or date.
+{% endcomment %}
+<div data-kui="empty-state/filtered" class="rounded-xl border border-zinc-300 bg-white">
+  <div class="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
+    <span class="flex size-10 items-center justify-center rounded-full bg-zinc-200 ring-1 ring-inset ring-zinc-300">
+      <i data-lucide="filter-x" class="size-5 text-zinc-600"></i>
+    </span>
+    <h2 class="mt-3 text-[16px]/6 font-semibold">No Purchases{% if supplier %} from {{ supplier.name }}{% endif %}{% if billed %} {{ billed }}{% endif %}</h2>
+    <p class="mt-1 max-w-sm text-[13px]/5 text-zinc-600">
+      There {{ total|pluralize:"is,are" }} <span class="font-medium text-zinc-900 tabular-nums">{{ total }}</span> Purchase{{ total|pluralize }} recorded, and none is{% if supplier %} from {{ supplier.name }}{% endif %}{% if billed %} {{ billed }}{% endif %}.
+    </p>
+    <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
+      <a href="{% url 'purchase_directory' %}"
+         class="text-[13px]/5 font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Clear the filters</a>
+    </div>
+  </div>
+</div>

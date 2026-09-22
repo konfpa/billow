@@ -5,9 +5,12 @@
 
 {% block main %}
 {% comment %}
-  konspec index-page: the band is page-header, and the body is the register
-  panel, a table/linked-rows above md and card/clickable below it, as the
-  Supplier directory is.
+  konspec index-page, as the Item directory: the band is page-header with the
+  search form, and the body is the register panel, a table/linked-rows above
+  md and card/clickable below it. The Supplier filter is select/filter's dense
+  select, applied on change by filterSelect; the bill dates are
+  input-group/range, its heading made sr-only as every label in the band is,
+  and applied with Search. All of them are one GET form, so they combine.
 {% endcomment %}
 <div data-kui="index-page/django" class="text-zinc-900">
 
@@ -16,7 +19,7 @@
       <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div class="min-w-0">
           <h1 class="text-[24px]/7 font-semibold tracking-tight">Purchases</h1>
-          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{{ purchases|length }} recorded, newest received first</p>
+          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% if query or supplier or billed %}{{ purchases|length }} of {{ total }} recorded{% if supplier %} from {{ supplier.name }}{% endif %}{% if billed %} {{ billed }}{% endif %}{% if query %} match{{ purchases|length|pluralize:"es," }} “{{ query }}”{% endif %}{% else %}{{ total }} recorded, newest received first{% endif %}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           {% if perms.purchases.add_purchase %}
@@ -27,14 +30,64 @@
           {% endif %}
         </div>
       </div>
+
+      <form method="get" action="{% url 'purchase_directory' %}" role="search" x-data="filterSelect" class="mt-4 flex flex-col gap-2 md:flex-row md:items-center">
+        <div class="md:max-w-sm md:flex-1">
+          <label for="purchase-search" class="sr-only">Search by bill number or Supplier</label>
+          <div class="flex items-center rounded-lg border border-zinc-200 bg-white focus-within:border-zinc-700 focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-zinc-700/15">
+            <i data-lucide="search" class="ml-3 size-4 shrink-0 text-zinc-600"></i>
+            <input id="purchase-search" type="search" name="q" value="{{ query }}" enterkeyhint="search"
+                   autocomplete="off" spellcheck="false" placeholder="Search by bill number or Supplier"
+                   class="w-full min-w-0 bg-transparent px-2 py-2 text-[13px]/5 outline-none placeholder:text-zinc-500">
+          </div>
+        </div>
+        <div class="grid gap-2 md:flex md:shrink-0 md:items-center">
+          {% if suppliers %}
+          <div class="min-w-0">
+            <label for="purchase-supplier" class="sr-only">Supplier</label>
+            <div class="relative rounded-lg border border-zinc-200 bg-white focus-within:border-zinc-700 focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-zinc-700/15">
+              <select id="purchase-supplier" name="supplier" @change="apply"
+                      class="block w-full min-w-0 appearance-none bg-transparent py-1.5 pr-8 pl-2.5 text-[13px]/5 outline-none">
+                <option value="">All Suppliers</option>
+                {% for option in suppliers %}
+                <option value="{{ option.pk }}"{% if option == supplier %} selected{% endif %}>{{ option.name }}</option>
+                {% endfor %}
+              </select>
+              <span aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-zinc-600">
+                <i data-lucide="chevron-down" class="size-3.5"></i>
+              </span>
+            </div>
+          </div>
+          {% endif %}
+          <div data-kui="input-group/range" class="min-w-0 md:w-80">
+            <div role="group" aria-labelledby="purchase-billed">
+              <span id="purchase-billed" class="sr-only">Bill date</span>
+              <div class="flex items-stretch rounded-lg border border-zinc-200 bg-white focus-within:border-zinc-700 focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-zinc-700/15">
+                <label for="purchase-billed-from" class="sr-only">Bill date from</label>
+                <input id="purchase-billed-from" name="billed_from" type="date" value="{{ billed_from|date:'Y-m-d' }}"
+                       class="min-w-0 flex-1 bg-transparent px-3 py-2 text-[14px]/5 tabular-nums outline-none">
+
+                <span aria-hidden="true" class="flex items-center px-1 text-[14px]/5 text-zinc-500">–</span>
+
+                <label for="purchase-billed-to" class="sr-only">Bill date to</label>
+                <input id="purchase-billed-to" name="billed_to" type="date" value="{{ billed_to|date:'Y-m-d' }}"
+                       class="min-w-0 flex-1 bg-transparent px-3 py-2 text-[14px]/5 tabular-nums outline-none">
+              </div>
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15 md:shrink-0">
+          <i data-lucide="search" class="size-4 text-zinc-600"></i>Search
+        </button>
+      </form>
     </div>
   </header>
 
   <div class="mx-auto max-w-[1600px] space-y-4 px-4 py-5 lg:px-6">
     {% include "core/messages.html" %}
 
-    {% if not purchases %}
-      {% include "purchases/empty/nothing_recorded.html" %}
+    {% if empty %}
+      {% include empty %}
     {% else %}
       <div data-kui="table/linked-rows" class="hidden overflow-hidden rounded-xl border border-zinc-300 bg-white md:block">
         <table class="w-full text-[13px]/5">
