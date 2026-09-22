@@ -23,9 +23,24 @@ TAP = {
 }
 
 
-def submitted(**changes):
+def units(*rows):
+    """The further units as the form posts them.
+
+    Rows on file carry an `id` and come first.
+    """
+    posted = {
+        "units-TOTAL_FORMS": str(len(rows)),
+        "units-INITIAL_FORMS": str(sum("id" in row for row in rows)),
+    }
+    for index, row in enumerate(rows):
+        for name, value in row.items():
+            posted[f"units-{index}-{name}"] = value
+    return posted
+
+
+def submitted(*rows, **changes):
     """What the form posts: a complete Goods Item, with anything changed."""
-    return {**TAP, **changes}
+    return {**TAP, **units(*rows), **changes}
 
 
 def record(name="Jaquar Florentine tap, chrome", price="1450.00", **fields):
@@ -39,7 +54,7 @@ def record(name="Jaquar Florentine tap, chrome", price="1450.00", **fields):
     )
     ItemUnit.objects.create(
         item=item,
-        uqc=UQC.NOS,
+        code=UQC.NOS,
         is_stock_unit=True,
         selling_price=Decimal(price) if price else None,
     )

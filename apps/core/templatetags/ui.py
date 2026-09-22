@@ -1,4 +1,9 @@
+from typing import TYPE_CHECKING
+
 from django import template
+
+if TYPE_CHECKING:
+    from decimal import Decimal
 
 register = template.Library()
 
@@ -32,3 +37,10 @@ def initials(name: str) -> str:
     if not words:
         return ""
     return (words[0][0] + (words[-1][0] if len(words) > 1 else "")).upper()
+
+
+# A rate is stored to six places, but 1 PCS = 20 ft reads better than
+# 20.000000 ft.
+@register.filter
+def plain(number: Decimal) -> str:
+    return f"{number.normalize():f}"
