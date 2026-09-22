@@ -1,0 +1,133 @@
+{% comment %}
+  One line of konspec form-page/line-items as a Django formset form, with its
+  Item chosen through konspec combobox/dense. Ids are built from the formset
+  prefix, which a new line takes from TOTAL_FORMS, so they never repeat. Below
+  md each line is its own card and each cell shows its own label.
+  The combobox's expressions live in linePicker in static/js/app.js.
+{% endcomment %}
+<fieldset x-data="linePicker" @click.outside="close" @keydown.escape="escape" @input="compute" @change="compute"
+          class="relative m-3 rounded-lg border border-zinc-300 bg-white md:m-0 md:rounded-none md:border-0 md:border-b md:border-zinc-100 md:last:border-0" {% if line_form.DELETE.value %}hidden{% endif %}>
+  <legend class="sr-only">Line {{ position }}</legend>
+  {{ line_form.id }}
+  <input type="hidden" name="{{ line_form.DELETE.html_name }}" value="{% if line_form.DELETE.value %}on{% endif %}" data-delete>
+
+  <div aria-hidden="true" class="flex h-11 items-center border-b border-zinc-200 px-4 md:hidden">
+    <span data-title class="text-[13px]/5 font-semibold">Line {{ position }}</span>
+  </div>
+
+  <div class="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_5.5rem_6rem_7rem_6rem_7rem_2.25rem] md:items-start md:gap-2 md:py-2">
+
+    {% with field=line_form.item %}
+    <div data-kui="combobox/dense" class="relative min-w-0">
+      <label for="{{ field.auto_id }}-q" class="mb-1 block text-[12px]/4 text-zinc-600 md:sr-only">Item</label>
+      <div class="flex items-center rounded-lg border bg-white focus-within:outline-3 focus-within:outline-offset-2 {% if field.errors %}border-red-600 focus-within:outline-red-600/15{% else %}border-zinc-200 focus-within:border-zinc-700 focus-within:outline-zinc-700/15{% endif %}">
+        <input id="{{ field.auto_id }}-q" x-ref="q" x-model="q" type="text" role="combobox" autocomplete="off"
+               aria-autocomplete="list" aria-controls="{{ field.auto_id }}-list" aria-describedby="{{ field.auto_id }}-msg"
+               aria-invalid="{% if field.errors %}true{% else %}false{% endif %}"
+               x-bind:aria-expanded="open" x-bind:aria-activedescendant="activeId"
+               placeholder="Name, code or Brand"
+               value="{{ line_form.chosen_item.name|default:'' }}"
+               @click="show"
+               @input="typing"
+               @keydown.arrow-down.prevent="down"
+               @keydown.arrow-up.prevent="up"
+               @keydown.home="home"
+               @keydown.end="end"
+               @keydown.enter="enter"
+               @keydown.tab="close"
+               class="w-full min-w-0 bg-transparent px-2.5 py-1.5 text-[14px]/5 outline-none placeholder:text-zinc-500 md:text-[13px]/5">
+        <span class="mr-2 flex size-4 shrink-0 items-center justify-center transition-transform motion-reduce:transition-none" x-bind:class="chevron">
+          <i data-lucide="chevron-down" class="size-3.5 text-zinc-600"></i>
+        </span>
+      </div>
+
+      <input type="hidden" name="{{ field.html_name }}" id="{{ field.auto_id }}" value="{{ field.value|default:'' }}" x-ref="item" data-item>
+
+      <p id="{{ field.auto_id }}-msg" class="mt-1 text-[12px]/4 font-medium text-red-600 empty:hidden">{{ field.errors.0|default:"" }}</p>
+
+      <p role="status" class="sr-only" x-text="count"></p>
+
+      <div x-show="open" x-cloak
+           class="absolute top-full right-0 left-0 z-20 mt-1 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
+        <div id="{{ field.auto_id }}-list" role="listbox" aria-label="Goods, line {{ position }}"
+             class="max-h-56 overflow-y-auto py-1">
+          <template x-for="(o, i) in list" x-bind:key="o.id">
+            <div x-bind:id="rowId(o)" role="option" x-bind:aria-selected="isSelected(o)"
+                 @mousedown.prevent @click="pickRow(o)" @mousemove="hover(i)"
+                 x-bind:class="rowClass(i)"
+                 class="flex items-center gap-2.5 px-3 py-2 text-[13px]/5">
+              <span class="min-w-0 flex-1 truncate" x-text="o.name"></span>
+              <span class="shrink-0 text-[12px]/4 tabular-nums text-zinc-500" x-text="o.code"></span>
+            </div>
+          </template>
+        </div>
+        <div x-show="nothing" x-cloak class="px-3 py-4 text-center">
+          <p class="text-[13px]/5 font-medium">No Goods match “<span x-text="q"></span>”</p>
+          <p class="mt-1 text-[12px]/4 text-zinc-500">Every word has to match the name, Item code or Brand.</p>
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+
+    {% with field=line_form.unit %}
+    <div class="min-w-0">
+      <label for="{{ field.id_for_label }}" class="mb-1 block text-[12px]/4 text-zinc-600 md:sr-only">Unit</label>
+      <div class="rounded-lg border bg-white focus-within:outline-3 focus-within:outline-offset-2 {% if field.errors %}border-red-600 focus-within:outline-red-600/15{% else %}border-zinc-200 focus-within:border-zinc-700 focus-within:outline-zinc-700/15{% endif %}">
+        <select name="{{ field.html_name }}" id="{{ field.id_for_label }}" x-ref="unit" class="{{ field.field.widget.attrs.class }}"
+                aria-describedby="{{ field.auto_id }}-msg" aria-invalid="{% if field.errors %}true{% else %}false{% endif %}">
+          {% for code in line_form.unit_options %}
+            <option value="{{ code }}"{% if code == field.value %} selected{% endif %}>{{ code }}</option>
+          {% empty %}
+            <option value="">—</option>
+          {% endfor %}
+        </select>
+      </div>
+      <p id="{{ field.auto_id }}-msg" class="mt-1 text-[12px]/4 font-medium text-red-600 empty:hidden">{{ field.errors.0|default:"" }}</p>
+    </div>
+    {% endwith %}
+
+    {% with field=line_form.quantity %}
+    <div class="min-w-0">
+      <label for="{{ field.id_for_label }}" class="mb-1 block text-[12px]/4 text-zinc-600 md:sr-only">Quantity</label>
+      <div class="flex items-stretch rounded-lg border bg-white focus-within:outline-3 focus-within:outline-offset-2 {% if field.errors %}border-red-600 focus-within:outline-red-600/15{% else %}border-zinc-200 focus-within:border-zinc-700 focus-within:outline-zinc-700/15{% endif %}">
+        {{ field }}
+      </div>
+      <p id="{{ field.auto_id }}-msg" class="mt-1 text-[12px]/4 font-medium text-red-600 empty:hidden">{{ field.errors.0|default:"" }}</p>
+    </div>
+    {% endwith %}
+
+    {% with field=line_form.rate %}
+    <div class="min-w-0">
+      <label for="{{ field.id_for_label }}" class="mb-1 block text-[12px]/4 text-zinc-600 md:sr-only">Rate before tax</label>
+      <div class="flex items-stretch rounded-lg border bg-white focus-within:outline-3 focus-within:outline-offset-2 {% if field.errors %}border-red-600 focus-within:outline-red-600/15{% else %}border-zinc-200 focus-within:border-zinc-700 focus-within:outline-zinc-700/15{% endif %}">
+        <span aria-hidden="true" class="flex items-center pl-2 text-[12px]/4 text-zinc-500">₹</span>
+        {{ field }}
+      </div>
+      <p id="{{ field.auto_id }}-msg" class="mt-1 text-[12px]/4 font-medium text-red-600 empty:hidden">{{ field.errors.0|default:"" }}</p>
+    </div>
+    {% endwith %}
+
+    {% with field=line_form.gst_rate %}
+    <div class="min-w-0">
+      <label for="{{ field.id_for_label }}" class="mb-1 block text-[12px]/4 text-zinc-600 md:sr-only">GST rate</label>
+      <div class="rounded-lg border bg-white focus-within:outline-3 focus-within:outline-offset-2 {% if field.errors %}border-red-600 focus-within:outline-red-600/15{% else %}border-zinc-200 focus-within:border-zinc-700 focus-within:outline-zinc-700/15{% endif %}" x-ref="gstBox">
+        {{ field }}
+      </div>
+      <p id="{{ field.auto_id }}-msg" class="mt-1 text-[12px]/4 font-medium text-red-600 empty:hidden">{{ field.errors.0|default:"" }}</p>
+    </div>
+    {% endwith %}
+
+    <div class="flex items-baseline justify-between gap-3 md:block md:pt-2 md:text-right">
+      <span class="text-[12px]/4 text-zinc-600 md:sr-only">Taxable value</span>
+      <output aria-live="off" class="text-[14px]/5 font-medium tabular-nums md:text-[13px]/5" x-text="amountLabel"></output>
+    </div>
+
+    <div class="absolute top-1 right-2 md:static md:pt-0.5">
+      <button type="button" @click="dropLine" data-remove aria-label="Remove line {{ position }}"
+              class="inline-flex size-9 items-center justify-center rounded-lg border border-transparent text-zinc-600 hover:bg-zinc-200 hover:text-red-600 md:hover:bg-zinc-100">
+        <i data-lucide="trash-2" class="size-4"></i>
+      </button>
+    </div>
+
+  </div>
+</fieldset>

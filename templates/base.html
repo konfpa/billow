@@ -110,6 +110,19 @@
       </a>
       {% endif %}
 
+      {% if perms.purchases.view_purchase %}
+      {% if current == "purchase_directory" or current == "record_purchase" or current == "purchase_detail" %}
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Purchases" href="{% url 'purchase_directory' %}" aria-current="page"
+         class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg bg-zinc-200 px-1.5 text-[13px]/5 font-medium whitespace-nowrap text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      {% else %}
+      <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Purchases" href="{% url 'purchase_directory' %}"
+         class="flex h-9 items-center gap-2.5 overflow-hidden rounded-lg px-1.5 text-[13px]/5 whitespace-nowrap text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      {% endif %}
+        <span class="flex w-8 shrink-0 items-center justify-center"><i data-lucide="receipt" class="size-[18px]"></i></span>
+        <span class="min-w-0 flex-1 truncate transition-opacity duration-150" :class="fade">Purchases</span>
+      </a>
+      {% endif %}
+
       {% if perms.catalogue.view_item %}
       {% if current == "item_directory" or current == "record_item" or current == "item_detail" %}
       <a @mouseenter="showTip" @mouseleave="hideTip" @focus="showTip" @blur="hideTip" data-tip="Items" href="{% url 'item_directory' %}" aria-current="page"

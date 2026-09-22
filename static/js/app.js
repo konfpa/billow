@@ -613,6 +613,298 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
+  // konspec form-page/line-items over the Purchase form's lines formset,
+  // with running totals. They are a preview: the server works the bill out
+  // again on Save, by the same rules, and its figures are the ones kept.
+  Alpine.data("purchaseLines", () => ({
+    shown: 0,
+    tax: { businessState: "", suppliers: {} },
+    billDate: "",
+    supplier: null,
+    taxable: 0,
+    halfTax: 0,
+    igst: 0,
+
+    init() {
+      this.tax = JSON.parse(this.$el.dataset.tax);
+      this.shown = this.rows().length;
+      this.billDate = this.$el.closest("form").elements.bill_date.value;
+      this.recount();
+    },
+
+    rows() {
+      return [...this.$refs.rows.querySelectorAll(":scope > fieldset:not([hidden])")];
+    },
+
+    get empty() {
+      return this.shown === 0;
+    },
+
+    get lineCount() {
+      return this.shown === 1 ? "1 line" : `${this.shown} lines`;
+    },
+
+    // The Received date follows the bill date until the Operator gives it
+    // a date of its own.
+    followBillDate(event) {
+      if (event.target.name !== "bill_date") return;
+      const received = event.target.form.elements.received_date;
+      if (!received.value || received.value === this.billDate) received.value = event.target.value;
+      this.billDate = event.target.value;
+    },
+
+    // In paise, and tax rounded on each line, as the server rounds it.
+    recount() {
+      const form = this.$el.closest("form");
+      this.supplier = this.tax.suppliers[form.elements.supplier.value] ?? null;
+      const within = this.supplier?.state === this.tax.businessState;
+      let taxable = 0;
+      let half = 0;
+      let igst = 0;
+      for (const row of this.rows()) {
+        const item = itemOptions().find((o) => String(o.id) === row.querySelector("[data-item]").value);
+        const value = linePaise(row);
+        const rate = Number(row.querySelector('[name$="-gst_rate"]').value || item?.gstRate || 0);
+        taxable += value;
+        if (!this.supplier?.gstin) continue;
+        if (within) half += Math.round(value * rate / 200);
+        else igst += Math.round(value * rate / 100);
+      }
+      this.taxable = taxable;
+      this.halfTax = half;
+      this.igst = igst;
+    },
+
+    get splitsTax() {
+      return Boolean(this.supplier?.gstin) && this.supplier.state === this.tax.businessState;
+    },
+
+    get chargesIgst() {
+      return Boolean(this.supplier?.gstin) && this.supplier.state !== this.tax.businessState;
+    },
+
+    get untaxed() {
+      return this.supplier !== null && !this.supplier.gstin;
+    },
+
+    get taxableLabel() {
+      return rupees(this.taxable);
+    },
+
+    get halfTaxLabel() {
+      return rupees(this.halfTax);
+    },
+
+    get igstLabel() {
+      return rupees(this.igst);
+    },
+
+    get totalLabel() {
+      return rupees(this.taxable + 2 * this.halfTax + this.igst);
+    },
+
+    // TOTAL_FORMS counts every line ever issued, removed ones included, so a
+    // new line never reuses the index of one waiting to be deleted.
+    add() {
+      const index = Number(this.$refs.total.value);
+      const blank = this.$refs.blank.content.firstElementChild.outerHTML;
+      const holder = document.createElement("div");
+      holder.innerHTML = blank.replaceAll("__prefix__", index);
+      const row = holder.firstElementChild;
+      row.querySelector("legend").textContent = `Line ${index + 1}`;
+      row.querySelector("[data-remove]").setAttribute("aria-label", `Remove line ${index + 1}`);
+      row.querySelector("[data-title]").textContent = `Line ${index + 1}`;
+
+      this.$refs.rows.append(row);
+      this.$refs.total.value = index + 1;
+      this.shown++;
+      this.$nextTick(() => row.querySelector("[role=combobox]").focus());
+    },
+
+    // A removed line is marked and hidden rather than dropped, so a refused
+    // save can still show it. Focus moves off the button about to be hidden.
+    removeLine(event) {
+      const row = event.target.closest("fieldset");
+      const rows = this.rows();
+      const near = rows[rows.indexOf(row) + 1] || rows[rows.indexOf(row) - 1];
+
+      const deleted = row.querySelector("[data-delete]");
+      deleted.value = "on";
+      deleted.dispatchEvent(new Event("change", { bubbles: true }));
+      row.hidden = true;
+      this.shown--;
+      this.recount();
+      (near ? near.querySelector("[data-remove]") : this.$refs.add).focus();
+    },
+  }));
+
+  // konspec combobox/dense for one Purchase line's Item. Every word typed has
+  // to match the name, Item code or Brand, as the catalogue search does.
+  // Picking an Item offers its units, stock unit first, and its GST rate.
+  Alpine.data("linePicker", () => ({
+    open: false,
+    typed: false,
+    q: "",
+    sel: "",
+    ai: 0,
+    amount: 0,
+
+    init() {
+      this.sel = this.$refs.item.value;
+      this.q = this.label;
+      this.compute();
+    },
+
+    get chosen() {
+      return itemOptions().find((o) => String(o.id) === this.sel) ?? null;
+    },
+
+    get label() {
+      return this.chosen ? this.chosen.name : "";
+    },
+
+    get list() {
+      if (!this.typed) return itemOptions();
+      const words = this.q.toLowerCase().split(/\s+/).filter(Boolean);
+      return itemOptions().filter((o) => {
+        const text = `${o.name} ${o.code} ${o.brand}`.toLowerCase();
+        return words.every((word) => text.includes(word));
+      });
+    },
+
+    get nothing() {
+      return this.list.length === 0;
+    },
+
+    get count() {
+      if (!this.open) return "";
+      return this.list.length === 1 ? "1 Item matches" : `${this.list.length} Items match`;
+    },
+
+    get chevron() {
+      return this.open ? "rotate-180" : "";
+    },
+
+    get activeId() {
+      return this.open && this.list[this.ai] ? this.rowId(this.list[this.ai]) : null;
+    },
+
+    get amountLabel() {
+      return rupees(this.amount);
+    },
+
+    rowId(o) {
+      return `${this.$refs.item.id}-option-${o.id}`;
+    },
+
+    rowClass(i) {
+      return i === this.ai ? "bg-zinc-100" : "";
+    },
+
+    isSelected(o) {
+      return String(o.id) === this.sel;
+    },
+
+    compute() {
+      this.amount = linePaise(this.$refs.q.closest("fieldset"));
+    },
+
+    scroll() {
+      this.$nextTick(() => {
+        const el = document.getElementById(this.activeId);
+        if (el) el.scrollIntoView({ block: "nearest" });
+      });
+    },
+
+    show() {
+      if (this.open) return;
+      this.open = true;
+      this.typed = false;
+      this.ai = Math.max(0, this.list.findIndex((o) => this.isSelected(o)));
+      this.scroll();
+    },
+
+    close() {
+      this.open = false;
+      this.typed = false;
+      this.q = this.label;
+    },
+
+    escape(event) {
+      if (!this.open) return;
+      event.stopPropagation();
+      this.close();
+      this.$refs.q.focus();
+    },
+
+    typing() {
+      this.typed = true;
+      this.open = true;
+      this.ai = 0;
+    },
+
+    move(n) {
+      if (!this.open) {
+        this.show();
+        return;
+      }
+      if (!this.list.length) return;
+      this.ai = Math.min(this.list.length - 1, Math.max(0, this.ai + n));
+      this.scroll();
+    },
+
+    down() {
+      this.move(1);
+    },
+
+    up() {
+      this.move(-1);
+    },
+
+    edge(end, event) {
+      if (!this.open) return;
+      event.preventDefault();
+      if (!this.list.length) return;
+      this.ai = end ? this.list.length - 1 : 0;
+      this.scroll();
+    },
+
+    home(event) {
+      this.edge(false, event);
+    },
+
+    end(event) {
+      this.edge(true, event);
+    },
+
+    hover(i) {
+      this.ai = i;
+    },
+
+    pickRow(o) {
+      this.sel = String(o.id);
+      this.$refs.item.value = this.sel;
+      this.$refs.unit.replaceChildren(...o.units.map((unit) => new Option(unit.code, unit.code)));
+      this.$refs.gstBox.querySelector("select").value = o.gstRate;
+      this.close();
+      this.$refs.q.focus();
+      // The hidden input changes without an event of its own, and formPage's
+      // guard and the running totals have to hear of it.
+      this.$refs.item.dispatchEvent(new Event("change", { bubbles: true }));
+    },
+
+    enter(event) {
+      if (!this.open) return;
+      event.preventDefault();
+      const o = this.list[this.ai];
+      if (o) this.pickRow(o);
+    },
+
+    dropLine() {
+      this.$dispatch("drop-line");
+    },
+  }));
+
   // konspec select/filter applies on change, with no Apply button.
   Alpine.data("filterSelect", () => ({
     apply() {
@@ -837,6 +1129,25 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 });
+
+// The Goods on the Purchase form, read once and shared by every line.
+let goods = null;
+function itemOptions() {
+  goods ??= JSON.parse(document.getElementById("item-options").textContent);
+  return goods;
+}
+
+// A line's quantity at its rate, in paise. toPrecision drops the float noise
+// that would otherwise round 83.325 down.
+function linePaise(row) {
+  const quantity = Number(row.querySelector('[name$="-quantity"]').value) || 0;
+  const rate = Number(row.querySelector('[name$="-rate"]').value) || 0;
+  return Math.round(Number((quantity * rate * 100).toPrecision(12)));
+}
+
+function rupees(paise) {
+  return `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 function readableSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;

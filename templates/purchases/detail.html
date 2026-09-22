@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}Bill {{ purchase.bill_number }} · billow{% endblock %}
+
+{% block main %}
+{% comment %}
+  konspec form-page/readonly under a page-header/back band, as Supplier
+  detail is, with the lines as table/totals and the tax by GST rate as a
+  second table/totals below them.
+{% endcomment %}
+<div data-kui="form-page/readonly" class="text-zinc-900">
+
+  <header data-kui="page-header/back" class="border-b border-zinc-200 bg-white">
+    <div class="mx-auto max-w-5xl px-4 py-4 lg:px-6">
+      <a href="{% url 'purchase_directory' %}" class="inline-flex items-center gap-1.5 rounded text-[13px]/5 text-zinc-600 hover:text-zinc-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+        <i data-lucide="chevron-left" class="size-4"></i>Purchases
+      </a>
+
+      <div class="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div class="min-w-0">
+          <h1 class="text-[24px]/7 font-semibold tracking-tight">Bill {{ purchase.bill_number }}</h1>
+          <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{{ purchase.supplier.name }} · {{ totals.grand_total|rupees }}</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-5xl space-y-4 p-4 pb-6 lg:p-6">
+    {% include "core/messages.html" %}
+
+    <div class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-5 py-3.5">
+        <h2 class="text-[16px]/6 font-semibold">Bill</h2>
+      </div>
+      <dl class="grid gap-4 px-5 py-4 text-[13px]/5 sm:grid-cols-2">
+        <div>
+          <dt class="text-zinc-600">Supplier</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium">
+            {% if perms.suppliers.view_supplier %}
+              <a href="{% url 'supplier_detail' purchase.supplier.pk %}" class="text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ purchase.supplier.name }}</a>
+            {% else %}
+              {{ purchase.supplier.name }}
+            {% endif %}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-zinc-600">GSTIN on the bill</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if purchase.supplier_gstin %}{{ purchase.supplier_gstin }}{% else %}Unregistered{% endif %} · {{ purchase.get_supplier_state_display }}</dd>
+        </div>
+        <div>
+          <dt class="text-zinc-600">Bill number</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{{ purchase.bill_number }}</dd>
+        </div>
+        <div>
+          <dt class="text-zinc-600">Bill date</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{{ purchase.bill_date|date:"j F Y" }}</dd>
+        </div>
+        <div>
+          <dt class="text-zinc-600">Received date</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{{ purchase.received_date|date:"j F Y" }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div data-kui="table/totals" class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-4 py-3">
+        <h2 class="text-[14px]/5 font-semibold">Lines</h2>
+        <p class="mt-0.5 text-[12px]/4 tabular-nums text-zinc-500">{{ lines|length }} line{{ lines|length|pluralize }}, at rates before tax</p>
+      </div>
+
+      <table class="hidden w-full text-[13px]/5 md:table">
+        <thead>
+          <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-[11px]/4 font-medium tracking-wider text-zinc-600 uppercase">
+            <th scope="col" class="px-4 py-2.5 font-medium">Item</th>
+            <th scope="col" class="px-4 py-2.5 text-right font-medium">Quantity</th>
+            <th scope="col" class="px-4 py-2.5 text-right font-medium">Rate</th>
+            <th scope="col" class="px-4 py-2.5 text-right font-medium">GST</th>
+            <th scope="col" class="px-4 py-2.5 text-right font-medium">Taxable value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line, line_totals in lines %}
+            <tr class="border-b border-zinc-100">
+              <td class="px-4 py-2.5">
+                <span class="block">{{ line.item.name }}</span>
+                <span class="block text-[12px]/4 tabular-nums text-zinc-500">{{ line.item.code }}</span>
+              </td>
+              <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line.quantity|plain }} {{ line.unit }}</td>
+              <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line.rate|rupees }}</td>
+              <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line.get_gst_rate_display }}</td>
+              <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ line_totals.taxable_value|rupees }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="bg-zinc-50">
+          <tr class="border-t border-zinc-200">
+            <th scope="row" colspan="4" class="px-4 py-2 text-left text-[12px]/4 font-medium text-zinc-600">Taxable value</th>
+            <td class="px-4 py-2 text-right font-medium tabular-nums whitespace-nowrap">{{ totals.taxable_value|rupees }}</td>
+          </tr>
+          {% if tax == "none" %}
+            <tr>
+              <th scope="row" colspan="4" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">No tax, from an unregistered Supplier</th>
+              <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">{{ totals.tax|rupees }}</td>
+            </tr>
+          {% elif tax == "cgst_sgst" %}
+            <tr>
+              <th scope="row" colspan="4" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">CGST</th>
+              <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">{{ totals.cgst|rupees }}</td>
+            </tr>
+            <tr>
+              <th scope="row" colspan="4" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">SGST</th>
+              <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">{{ totals.sgst|rupees }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <th scope="row" colspan="4" class="px-4 py-2 text-right text-[12px]/4 font-medium text-zinc-600">IGST</th>
+              <td class="px-4 py-2 text-right tabular-nums whitespace-nowrap">{{ totals.igst|rupees }}</td>
+            </tr>
+          {% endif %}
+          <tr>
+            <th scope="row" colspan="4" class="px-4 pt-1 pb-2.5 text-right text-[13px]/5 font-semibold">Grand total</th>
+            <td class="px-4 pt-1 pb-2.5 text-right text-[14px]/5 font-semibold tabular-nums whitespace-nowrap">{{ totals.grand_total|rupees }}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="divide-y divide-zinc-100 md:hidden">
+        {% for line, line_totals in lines %}
+          <div class="px-4 py-3">
+            <div class="flex items-baseline justify-between gap-3">
+              <span class="text-[13px]/5 font-medium">{{ line.item.name }}</span>
+              <span class="shrink-0 text-[13px]/5 tabular-nums">{{ line_totals.taxable_value|rupees }}</span>
+            </div>
+            <p class="mt-0.5 text-[12px]/4 tabular-nums text-zinc-500">
+              {{ line.item.code }} · {{ line.quantity|plain }} {{ line.unit }} at {{ line.rate|rupees }} · GST {{ line.get_gst_rate_display }}
+            </p>
+          </div>
+        {% endfor %}
+      </div>
+      <dl class="space-y-1 border-t border-zinc-200 bg-zinc-50 px-4 py-3 md:hidden">
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-[12px]/4 text-zinc-600">Taxable value</dt>
+          <dd class="text-[13px]/5 font-medium tabular-nums">{{ totals.taxable_value|rupees }}</dd>
+        </div>
+        {% if tax == "none" %}
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-[12px]/4 text-zinc-600">No tax, from an unregistered Supplier</dt>
+            <dd class="text-[13px]/5 tabular-nums">{{ totals.tax|rupees }}</dd>
+          </div>
+        {% elif tax == "cgst_sgst" %}
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-[12px]/4 text-zinc-600">CGST</dt>
+            <dd class="text-[13px]/5 tabular-nums">{{ totals.cgst|rupees }}</dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-[12px]/4 text-zinc-600">SGST</dt>
+            <dd class="text-[13px]/5 tabular-nums">{{ totals.sgst|rupees }}</dd>
+          </div>
+        {% else %}
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-[12px]/4 text-zinc-600">IGST</dt>
+            <dd class="text-[13px]/5 tabular-nums">{{ totals.igst|rupees }}</dd>
+          </div>
+        {% endif %}
+        <div class="flex items-baseline justify-between gap-3">
+          <dt class="text-[13px]/5 font-semibold">Grand total</dt>
+          <dd class="text-[14px]/5 font-semibold tabular-nums">{{ totals.grand_total|rupees }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div data-kui="table/totals" class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+      <div class="border-b border-zinc-200 px-4 py-3">
+        <h2 class="text-[14px]/5 font-semibold">Tax by GST rate</h2>
+        <p class="mt-0.5 text-[12px]/4 text-zinc-500">To check against the tax summary printed on the bill.</p>
+      </div>
+
+      <table class="hidden w-full text-[13px]/5 md:table">
+        <thead>
+          <tr class="border-b border-zinc-200 bg-zinc-50 text-left text-[11px]/4 font-medium tracking-wider text-zinc-600 uppercase">
+            <th scope="col" class="px-4 py-2.5 font-medium">GST rate</th>
+            <th scope="col" class="px-4 py-2.5 text-right font-medium">Taxable value</th>
+            {% if tax == "cgst_sgst" %}
+              <th scope="col" class="px-4 py-2.5 text-right font-medium">CGST</th>
+              <th scope="col" class="px-4 py-2.5 text-right font-medium">SGST</th>
+            {% elif tax == "igst" %}
+              <th scope="col" class="px-4 py-2.5 text-right font-medium">IGST</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for group in totals.by_rate %}
+            <tr class="border-b border-zinc-100 last:border-0">
+              <td class="px-4 py-2.5 tabular-nums">{{ group.gst_rate|plain }}%</td>
+              <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ group.taxable_value|rupees }}</td>
+              {% if tax == "cgst_sgst" %}
+                <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ group.cgst|rupees }}</td>
+                <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ group.sgst|rupees }}</td>
+              {% elif tax == "igst" %}
+                <td class="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">{{ group.igst|rupees }}</td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="divide-y divide-zinc-100 md:hidden">
+        {% for group in totals.by_rate %}
+          <div class="px-4 py-3">
+            <div class="flex items-baseline justify-between gap-3">
+              <span class="text-[13px]/5 font-medium tabular-nums">GST {{ group.gst_rate|plain }}%</span>
+              <span class="shrink-0 text-[13px]/5 tabular-nums">{{ group.taxable_value|rupees }}</span>
+            </div>
+            {% if tax != "none" %}
+              <p class="mt-0.5 text-[12px]/4 tabular-nums text-zinc-500">
+                {% if tax == "cgst_sgst" %}CGST {{ group.cgst|rupees }} · SGST {{ group.sgst|rupees }}{% else %}IGST {{ group.igst|rupees }}{% endif %}
+              </p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
