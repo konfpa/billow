@@ -47,8 +47,8 @@
   <div class="mt-3 space-y-4">
 
     {% comment %}
-      Not overflow-hidden like the cards below it: the Brand list opens past
-      this card's bottom edge and would be cut off.
+      Not overflow-hidden like the cards below it: the Brand and Category
+      lists open past this card's bottom edge and would be cut off.
     {% endcomment %}
     <div class="rounded-xl border border-zinc-300 bg-white">
       <div class="border-b border-zinc-200 px-5 py-3.5">
@@ -59,7 +59,8 @@
           {% include "forms/field.html" with field=form.name field_class="sm:col-span-2" %}
           {% include "forms/field.html" with field=form.kind %}
           {% include "forms/field.html" with field=form.code %}
-          {% include "catalogue/brand_picker.html" with field=form.brand %}
+          {% include "catalogue/picker.html" with field=form.brand fresh=form.brand_new options=form.brand_options options_id="brand-options" can_create=form.can_create_brand kind="brand" noun="Brand" plural="Brands" nested=False %}
+          {% include "catalogue/picker.html" with field=form.category fresh=form.category_new options=form.category_options options_id="category-options" can_create=form.can_create_category kind="category" noun="Category" plural="Categories" nested=True %}
         </div>
       </div>
     </div>

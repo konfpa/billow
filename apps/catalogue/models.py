@@ -1,10 +1,11 @@
+import re
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import IntegrityError, models, transaction
-from django.db.models.functions import Cast, Lower, Substr
+from django.db.models.functions import Cast, Coalesce, Lower, Substr
 from simple_history.models import HistoricalRecords
 
 from apps.tax.hsn_sac import validate_hsn, validate_sac
@@ -16,6 +17,11 @@ CODE_ATTEMPTS = 3
 
 QUANTITY_STEP = Decimal("0.001")
 PRICE_STEP = Decimal("0.01")
+
+CATEGORY_LEVELS = 2
+# Typed between a parent and a child, so never part of a name. The picker in
+# static/js/app.js splits on the same two.
+PATH_SEPARATORS = "›>"
 
 
 @dataclass(frozen=True)
@@ -56,6 +62,122 @@ class Brand(models.Model):
         )
         if holder is not None:
             raise ValidationError({"name": f"{holder.name} is already a Brand."})
+
+
+class CategoryQuerySet(models.QuerySet):
+    def by_path(self) -> CategoryQuerySet:
+        """Each top-level Category by name, followed by those under it."""
+        return self.select_related("parent").order_by(
+            Lower(Coalesce("parent__name", "name")),
+            models.F("parent").asc(nulls_first=True),
+            Lower("name"),
+        )
+
+
+class Category(models.Model):
+    """Where an Item sits in the catalogue, such as Fittings › Elbow. See CONTEXT.md.
+
+    At most two levels deep: a Category is either top-level or under one.
+    """
+
+    name = models.CharField(max_length=255)
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="children",
+    )
+
+    objects = CategoryQuerySet.as_manager()
+
+    class Meta:
+        ordering = ("name",)
+        verbose_name_plural = "categories"
+        constraints = [
+            # Top-level names clash too, which NULLs, being distinct, would
+            # otherwise let through.
+            models.UniqueConstraint(
+                Lower("name"),
+                "parent",
+                name="one_category_per_name_per_parent",
+                nulls_distinct=False,
+                violation_error_message="This is already a Category.",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.parent} › {self.name}" if self.parent else self.name
+
+    @classmethod
+    def from_path(cls, path: str) -> Category:
+        """An unsaved Category typed as "Fittings › Tee", or "Fittings > Tee".
+
+        Its parent is the top-level Category of that name on file, or else a
+        new, unsaved one.
+        """
+        names = [
+            name.strip()
+            for name in re.split(f"[{PATH_SEPARATORS}]", path)
+            if name.strip()
+        ]
+        if len(names) > CATEGORY_LEVELS:
+            msg = "Categories go only two levels deep, such as Fittings › Elbow."
+            raise ValidationError(msg)
+
+        *above, name = names
+        parent = None
+        if above:
+            parent = cls.objects.filter(parent=None, name__iexact=above[0]).first()
+        if above and parent is None:
+            # Typed under a Category that is itself under another, which a
+            # new top-level namesake would only quietly stand in for.
+            child = cls.objects.filter(name__iexact=above[0]).first()
+            if child is not None:
+                raise ValidationError(child.too_deep_message())
+            parent = cls(name=above[0])
+        return cls(name=name, parent=parent)
+
+    def too_deep_message(self) -> str:
+        return (
+            f"{self.name} is already under {self.parent}, "
+            "and Categories go only two levels deep."
+        )
+
+    def clean(self) -> None:
+        super().clean()
+        parent = self.parent
+
+        if any(separator in self.name for separator in PATH_SEPARATORS):
+            raise ValidationError(
+                {
+                    "name": "A name cannot hold › or >, which separate a Category "
+                    "from the one above it."
+                }
+            )
+
+        if parent is not None and parent.pk is not None:
+            if parent.pk == self.pk:
+                raise ValidationError({"parent": "A Category cannot go under itself."})
+            if parent.parent_id is not None:
+                raise ValidationError({"parent": parent.too_deep_message()})
+            if self.pk and self.children.exists():
+                raise ValidationError(
+                    {
+                        "parent": f"{self.name} has Categories under it, "
+                        "and Categories go only two levels deep."
+                    }
+                )
+
+        # A parent not yet saved has nothing under it to clash with.
+        if parent is None or parent.pk is not None:
+            holder = (
+                Category.objects.filter(parent=parent, name__iexact=self.name)
+                .exclude(pk=self.pk)
+                .first()
+            )
+            if holder is not None:
+                raise ValidationError({"name": f"{holder} is already a Category."})
 
 
 class Item(models.Model):
@@ -109,6 +231,13 @@ class Item(models.Model):
 
     brand = models.ForeignKey(
         Brand,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="items",
+    )
+    category = models.ForeignKey(
+        Category,
         on_delete=models.PROTECT,
         null=True,
         blank=True,

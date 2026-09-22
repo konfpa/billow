@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
-from apps.catalogue.models import Brand, Item, ItemUnit
+from apps.catalogue.models import Brand, Category, Item, ItemUnit
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -39,14 +39,23 @@ class ItemAdmin(ReadOnlyAdmin, SimpleHistoryAdmin):
         "name",
         "kind",
         "brand",
+        "category",
         "hsn_sac",
         "gst_rate",
         "created_at",
         "updated_at",
     )
     readonly_fields = fields
-    list_display = ("code", "name", "kind", "brand", "hsn_sac", "gst_rate")
-    list_filter = ("brand",)
+    list_display = (
+        "code",
+        "name",
+        "kind",
+        "brand",
+        "category",
+        "hsn_sac",
+        "gst_rate",
+    )
+    list_filter = ("brand", "category")
     inlines = (ItemUnitInline,)
 
 
@@ -55,3 +64,12 @@ class BrandAdmin(ReadOnlyAdmin, admin.ModelAdmin):
     fields = ("name",)
     readonly_fields = fields
     search_fields = ("name",)
+
+
+@admin.register(Category)
+class CategoryAdmin(ReadOnlyAdmin, admin.ModelAdmin):
+    fields = ("name", "parent")
+    readonly_fields = fields
+    list_display = ("__str__", "parent")
+    list_select_related = ("parent",)
+    search_fields = ("name", "parent__name")

@@ -33,6 +33,8 @@ extend-exclude = ["**/migrations/*.py"]
 
 [tool.ruff.lint]
 select = ["ALL"]
+# The separator a Category path is written with, as in Fittings › Elbow.
+allowed-confusables = ["›"]
 ignore = [
     "COM812", # conflicts with the formatter
     "CPY001", # licence lives in LICENSE, not in every file header

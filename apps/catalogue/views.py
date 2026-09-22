@@ -2,14 +2,15 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from django.contrib import messages
-from django.db.models import Count
+from django.db.models import Count, Model, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.catalogue.forms import BrandForm, ItemForm
-from apps.catalogue.models import Brand, Item
+from apps.catalogue.forms import BrandForm, CategoryForm, ItemForm
+from apps.catalogue.models import Brand, Category, Item
 from apps.core.access import requires
 
 if TYPE_CHECKING:
+    from django.db.models import QuerySet
     from django.http import HttpRequest, HttpResponse
 
 
@@ -20,20 +21,36 @@ def warn_above_mrp(request: HttpRequest, item: Item) -> None:
         )
 
 
+def on_file[M: Model](choices: QuerySet[M], raw: str) -> M | None:
+    """The choice `raw` names, or None for one not on file or not a number.
+
+    A filter link somebody kept filters nothing rather than failing: it is
+    not a mistake to report.
+    """
+    return choices.filter(pk=raw).first() if raw.isdigit() else None
+
+
 @requires("catalogue.view_item")
 def item_directory(request: HttpRequest) -> HttpResponse:
     """Every Item on file, by name, with its code, stock unit, price and GST rate.
 
-    Narrowed, when asked, to the Items of one Brand.
+    Narrowed, when asked, to the Items of one Brand, one Category, or both.
+    A top-level Category takes in the Items of those under it.
     """
-    everything = Item.objects.select_related("brand").prefetch_related("units")
+    everything = Item.objects.select_related(
+        "brand", "category__parent"
+    ).prefetch_related("units")
     brands = Brand.objects.all()
+    categories = Category.objects.by_path()
 
-    # A Brand that is not on file, or not a number, filters nothing rather
-    # than failing: it is a link somebody kept, not a mistake to report.
-    raw = request.GET.get("brand", "")
-    brand = brands.filter(pk=raw).first() if raw.isdigit() else None
-    items = everything.filter(brand=brand) if brand else everything
+    brand = on_file(brands, request.GET.get("brand", ""))
+    category = on_file(categories, request.GET.get("category", ""))
+
+    items = everything
+    if brand:
+        items = items.filter(brand=brand)
+    if category:
+        items = items.filter(Q(category=category) | Q(category__parent=category))
 
     return render(
         request,
@@ -43,6 +60,8 @@ def item_directory(request: HttpRequest) -> HttpResponse:
             "total": everything.count(),
             "brands": brands,
             "brand": brand,
+            "categories": categories,
+            "category": category,
         },
     )
 
@@ -71,7 +90,10 @@ def record_item(request: HttpRequest) -> HttpResponse:
 def item_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """What is on file about an Item, as an invoice line will copy it."""
     item = get_object_or_404(
-        Item.objects.select_related("brand").prefetch_related("units"), pk=pk
+        Item.objects.select_related("brand", "category__parent").prefetch_related(
+            "units"
+        ),
+        pk=pk,
     )
     other_units = [
         (unit, item.quote(Decimal(1), unit))
@@ -146,3 +168,53 @@ def edit_brand(request: HttpRequest, pk: int) -> HttpResponse:
     form.save()
     messages.success(request, f"{form.instance.name} is saved.")
     return redirect("brand_directory")
+
+
+@requires("catalogue.view_category")
+def category_directory(request: HttpRequest) -> HttpResponse:
+    """Every Category on file, each under its parent, with how many Items it holds.
+
+    A top-level Category's count takes in the Items of those under it, as
+    filtering the Item directory by it does.
+    """
+    categories = list(Category.objects.by_path().annotate(item_count=Count("items")))
+    by_pk = {category.pk: category for category in categories}
+    for category in categories:
+        if category.parent_id is not None:
+            by_pk[category.parent_id].item_count += category.item_count
+    return render(
+        request, "catalogue/categories/directory.html", {"categories": categories}
+    )
+
+
+@requires("catalogue.add_category")
+def record_category(request: HttpRequest) -> HttpResponse:
+    """Put a Category on file before any Item sits in it."""
+    form = CategoryForm(request.POST or None)
+
+    if request.method != "POST" or not form.is_valid():
+        return render(request, "catalogue/categories/form.html", {"form": form})
+
+    category = form.save()
+    messages.success(request, f"{category} is saved.")
+    return redirect("category_directory")
+
+
+@requires("catalogue.change_category")
+def edit_category(request: HttpRequest, pk: int) -> HttpResponse:
+    """Rename a Category, or move it under another, for every Item in it."""
+    category = get_object_or_404(Category.objects.select_related("parent"), pk=pk)
+    # Bound to its own instance, so the page shows the Category on file above
+    # a refused change.
+    form = CategoryForm(request.POST or None, instance=Category.objects.get(pk=pk))
+
+    if request.method != "POST" or not form.is_valid():
+        return render(
+            request,
+            "catalogue/categories/form.html",
+            {"form": form, "category": category},
+        )
+
+    form.save()
+    messages.success(request, f"{form.instance} is saved.")
+    return redirect("category_directory")
