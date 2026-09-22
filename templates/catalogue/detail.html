@@ -54,6 +54,10 @@
           <dt class="text-zinc-600">Kind</dt>
           <dd class="mt-0.5 text-[14px]/5 font-medium">{{ item.get_kind_display }}</dd>
         </div>
+        <div>
+          <dt class="text-zinc-600">Brand</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium">{% if item.brand %}{{ item.brand.name }}{% else %}<span class="font-normal text-zinc-600">No Brand</span>{% endif %}</dd>
+        </div>
       </dl>
     </div>
 

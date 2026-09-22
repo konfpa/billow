@@ -402,6 +402,205 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
+  // konspec combobox/create over the Item form's Brand. It posts the id of a
+  // Brand on file as `brand`, or a name to create as `brand_new`; the server
+  // decides whether a new one may be made. Emptying the box takes the Brand
+  // away, since a Brand is optional.
+  Alpine.data("brandPicker", () => ({
+    open: false,
+    typed: false,
+    q: "",
+    sel: "",
+    fresh: "",
+    ai: 0,
+    options: [],
+    canCreate: false,
+
+    init() {
+      this.options = JSON.parse(document.getElementById("brand-options").textContent);
+      this.canCreate = this.$el.dataset.canCreate === "true";
+      this.sel = this.$el.dataset.selected;
+      this.fresh = this.$el.dataset.fresh;
+      if (this.fresh) this.sel = "";
+      this.q = this.label;
+    },
+
+    get label() {
+      const chosen = this.options.find((o) => String(o.id) === this.sel);
+      return chosen ? chosen.name : this.fresh;
+    },
+
+    get term() {
+      return this.q.trim();
+    },
+
+    get found() {
+      if (!this.typed) return this.options;
+      const s = this.term.toLowerCase();
+      return this.options.filter((o) => o.name.toLowerCase().includes(s));
+    },
+
+    // Offered only for a name no Brand has in any capitals, as the server
+    // would refuse it.
+    get creating() {
+      const s = this.term.toLowerCase();
+      return (
+        this.canCreate &&
+        this.typed &&
+        s.length > 0 &&
+        !this.options.some((o) => o.name.toLowerCase() === s)
+      );
+    },
+
+    get list() {
+      return this.creating
+        ? [...this.found, { id: "__new", name: this.term, isNew: true }]
+        : this.found;
+    },
+
+    get nothing() {
+      return this.list.length === 0;
+    },
+
+    get count() {
+      if (!this.open) return "";
+      return this.found.length === 1 ? "1 Brand matches" : `${this.found.length} Brands match`;
+    },
+
+    get help() {
+      return this.fresh
+        ? `New Brand — ${this.fresh} is created when the Item is saved.`
+        : "The maker it is sold under.";
+    },
+
+    get activeId() {
+      return this.open && this.list[this.ai] ? this.rowId(this.list[this.ai]) : null;
+    },
+
+    rowId(o) {
+      return `brand-option-${o.id}`;
+    },
+
+    rowLabel(o) {
+      return o.isNew ? `Add new Brand: “${o.name}”` : o.name;
+    },
+
+    rowClass(o, i) {
+      return [i === this.ai ? "bg-zinc-100" : "", o.isNew ? "border-t border-zinc-100" : ""];
+    },
+
+    isSelected(o) {
+      return !o.isNew && String(o.id) === this.sel;
+    },
+
+    scroll() {
+      this.$nextTick(() => {
+        const el = document.getElementById(this.activeId);
+        if (el) el.scrollIntoView({ block: "nearest" });
+      });
+    },
+
+    show() {
+      if (this.open) return;
+      this.open = true;
+      this.typed = false;
+      this.ai = Math.max(0, this.list.findIndex((o) => this.isSelected(o)));
+      this.scroll();
+    },
+
+    close() {
+      if (this.typed && this.term === "") {
+        this.sel = "";
+        this.fresh = "";
+      }
+      this.open = false;
+      this.typed = false;
+      this.q = this.label;
+    },
+
+    escape(event) {
+      if (!this.open) return;
+      event.stopPropagation();
+      this.close();
+      this.$refs.q.focus();
+    },
+
+    typing() {
+      this.typed = true;
+      this.open = true;
+      this.ai = 0;
+    },
+
+    move(n) {
+      if (!this.open) {
+        this.show();
+        return;
+      }
+      if (!this.list.length) return;
+      this.ai = Math.min(this.list.length - 1, Math.max(0, this.ai + n));
+      this.scroll();
+    },
+
+    down() {
+      this.move(1);
+    },
+
+    up() {
+      this.move(-1);
+    },
+
+    edge(end, event) {
+      if (!this.open) return;
+      event.preventDefault();
+      if (!this.list.length) return;
+      this.ai = end ? this.list.length - 1 : 0;
+      this.scroll();
+    },
+
+    home(event) {
+      this.edge(false, event);
+    },
+
+    end(event) {
+      this.edge(true, event);
+    },
+
+    hover(i) {
+      this.ai = i;
+    },
+
+    pickRow(o) {
+      if (o.isNew) {
+        this.sel = "";
+        this.fresh = o.name;
+      } else {
+        this.sel = String(o.id);
+        this.fresh = "";
+      }
+      this.open = false;
+      this.typed = false;
+      this.q = this.label;
+      this.$refs.q.focus();
+      // The hidden inputs change without an input event, and formPage's
+      // unsaved-changes guard has to hear of it.
+      this.$refs.q.dispatchEvent(new Event("change", { bubbles: true }));
+    },
+
+    enter(event) {
+      if (!this.open) return;
+      event.preventDefault();
+      const o = this.list[this.ai];
+      if (o) this.pickRow(o);
+    },
+  }));
+
+  // konspec select/filter applies on change, with no Apply button.
+  Alpine.data("filterSelect", () => ({
+    apply() {
+      this.$root.requestSubmit();
+    },
+  }));
+
   Alpine.data("dismissible", () => ({
     show: true,
 
