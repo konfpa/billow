@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models.functions import ExtractMonth, ExtractYear
+from django.db.models.lookups import LessThan
 from simple_history.models import HistoricalRecords
 
 from apps.business.models import Business
@@ -14,6 +16,7 @@ from apps.tax.rates import GSTRate
 from apps.tax.units import UNITS
 
 if TYPE_CHECKING:
+    import datetime
     from decimal import Decimal
 
 
@@ -23,6 +26,30 @@ def validate_positive(quantity: Decimal) -> None:
     if quantity <= 0:
         msg = "A quantity is more than zero."
         raise ValidationError(msg)
+
+
+APRIL = 4
+
+
+def financial_year(date: str | models.Expression) -> models.Expression:
+    """The year the April-to-March financial year of a date starts in."""
+    return ExtractYear(date) - models.Case(
+        models.When(LessThan(ExtractMonth(date), APRIL), then=1), default=0
+    )
+
+
+class PurchaseQuerySet(models.QuerySet):
+    def same_bill(
+        self, supplier: Supplier, bill_number: str, bill_date: datetime.date
+    ) -> PurchaseQuerySet:
+        """Purchases the Supplier billed under this number in that financial year."""
+        return self.alias(financial_year=financial_year("bill_date")).filter(
+            supplier=supplier,
+            bill_number=bill_number,
+            financial_year=financial_year(
+                models.Value(bill_date, output_field=models.DateField())
+            ),
+        )
 
 
 class Purchase(models.Model):
@@ -50,8 +77,19 @@ class Purchase(models.Model):
 
     history = HistoricalRecords()
 
+    objects = PurchaseQuerySet.as_manager()
+
     class Meta:
         ordering = ("-received_date", "-pk")
+        constraints = [
+            models.UniqueConstraint(
+                "supplier",
+                "bill_number",
+                financial_year("bill_date"),
+                name="one_bill_number_per_supplier_per_financial_year",
+                violation_error_message="This bill is already on file.",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.bill_number} from {self.supplier}"

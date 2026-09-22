@@ -3,6 +3,7 @@ import json
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils.dateformat import format as date_format
 
 from apps.business.models import Business
 from apps.catalogue.models import Item, ItemQuerySet, ItemUnit
@@ -144,6 +145,16 @@ class PurchaseForm(StyledForm):
         cleaned = super().clean()
         if not cleaned.get("received_date"):
             cleaned["received_date"] = cleaned.get("bill_date")
+
+        bill = [cleaned.get(name) for name in ("supplier", "bill_number", "bill_date")]
+        if all(bill):
+            on_file = Purchase.objects.same_bill(*bill).exclude(pk=self.instance.pk)
+            if existing := on_file.first():
+                self.add_error(
+                    "bill_number",
+                    f"Bill {existing} dated {date_format(existing.bill_date, 'j M Y')} "
+                    "is already on file.",
+                )
         return cleaned
 
     @property
