@@ -90,12 +90,35 @@ def record_item(request: HttpRequest) -> HttpResponse:
         form = ItemForm(user=request.user)
         return render(request, "catalogue/record.html", {"form": form})
 
+    return save_new_item(request)
+
+
+@requires("catalogue.add_item")
+def duplicate_item(request: HttpRequest, pk: int) -> HttpResponse:
+    """Record a new Item starting from one on file, such as another finish of a tap.
+
+    Nothing is saved until the form is submitted, and then only the new Item.
+    """
+    source = get_object_or_404(Item.objects.prefetch_related("units"), pk=pk)
+
+    if request.method != "POST":
+        form = ItemForm(user=request.user, copying=source)
+        return render(
+            request, "catalogue/record.html", {"form": form, "source": source}
+        )
+
+    return save_new_item(request, source)
+
+
+def save_new_item(request: HttpRequest, source: Item | None = None) -> HttpResponse:
     form = ItemForm(request.POST, user=request.user)
 
     if not form.is_valid():
         # Rendered rather than redirected, so that everything already typed is
         # still on the page next to what was wrong with it.
-        return render(request, "catalogue/record.html", {"form": form})
+        return render(
+            request, "catalogue/record.html", {"form": form, "source": source}
+        )
 
     item = form.save()
     messages.success(request, f"{item.name} is saved.")
