@@ -1,0 +1,19 @@
+{% comment %}
+  konspec empty-state/no-results, without its own search toolbar: the search
+  is in the page's band. No create here, as the Purchase may well exist.
+{% endcomment %}
+<div data-kui="empty-state/no-results" class="rounded-xl border border-zinc-300 bg-white">
+  <div class="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
+    <span class="flex size-10 items-center justify-center rounded-full bg-zinc-200 ring-1 ring-inset ring-zinc-300">
+      <i data-lucide="search-x" class="size-5 text-zinc-600"></i>
+    </span>
+    <h2 class="mt-3 text-[16px]/6 font-semibold">No Purchase matches “{{ query }}”{% if supplier %} from {{ supplier.name }}{% endif %}</h2>
+    <p class="mt-1 max-w-sm text-[13px]/5 text-zinc-600">
+      No Purchase{% if supplier %} from {{ supplier.name }}{% endif %}{% if billed %} {{ billed }}{% endif %} has every word of that in its bill number or Supplier name.{% if supplier or billed %} It may be <a href="{% url 'purchase_directory' %}{% querystring supplier=None billed_from=None billed_to=None %}" class="font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">among the other Purchases</a>.{% endif %}
+    </p>
+    <a href="{% url 'purchase_directory' %}{% querystring q=None %}"
+       class="mt-4 inline-flex h-9 items-center rounded-lg border border-zinc-200 bg-white px-4 text-[13px]/5 font-medium hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+      Clear the search
+    </a>
+  </div>
+</div>

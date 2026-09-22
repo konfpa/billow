@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ui %}
 
 {% block title %}{{ supplier.name }} · billow{% endblock %}
 
@@ -155,6 +156,67 @@
         </div>
       </dl>
     </div>
+    {% if purchases is not None %}
+      {% if purchases %}
+        {% comment %}
+          konspec card/table. The header's action is a link into the Purchases
+          directory filtered to this Supplier, where they can be searched.
+        {% endcomment %}
+        <div data-kui="card/table" class="overflow-hidden rounded-xl border border-zinc-300 bg-white">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-5 py-3.5">
+            <div class="min-w-0">
+              <h2 id="supplier-purchases-h" class="text-[14px]/5 font-semibold">Purchases</h2>
+              <p class="text-[12px]/4 tabular-nums text-zinc-600">{{ purchases|length }} recorded, newest received first</p>
+            </div>
+            <a href="{% url 'purchase_directory' %}?supplier={{ supplier.pk }}" class="inline-flex h-8 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-[13px]/5 font-medium hover:bg-zinc-100 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+              <i data-lucide="search" class="size-4 text-zinc-600"></i>Search Purchases
+            </a>
+          </div>
+
+          <table class="w-full table-fixed text-left text-[13px]/5">
+            <thead class="border-b border-zinc-200 bg-zinc-50 text-[11px]/4 tracking-wider text-zinc-600 uppercase">
+              <tr>
+                <th scope="col" class="px-5 py-2 font-medium">Bill number</th>
+                <th scope="col" class="hidden w-32 px-5 py-2 font-medium sm:table-cell">Bill date</th>
+                <th scope="col" class="hidden w-32 px-5 py-2 font-medium sm:table-cell">Received</th>
+                <th scope="col" class="w-36 px-5 py-2 text-right font-medium">Grand total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for purchase, totals in purchases %}
+                <tr class="border-b border-zinc-100 last:border-0">
+                  <td class="truncate px-5 py-2.5 tabular-nums">
+                    <a href="{% url 'purchase_detail' purchase.pk %}" class="font-medium text-zinc-900 underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ purchase.bill_number }}</a>
+                  </td>
+                  <td class="hidden px-5 py-2.5 tabular-nums sm:table-cell">{{ purchase.bill_date|date:"j M Y" }}</td>
+                  <td class="hidden px-5 py-2.5 tabular-nums sm:table-cell">{{ purchase.received_date|date:"j M Y" }}</td>
+                  <td class="px-5 py-2.5 text-right tabular-nums">{{ totals.grand_total|rupees }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {% comment %}
+          konspec card/empty, without its create button: the page's one
+          primary is Edit, and a Purchase is recorded from the Purchases page.
+        {% endcomment %}
+        <div data-kui="card/empty" class="rounded-xl border border-zinc-300 bg-white">
+          <div class="border-b border-zinc-200 px-5 py-3.5">
+            <h2 id="supplier-purchases-h" class="text-[14px]/5 font-semibold">Purchases</h2>
+          </div>
+          <div class="px-5 py-10 text-center">
+            <span class="mx-auto flex size-10 items-center justify-center rounded-full bg-zinc-200 ring-1 ring-inset ring-zinc-300">
+              <i data-lucide="receipt" class="size-5 text-zinc-600"></i>
+            </span>
+            <p class="mt-3 text-[14px]/5 font-medium">No Purchases from {{ supplier.name }} yet</p>
+            <p class="mx-auto mt-1 max-w-[34ch] text-[13px]/5 text-zinc-600">
+              Each bill of theirs recorded as a Purchase is listed here, newest received first.
+            </p>
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
   </div>
 </div>
 {% endblock %}

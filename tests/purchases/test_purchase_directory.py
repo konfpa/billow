@@ -1,35 +1,12 @@
 import datetime
-from decimal import Decimal
 
 import pytest
 from django.urls import reverse
 
-from apps.purchases.models import Purchase, PurchaseLine
 from tests.conftest import role
+from tests.purchases.conftest import bill
 
 DIRECTORY = reverse("purchase_directory")
-
-
-def bill(supplier, item, number, received, rate="100"):
-    purchase = Purchase.objects.create(
-        supplier=supplier,
-        bill_number=number,
-        bill_date=received,
-        received_date=received,
-        billed_total=Decimal(rate) * Decimal("1.18"),
-    )
-    purchase.copy_supplier()
-    purchase.save()
-    PurchaseLine.objects.create(
-        purchase=purchase,
-        item=item,
-        unit="NOS",
-        stock_units_in_one=1,
-        quantity=1,
-        rate=rate,
-        gst_rate="18.00",
-    )
-    return purchase
 
 
 @pytest.mark.django_db

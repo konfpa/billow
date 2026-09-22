@@ -41,6 +41,19 @@ def financial_year(date: str | models.Expression) -> models.Expression:
 
 
 class PurchaseQuerySet(models.QuerySet):
+    def matching(self, query: str) -> PurchaseQuerySet:
+        """Those an Operator could mean by fragments of a bill number or Supplier name.
+
+        Every word typed has to match, in any order, as in the catalogue search.
+        """
+        purchases = self
+        for word in query.split():
+            purchases = purchases.filter(
+                models.Q(bill_number__icontains=word)
+                | models.Q(supplier__name__icontains=word)
+            )
+        return purchases
+
     def same_bill(
         self, supplier: Supplier, bill_number: str, bill_date: datetime.date
     ) -> PurchaseQuerySet:
