@@ -137,6 +137,19 @@ class Item(models.Model):
         price = (stock_price * unit.rate).quantize(PRICE_STEP, ROUND_HALF_UP)
         return Quote(stock_quantity, price, derived=True)
 
+    def above_mrp(self) -> list[tuple[ItemUnit, Decimal]]:
+        """Each unit whose price, its own or worked out, is above its MRP.
+
+        Warned about rather than refused, so a mistake is noticed without
+        blocking the save.
+        """
+        above = []
+        for unit in self.units.all():
+            price = self.quote(Decimal(1), unit).unit_price
+            if unit.mrp is not None and price is not None and price > unit.mrp:
+                above.append((unit, price))
+        return above
+
     def clean(self) -> None:
         super().clean()
 
@@ -216,6 +229,14 @@ class ItemUnit(models.Model):
         blank=True,
         validators=[MinValueValidator(0)],
         help_text="Including GST.",
+    )
+    mrp = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="MRP",
     )
 
     history = HistoricalRecords()

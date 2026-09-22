@@ -28,7 +28,7 @@ class ReadOnlyAdmin:
 
 class ItemUnitInline(ReadOnlyAdmin, admin.TabularInline):
     model = ItemUnit
-    fields = ("code", "rate", "is_stock_unit", "selling_price")
+    fields = ("code", "rate", "is_stock_unit", "selling_price", "mrp")
     readonly_fields = fields
 
 

@@ -78,7 +78,7 @@
       <div class="border-b border-zinc-200 px-5 py-3.5">
         <h2 class="text-[16px]/6 font-semibold">Units and prices</h2>
       </div>
-      <dl class="grid gap-4 px-5 py-4 text-[13px]/5 sm:grid-cols-2">
+      <dl class="grid gap-4 px-5 py-4 text-[13px]/5 sm:grid-cols-3">
         <div>
           <dt class="text-zinc-600">Stock unit</dt>
           <dd class="mt-0.5 text-[14px]/5 font-medium">{{ unit.get_code_display }}</dd>
@@ -86,6 +86,10 @@
         <div>
           <dt class="text-zinc-600">Selling price, including GST</dt>
           <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if unit.selling_price is not None %}₹{{ unit.selling_price }} per {{ unit.code }}{% else %}No price{% endif %}</dd>
+        </div>
+        <div>
+          <dt class="text-zinc-600">MRP</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if unit.mrp is not None %}₹{{ unit.mrp }} per {{ unit.code }}{% else %}No MRP{% endif %}</dd>
         </div>
         {% for other, quote in other_units %}
         <div class="border-t border-zinc-100 pt-4">
@@ -98,6 +102,10 @@
             {% if quote.unit_price is None %}No price{% else %}₹{{ quote.unit_price }} per {{ other.code }}
             <span class="font-normal text-zinc-600">· {% if quote.derived %}worked out as ₹{{ unit.selling_price }} per {{ unit.code }} × {{ other.rate|plain }}{% else %}set for this unit{% endif %}</span>{% endif %}
           </dd>
+        </div>
+        <div class="sm:border-t sm:border-zinc-100 sm:pt-4">
+          <dt class="text-zinc-600">MRP</dt>
+          <dd class="mt-0.5 text-[14px]/5 font-medium tabular-nums">{% if other.mrp is not None %}₹{{ other.mrp }} per {{ other.code }}{% else %}No MRP{% endif %}</dd>
         </div>
         {% endfor %}
       </dl>

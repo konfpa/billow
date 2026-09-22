@@ -306,6 +306,26 @@ document.addEventListener("alpine:init", () => {
   // konspec form-page/line-items over a Django formset. A removed row is
   // marked and hidden rather than dropped, so a unit on file is deleted on
   // Save and a refused save can still show it.
+  // MRP is printed on packaged Goods. One already typed stays in view, so
+  // the refusal it causes can be answered by clearing it.
+  Alpine.data("goodsOnly", () => ({
+    service: false,
+    filled: false,
+
+    init() {
+      const kind = this.$el.closest("form").elements.kind;
+      const input = this.$el.querySelector("input");
+      this.service = kind.value === "service";
+      this.filled = input.value !== "";
+      kind.addEventListener("change", () => (this.service = kind.value === "service"));
+      input.addEventListener("input", () => (this.filled = input.value !== ""));
+    },
+
+    get applies() {
+      return !this.service || this.filled;
+    },
+  }));
+
   Alpine.data("unitRows", () => ({
     shown: 0,
     exactRates: {},

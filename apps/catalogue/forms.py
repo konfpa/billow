@@ -39,13 +39,14 @@ class ItemUnitForm(StyledForm):
 
     class Meta:
         model = ItemUnit
-        fields = ("code", "rate", "selling_price")
+        fields = ("code", "rate", "selling_price", "mrp")
         # "Rate" meant nothing to an Operator; what they know is that one
         # piece holds 20 ft.
         labels = {"rate": "Stock units in one", "selling_price": "Selling price"}
         widgets = {
             "rate": RateInput(attrs={"inputmode": "decimal"}),
             "selling_price": forms.TextInput(attrs={"inputmode": "decimal"}),
+            "mrp": forms.TextInput(attrs={"inputmode": "decimal"}),
         }
 
     def __init__(self, *args: object, **kwargs: object) -> None:
@@ -56,7 +57,7 @@ class ItemUnitForm(StyledForm):
         self.fields["rate"].initial = None
 
         self.fields["code"].widget.attrs["class"] = LINE_SELECT
-        for name in ("rate", "selling_price"):
+        for name in ("rate", "selling_price", "mrp"):
             self.fields[name].widget.attrs["class"] = LINE_CONTROL
 
     def clean(self) -> dict:
@@ -120,6 +121,13 @@ class ItemForm(StyledForm):
         min_value=0,
         help_text="Per stock unit, including GST.",
     )
+    mrp = forms.DecimalField(
+        label="MRP",
+        max_digits=12,
+        decimal_places=2,
+        min_value=0,
+        help_text="Per stock unit, as printed on the pack.",
+    )
 
     class Meta:
         model = Item
@@ -147,6 +155,7 @@ class ItemForm(StyledForm):
         if unit := self.instance.stock_unit if self.instance.pk else None:
             self.initial.setdefault("stock_unit", unit.code)
             self.initial.setdefault("selling_price", unit.selling_price)
+            self.initial.setdefault("mrp", unit.mrp)
 
         if self.instance.pk:
             self.fields["code"].help_text = "Leave blank to keep the code on file."
@@ -191,6 +200,12 @@ class ItemForm(StyledForm):
             ]
         return failed
 
+    def clean(self) -> dict:
+        cleaned = super().clean()
+        if cleaned.get("kind") == Item.Kind.SERVICE and cleaned.get("mrp") is not None:
+            self.add_error("mrp", "A Service is not packaged, so it has no MRP.")
+        return cleaned
+
     def clean_code(self) -> str:
         return self.cleaned_data["code"] or self.instance.code
 
@@ -200,11 +215,14 @@ class ItemForm(StyledForm):
         unit = item.stock_unit or ItemUnit(item=item, is_stock_unit=True)
 
         # Saved only when changed, so the unit's history holds real changes.
-        if not unit.pk or {"stock_unit", "selling_price"} & set(self.changed_data):
+        if not unit.pk or {"stock_unit", "selling_price", "mrp"} & set(
+            self.changed_data
+        ):
             # The stock unit changes freely while no stock movements exist; see
             # docs/adr/0011-stock-is-the-sum-of-movements.md.
             unit.code = self.cleaned_data["stock_unit"]
             unit.selling_price = self.cleaned_data["selling_price"]
+            unit.mrp = self.cleaned_data["mrp"]
             unit.save()
 
         self.units.save()

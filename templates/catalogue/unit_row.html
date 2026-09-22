@@ -6,7 +6,7 @@
   {{ unit_form.id }}
   <input type="hidden" name="{{ unit_form.DELETE.html_name }}" value="{% if unit_form.DELETE.value %}on{% endif %}" data-delete>
 
-  <div class="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_7rem_7rem_2.25rem] md:items-start md:gap-2 md:py-2">
+  <div class="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_7rem_7rem_7rem_2.25rem] md:items-start md:gap-2 md:py-2">
 
     {% with field=unit_form.code %}
     <div class="min-w-0">
@@ -31,6 +31,17 @@
     {% with field=unit_form.selling_price %}
     <div class="min-w-0">
       <label for="{{ field.id_for_label }}" class="mb-1 flex items-baseline gap-2 text-[12px]/4 text-zinc-600 md:sr-only">Selling price, including GST <span aria-hidden="true" class="text-zinc-500">Optional</span></label>
+      <div class="flex items-stretch rounded-lg border bg-white focus-within:outline-3 focus-within:outline-offset-2 {% if field.errors %}border-red-600 focus-within:outline-red-600/15{% else %}border-zinc-200 focus-within:border-zinc-700 focus-within:outline-zinc-700/15{% endif %}">
+        <span aria-hidden="true" class="flex items-center pl-2 text-[12px]/4 text-zinc-500">₹</span>
+        {{ field }}
+      </div>
+      <p id="{{ field.auto_id }}-msg" class="mt-1 text-[12px]/4 font-medium text-red-600 empty:hidden">{{ field.errors.0|default:"" }}</p>
+    </div>
+    {% endwith %}
+
+    {% with field=unit_form.mrp %}
+    <div class="min-w-0">
+      <label for="{{ field.id_for_label }}" class="mb-1 flex items-baseline gap-2 text-[12px]/4 text-zinc-600 md:sr-only">MRP <span aria-hidden="true" class="text-zinc-500">Optional</span></label>
       <div class="flex items-stretch rounded-lg border bg-white focus-within:outline-3 focus-within:outline-offset-2 {% if field.errors %}border-red-600 focus-within:outline-red-600/15{% else %}border-zinc-200 focus-within:border-zinc-700 focus-within:outline-zinc-700/15{% endif %}">
         <span aria-hidden="true" class="flex items-center pl-2 text-[12px]/4 text-zinc-500">₹</span>
         {{ field }}

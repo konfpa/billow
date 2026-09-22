@@ -12,6 +12,13 @@ if TYPE_CHECKING:
     from django.http import HttpRequest, HttpResponse
 
 
+def warn_above_mrp(request: HttpRequest, item: Item) -> None:
+    for unit, price in item.above_mrp():
+        messages.warning(
+            request, f"{unit.code} sells at ₹{price}, above its MRP of ₹{unit.mrp}."
+        )
+
+
 @requires("catalogue.view_item")
 def item_directory(request: HttpRequest) -> HttpResponse:
     """Every Item on file, by name, with its code, stock unit, price and GST rate."""
@@ -34,6 +41,7 @@ def record_item(request: HttpRequest) -> HttpResponse:
 
     item = form.save()
     messages.success(request, f"{item.name} is saved.")
+    warn_above_mrp(request, item)
     return redirect("item_detail", pk=item.pk)
 
 
@@ -74,4 +82,5 @@ def edit_item(request: HttpRequest, pk: int) -> HttpResponse:
 
     form.save()
     messages.success(request, f"{form.instance.name} is saved.")
+    warn_above_mrp(request, form.instance)
     return redirect("item_detail", pk=pk)
