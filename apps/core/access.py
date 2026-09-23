@@ -29,12 +29,12 @@ class MissingPermission(PermissionDenied):
 
 
 def requires(
-    permission: str,
+    permission: str, *alternatives: str
 ) -> Callable[[Callable[..., HttpResponse]], Callable[..., HttpResponse]]:
-    """Let a view through only for a User holding `permission`.
+    """Let a view through only for a User holding `permission` or an alternative.
 
-    The view is marked with what it declares, so the URLconf can be checked
-    for views that declare nothing.
+    A refusal names `permission`. The view is marked with what it declares, so
+    the URLconf can be checked for views that declare nothing.
     """
 
     def decorator(view: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
@@ -45,7 +45,9 @@ def requires(
             if not request.user.is_authenticated:
                 return redirect_to_login(request.get_full_path())
 
-            if not request.user.has_perm(permission):
+            if not any(
+                request.user.has_perm(held) for held in (permission, *alternatives)
+            ):
                 raise MissingPermission(permission)
 
             return view(request, *args, **kwargs)

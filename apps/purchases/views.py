@@ -3,12 +3,14 @@ from typing import TYPE_CHECKING
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.formats import date_format
+from django.views.decorators.http import require_POST
 
 from apps.business.models import Business
 from apps.core.access import requires
 from apps.core.filters import chosen, date_given
 from apps.core.pagination import paged
-from apps.purchases.forms import PurchaseForm, items_on_file, units_of
+from apps.purchases.forms import PurchaseForm
+from apps.purchases.line_forms import items_on_file, units_of
 from apps.purchases.models import Purchase
 from apps.suppliers.models import Supplier
 
@@ -112,7 +114,7 @@ def purchase_directory(request: HttpRequest) -> HttpResponse:
     )
 
 
-@requires("purchases.add_purchase")
+@requires("purchases.add_purchase", "purchases.change_purchase")
 def item_options(request: HttpRequest) -> HttpResponse:
     """The Items a line picker's search matched, as its option rows.
 
@@ -161,6 +163,51 @@ def record_purchase(request: HttpRequest) -> HttpResponse:
         request, f"Bill {purchase.bill_number} from {purchase.supplier} is saved."
     )
     return redirect("purchase_detail", pk=purchase.pk)
+
+
+@requires("purchases.change_purchase")
+def edit_purchase(request: HttpRequest, pk: int) -> HttpResponse:
+    """Correct a Purchase typed wrongly, lines and all.
+
+    Its Stock movements are rewritten to match. See
+    docs/adr/0013-a-purchase-is-corrected-in-place.md.
+    """
+    purchase = get_object_or_404(Purchase.objects.select_related("supplier"), pk=pk)
+
+    if request.method != "POST":
+        form = PurchaseForm(instance=purchase)
+        return render(
+            request, "purchases/edit.html", {"form": form, "purchase": purchase}
+        )
+
+    # Bound to its own instance: a form that fails validation still writes what
+    # it could clean onto the instance it holds, and `purchase` is what the
+    # page shows as on file.
+    form = PurchaseForm(request.POST, instance=Purchase.objects.get(pk=pk))
+
+    if not form.is_valid():
+        return render(
+            request, "purchases/edit.html", {"form": form, "purchase": purchase}
+        )
+
+    purchase = form.save()
+    messages.success(
+        request, f"Bill {purchase.bill_number} from {purchase.supplier} is saved."
+    )
+    return redirect("purchase_detail", pk=pk)
+
+
+@requires("purchases.delete_purchase")
+@require_POST
+def delete_purchase(request: HttpRequest, pk: int) -> HttpResponse:
+    """Remove a Purchase entered by mistake, and its Stock movements with it."""
+    purchase = get_object_or_404(Purchase.objects.select_related("supplier"), pk=pk)
+    purchase.delete()
+
+    messages.success(
+        request, f"Bill {purchase.bill_number} from {purchase.supplier} is deleted."
+    )
+    return redirect("purchase_directory")
 
 
 @requires("purchases.view_purchase")

@@ -7,7 +7,10 @@
 {% comment %}
   konspec form-page/readonly under a page-header/back band, as Supplier
   detail is, with the lines as table/totals and the tax by GST rate as a
-  second table/totals below them.
+  second table/totals below them. Delete sits in the band behind a konspec
+  alert-dialog/django, keeping the variant's red because nothing brings a
+  deleted Purchase back; its trigger takes the band's h-9 and icon, as
+  Archive does on Supplier detail.
 {% endcomment %}
 <div data-kui="form-page/readonly" class="text-zinc-900">
 
@@ -21,6 +24,52 @@
         <div class="min-w-0">
           <h1 class="text-[24px]/7 font-semibold tracking-tight">Bill {{ purchase.bill_number }}</h1>
           <p class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{{ purchase.supplier.name }} · {{ totals.grand_total|rupees }}</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          {% if perms.purchases.delete_purchase %}
+            <div data-kui="alert-dialog/django" x-data="confirmDialog">
+              <button type="button" @click="ask"
+                      class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-[13px]/5 font-medium text-red-600 hover:bg-zinc-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+                <i data-lucide="trash-2" class="size-4"></i>Delete
+              </button>
+
+              <div x-show="open" x-cloak x-trap.noscroll="open" @keydown.escape.window="cancel"
+                   class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 p-4">
+                <div role="alertdialog" aria-modal="true" aria-labelledby="purchase-delete-t" aria-describedby="purchase-delete-b"
+                     class="w-full max-w-md rounded-xl border border-zinc-300 bg-white p-5 shadow-lg">
+                  <div class="flex items-start gap-3">
+                    <i data-lucide="alert-circle" class="mt-0.5 size-4 shrink-0 text-red-600"></i>
+                    <div class="min-w-0">
+                      <h2 id="purchase-delete-t" class="text-[16px]/6 font-semibold">Delete bill {{ purchase.bill_number }}?</h2>
+                      <p class="mt-1.5 text-[13px]/5 tabular-nums text-zinc-600">
+                        {{ purchase.supplier.name }} · {{ totals.grand_total|rupees }} · billed {{ purchase.bill_date|date:"j M Y" }}.
+                      </p>
+                      <p id="purchase-delete-b" class="mt-2 text-[13px]/5 font-medium text-red-600">
+                        Its {{ lines|length }} line{{ lines|length|pluralize }} go{{ lines|length|pluralize:"es," }} with it, and any stock its Goods brought in is taken back out. This cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+
+                  <form method="post" action="{% url 'delete_purchase' purchase.pk %}">
+                    {% csrf_token %}
+                    <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                      <button type="button" @click="cancel"
+                              class="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-[13px]/5 font-medium hover:bg-zinc-100 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Cancel</button>
+                      <button type="submit" name="confirm" value="delete"
+                              class="rounded-lg bg-red-600 px-4 py-2 text-[13px]/5 font-medium text-white hover:bg-red-700 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">Delete bill</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          {% if perms.purchases.change_purchase %}
+            <a href="{% url 'edit_purchase' purchase.pk %}"
+               class="inline-flex h-9 items-center gap-2 rounded-lg border border-transparent bg-zinc-700 px-4 text-[13px]/5 font-medium text-white hover:bg-zinc-800 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+              <i data-lucide="pencil" class="size-4"></i>Edit
+            </a>
+          {% endif %}
         </div>
       </div>
     </div>

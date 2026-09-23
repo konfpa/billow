@@ -127,3 +127,85 @@ def test_home_offers_purchases_only_with_view_purchase(client, business, powerle
 
     assert 'id="home-purchases-h"' in page
     assert DIRECTORY in page
+
+
+def edit_url(purchase):
+    return reverse("edit_purchase", args=[purchase.pk])
+
+
+def delete_url(purchase):
+    return reverse("delete_purchase", args=[purchase.pk])
+
+
+@pytest.mark.django_db
+def test_without_change_purchase_correcting_is_refused(
+    client, business, signed_in, purchase
+):
+    page = client.get(edit_url(purchase))
+    posted = client.post(edit_url(purchase), {"bill_number": "B-2"})
+
+    purchase.refresh_from_db()
+    assert page.status_code == 403
+    assert "Can change purchase" in page.content.decode()
+    assert posted.status_code == 403
+    assert purchase.bill_number == "A-1"
+
+
+@pytest.mark.django_db
+def test_without_delete_purchase_deleting_is_refused(
+    client, business, signed_in, purchase
+):
+    response = client.post(delete_url(purchase))
+
+    assert response.status_code == 403
+    assert "Can delete purchase" in response.content.decode()
+    assert Purchase.objects.exists()
+
+
+@pytest.mark.django_db
+def test_change_purchase_alone_searches_items_for_a_line(
+    client, business, powerless, purchase
+):
+    powerless.groups.add(
+        role("Corrector", "purchases.view_purchase", "purchases.change_purchase")
+    )
+    client.force_login(powerless)
+
+    assert client.get(edit_url(purchase)).status_code == 200
+    assert client.get(reverse("item_options"), {"q": "elbow"}).status_code == 200
+
+
+@pytest.mark.django_db
+def test_the_detail_page_offers_edit_and_delete_only_with_their_permissions(
+    client, business, powerless, purchase
+):
+    powerless.groups.add(role("Reader", "purchases.view_purchase"))
+    client.force_login(powerless)
+    detail = reverse("purchase_detail", args=[purchase.pk])
+
+    page = client.get(detail).content.decode()
+    assert edit_url(purchase) not in page
+    assert delete_url(purchase) not in page
+
+    powerless.groups.add(role("Corrector", "purchases.change_purchase"))
+    page = client.get(detail).content.decode()
+    assert edit_url(purchase) in page
+    assert delete_url(purchase) not in page
+
+    powerless.groups.add(role("Remover", "purchases.delete_purchase"))
+    page = client.get(detail).content.decode()
+    assert delete_url(purchase) in page
+
+
+@pytest.mark.django_db
+def test_the_purchases_link_is_current_when_correcting(
+    client, business, powerless, purchase
+):
+    powerless.groups.add(
+        role("Corrector", "purchases.view_purchase", "purchases.change_purchase")
+    )
+    client.force_login(powerless)
+
+    page = client.get(edit_url(purchase)).content.decode()
+
+    assert 'aria-current="page"' in purchases_link(page)
