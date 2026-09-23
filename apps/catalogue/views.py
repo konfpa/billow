@@ -10,6 +10,7 @@ from apps.catalogue.forms import BrandForm, CategoryForm, ItemForm
 from apps.catalogue.models import Brand, Category, Item
 from apps.core.access import requires
 from apps.core.filters import chosen
+from apps.core.pagination import paged
 from apps.core.redirects import back
 
 if TYPE_CHECKING:
@@ -51,11 +52,18 @@ def item_directory(request: HttpRequest) -> HttpResponse:
     if category:
         items = items.filter(Q(category=category) | Q(category__parent=category))
 
+    page = paged(request, items)
+    # The paginator's own count, not `if items:`. Asking a queryset whether it
+    # is empty fetches every row it has and caches them, and the slice that
+    # follows is then taken in Python: the page would be a page, and the
+    # register behind it would still arrive whole.
+    matched = page["page_obj"].paginator.count
+
     # Which nothing this is gets decided here rather than in the template,
     # where every one of them is just an empty list. A search that matches
     # nothing is a no-match even inside a filter, since the Item may be on
     # file under another Brand or Category.
-    if items:
+    if matched:
         empty = None
     elif query:
         empty = "catalogue/empty/no_match.html"
@@ -70,7 +78,9 @@ def item_directory(request: HttpRequest) -> HttpResponse:
         request,
         "catalogue/directory.html",
         {
-            "items": items,
+            # The page, not the whole register: see apps/core/pagination.py.
+            "items": page["page_obj"],
+            "matched": matched,
             "total": everything.count(),
             "empty": empty,
             "brands": brands,
@@ -79,6 +89,7 @@ def item_directory(request: HttpRequest) -> HttpResponse:
             "category": category,
             "query": query,
             "showing_archived": showing_archived,
+            **page,
         },
     )
 

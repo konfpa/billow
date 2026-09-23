@@ -10,7 +10,7 @@ from django.utils.dateformat import format as date_format
 from apps.business.models import Business
 from apps.catalogue.models import Item, ItemQuerySet, ItemUnit
 from apps.core.forms import LINE_CONTROL, LINE_SELECT, LINE_TEXT, StyledForm
-from apps.core.templatetags.ui import plain, rupees
+from apps.core.templatetags.ui import rupees
 from apps.purchases.models import Purchase, PurchaseLine
 from apps.suppliers.models import Supplier
 from apps.tax.rates import GSTRate
@@ -333,22 +333,13 @@ class PurchaseForm(StyledForm):
         return failed
 
     @property
-    def item_options(self) -> list[dict]:
-        """Items on file for the line pickers, searchable by name, code and Brand."""
-        return [
-            {
-                "id": item.pk,
-                "name": item.name,
-                "code": item.code,
-                "brand": item.brand.name if item.brand else "",
-                "gstRate": str(item.gst_rate),
-                "units": [
-                    {"code": unit.code, "rate": plain(unit.rate)}
-                    for unit in units_of(item)
-                ],
-            }
-            for item in items_on_file().select_related("brand")
-        ]
+    def item_count(self) -> int:
+        """How many Items a line picker's search has to choose from.
+
+        A count, not the Items themselves: they are searched on the server and
+        a picker only ever holds what it matched. See item_options in views.
+        """
+        return items_on_file().count()
 
     @property
     def tax_context(self) -> str:

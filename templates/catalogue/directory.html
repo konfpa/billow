@@ -21,7 +21,7 @@
       <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div class="min-w-0">
           <h1 class="text-[24px]/7 font-semibold tracking-tight">Items</h1>
-          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% if query or brand or category %}{{ items|length }} of {{ total }}{% else %}{{ total }}{% endif %} {% if showing_archived %}archived{% else %}on file{% endif %}{% if brand %} from {{ brand.name }}{% endif %}{% if category %} in {{ category }}{% endif %}{% if query %} match{{ items|length|pluralize:"es," }} “{{ query }}”{% endif %}</p>
+          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% if query or brand or category %}{{ matched }} of {{ total }}{% else %}{{ total }}{% endif %} {% if showing_archived %}archived{% else %}on file{% endif %}{% if brand %} from {{ brand.name }}{% endif %}{% if category %} in {{ category }}{% endif %}{% if query %} match{{ matched|pluralize:"es," }} “{{ query }}”{% endif %}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           {% if perms.catalogue.add_item %}
@@ -245,6 +245,8 @@
           {% endwith %}
         {% endfor %}
       </div>
+
+      {% include "core/pagination.html" with noun="Items" pages_label="Item pages" %}
     {% endif %}
   </div>
 </div>

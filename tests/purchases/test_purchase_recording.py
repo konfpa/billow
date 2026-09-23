@@ -8,10 +8,20 @@ from apps.purchases.models import Purchase
 from tests.purchases.conftest import BILL_DATE, line, submitted
 
 RECORD = reverse("record_purchase")
+SEARCH = reverse("item_options")
 
 
 def detail_url(purchase):
     return reverse("purchase_detail", args=[purchase.pk])
+
+
+def offered(client, query):
+    """The rows a line picker's search answers `query` with.
+
+    The page carries no Items of its own, so what a picker will offer is asked
+    of the server, as the picker asks for it.
+    """
+    return client.get(SEARCH, {"q": query}).content.decode()
 
 
 @pytest.mark.django_db
@@ -184,20 +194,35 @@ def test_an_archived_supplier_cannot_be_chosen(client, signed_in, supplier, elbo
 def test_an_archived_item_cannot_be_chosen(client, signed_in, supplier, elbow):
     elbow.archive()
 
-    page = client.get(RECORD).content.decode()
     response = client.post(RECORD, submitted(supplier, line(elbow)))
 
-    assert "ELB-075" not in page
+    assert "ELB-075" not in offered(client, "ELB-075")
     assert "Choose an Item on file from the list." in response.content.decode()
     assert not Purchase.objects.exists()
 
 
 @pytest.mark.django_db
 def test_the_item_picker_searches_name_code_and_brand(client, signed_in, elbow):
-    page = client.get(RECORD).content.decode()
+    for query in ("CPVC elbow", "ELB-075", "Astral"):
+        assert "ELB-075" in offered(client, query)
 
-    for fragment in ('"name": "CPVC elbow', '"code": "ELB-075"', '"brand": "Astral"'):
-        assert fragment in page
+
+@pytest.mark.django_db
+def test_the_item_picker_offers_only_what_was_matched(client, signed_in, elbow, pipe):
+    """The catalogue outgrows the page, so a picker holds what it searched for."""
+    rows = offered(client, "PVC pipe")
+
+    assert "PIPE-110" in rows
+    assert "ELB-075" not in rows
+
+
+@pytest.mark.django_db
+def test_a_picked_item_carries_its_units_and_rate(client, signed_in, pipe):
+    """Picking a row fills the line's units and GST, and nothing else has them."""
+    rows = offered(client, "PVC pipe")
+
+    assert 'data-units="NOS,BDL"' in rows
+    assert 'data-gst-rate="5.00"' in rows
 
 
 @pytest.mark.django_db

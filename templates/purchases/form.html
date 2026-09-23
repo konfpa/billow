@@ -6,7 +6,6 @@
   running totals are a preview worked out in purchaseLines; the server
   totals the bill again when it is saved.
 {% endcomment %}
-{{ form.item_options|json_script:"item-options" }}
 <form method="post" novalidate x-ref="form" @input="arm" @change="arm" @submit="send">
   {% csrf_token %}
 

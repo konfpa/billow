@@ -1,0 +1,18 @@
+{% comment %}
+  The rows of one line picker's konspec combobox/remote, swapped in by htmx.
+
+  They carry data and no behaviour: the picker delegates one click and one
+  mousemove handler over the list, so a row the server sent needs no Alpine of
+  its own. `data-gst-rate` and `data-units` are here because picking a row also
+  fills the line's GST rate and offers the Item's units, and after the swap the
+  matched Items are nowhere else on the page.
+{% endcomment %}
+{% for option in options %}
+  <div id="{{ list_id }}-option-{{ option.item.pk }}" role="option" aria-selected="false"
+       data-value="{{ option.item.pk }}" data-label="{{ option.item.name }}"
+       data-gst-rate="{{ option.item.gst_rate }}" data-units="{{ option.units }}"
+       class="flex items-center gap-2.5 px-3 py-2 text-[13px]/5">
+    <span class="min-w-0 flex-1 truncate">{{ option.item.name }}</span>
+    <span class="shrink-0 text-[12px]/4 tabular-nums text-zinc-500">{{ option.item.code }}</span>
+  </div>
+{% endfor %}

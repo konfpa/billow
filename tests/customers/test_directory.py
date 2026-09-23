@@ -30,7 +30,7 @@ def test_an_empty_directory_says_so(client, signed_in):
     response = client.get(DIRECTORY)
 
     assert response.status_code == 200
-    assert response.context["customers"].count() == 0
+    assert len(response.context["customers"]) == 0
 
 
 @pytest.mark.django_db

@@ -2,6 +2,10 @@
 // `script-src` allows 'self' only, and named because the CSP build of Alpine
 // reads component and method names out of the markup rather than expressions.
 
+// How long a search waits for the typing to stop. A debounce, not a throttle:
+// each keystroke restarts it, so a word typed at speed asks the server once.
+const SEARCH_DELAY = 300;
+
 document.addEventListener("alpine:init", () => {
   // konspec app-shell/default. The class strings returned below are compiled
   // only because assets/css/app.css scans this file.
@@ -665,11 +669,13 @@ document.addEventListener("alpine:init", () => {
       this.supplier = this.tax.suppliers[form.elements.supplier.value] ?? null;
       const within = this.supplier?.state === this.tax.businessState;
       const lines = this.rows().map((row) => {
-        // A One-off line has no Item, so its own GST rate is the only one.
-        const item = itemOptions().find((o) => String(o.id) === row.querySelector("[data-item]")?.value);
+        // Left at "Item's", a line is taxed at the rate of the Item chosen,
+        // which the picker keeps on the input that carries it. A One-off line
+        // has no Item at all, so its own GST rate is the only one.
+        const item = row.querySelector("[data-item]");
         return {
           value: linePaise(row),
-          rate: Number(row.querySelector('[name$="-gst_rate"]').value || item?.gstRate || 0),
+          rate: Number(row.querySelector('[name$="-gst_rate"]').value || item?.dataset.gstRate || 0),
         };
       });
       const whole = lines.reduce((sum, line) => sum + line.value, 0);
@@ -785,6 +791,9 @@ document.addEventListener("alpine:init", () => {
       row.querySelector("[data-title]").textContent = `Line ${index + 1}`;
 
       this.$refs.rows.append(row);
+      // Alpine picks a new line up on its own; htmx does not. Without this the
+      // line's Item search is inert markup and nothing answers a keystroke.
+      htmx.process(row);
       this.$refs.total.value = index + 1;
       this.shown++;
       this.$nextTick(() => row.querySelector(first).focus());
@@ -820,96 +829,168 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
-  // konspec combobox/dense for one Purchase line's Item. Every word typed has
-  // to match the name, Item code or Brand, as the catalogue search does.
-  // Picking an Item offers its units, stock unit first, and its GST rate.
+  // konspec combobox/remote for one Purchase line's Item. htmx makes the
+  // request and owns the rows; Alpine never fetches, and owns the open state,
+  // the highlight and the keyboard. Every word typed has to match the name,
+  // Item code or Brand, as the catalogue search does, and the matching is the
+  // server's: see item_options in apps/purchases/views.py.
+  //
+  // Because htmx replaces the rows without telling Alpine there is no array to
+  // index into, so the keyboard reads the option elements out of the DOM on
+  // every move and paints the highlight itself.
   Alpine.data("linePicker", () => ({
     open: false,
-    typed: false,
-    q: "",
-    sel: "",
+    loading: false,
+    failed: false,
+    searched: false,
+    empty: false,
     ai: 0,
+    aid: null,
+    term: "",
+    label: "",
+    asked: "",
+    timer: null,
     amount: 0,
 
+    // The Item already chosen is in the box the server rendered, not in a
+    // list to look it up in.
     init() {
-      this.sel = this.$refs.item.value;
-      this.q = this.label;
+      this.label = this.$refs.q.value;
+      this.term = this.label;
       this.compute();
     },
 
-    get chosen() {
-      return itemOptions().find((o) => String(o.id) === this.sel) ?? null;
+    rows() {
+      return [...this.$refs.list.querySelectorAll("[role=option]")];
     },
 
-    get label() {
-      return this.chosen ? this.chosen.name : "";
+    paint() {
+      const rows = this.rows();
+      rows.forEach((row, i) => row.classList.toggle("bg-zinc-100", i === this.ai));
+      const row = rows[this.ai];
+      this.aid = row ? row.id : null;
+      if (row) row.scrollIntoView({ block: "nearest" });
     },
 
-    get list() {
-      if (!this.typed) return itemOptions();
-      const words = this.q.toLowerCase().split(/\s+/).filter(Boolean);
-      return itemOptions().filter((o) => {
-        const text = `${o.name} ${o.code} ${o.brand}`.toLowerCase();
-        return words.every((word) => text.includes(word));
+    // The floor, the debounce and the same-query check that combobox/remote
+    // writes as an htmx trigger filter. They are here because htmx compiles
+    // that filter with new Function and the CSP refuses it; see the markup.
+    //
+    // Below the floor nothing is asked at all, so the rows go: what is on
+    // screen would otherwise be the answer to a query no longer typed.
+    typing(event) {
+      this.term = event.target.value;
+      this.open = true;
+      this.failed = false;
+      clearTimeout(this.timer);
+
+      const term = this.term.trim();
+      if (term.length < 2) {
+        this.asked = "";
+        this.forget();
+        return;
+      }
+      if (term === this.asked) return;
+      this.timer = setTimeout(() => this.search(), SEARCH_DELAY);
+    },
+
+    search() {
+      this.asked = this.$refs.q.value.trim();
+      this.$refs.q.dispatchEvent(new Event("lookup"));
+    },
+
+    // The highlight goes with the rows. aria-activedescendant naming an option
+    // that has just been removed is a reference a screen reader cannot follow.
+    forget() {
+      this.searched = false;
+      this.empty = false;
+      this.ai = 0;
+      this.aid = null;
+      this.$refs.list.replaceChildren();
+    },
+
+    started() {
+      this.loading = true;
+      this.failed = false;
+      this.open = true;
+    },
+
+    finished(event) {
+      this.loading = false;
+      if (event.detail.successful) return;
+      this.failed = true;
+      this.forget();
+    },
+
+    swapped() {
+      this.searched = true;
+      this.ai = 0;
+      this.$nextTick(() => {
+        this.empty = this.rows().length === 0;
+        this.paint();
       });
     },
 
-    get nothing() {
-      return this.list.length === 0;
+    // Retry sends the query that failed rather than asking for a character
+    // nobody wanted to type, so it goes straight out: no debounce, and past
+    // the same-query check, which is exactly what it is re-asking.
+    retry() {
+      if (this.$refs.q.value.trim().length < 2) {
+        this.$refs.q.focus();
+        return;
+      }
+      this.search();
     },
 
-    get count() {
-      if (!this.open) return "";
-      return this.list.length === 1 ? "1 Item matches" : `${this.list.length} Items match`;
+    get resting() {
+      return !this.loading;
+    },
+
+    get asking() {
+      return !this.searched && !this.loading && !this.failed;
+    },
+
+    get nothing() {
+      return this.searched && this.empty && !this.loading && !this.failed;
     },
 
     get chevron() {
       return this.open ? "rotate-180" : "";
     },
 
-    get activeId() {
-      return this.open && this.list[this.ai] ? this.rowId(this.list[this.ai]) : null;
-    },
-
     get amountLabel() {
       return rupees(this.amount);
     },
 
-    rowId(o) {
-      return `${this.$refs.item.id}-option-${o.id}`;
-    },
-
-    rowClass(i) {
-      return i === this.ai ? "bg-zinc-100" : "";
-    },
-
-    isSelected(o) {
-      return String(o.id) === this.sel;
+    // A failure is announced as well as drawn: a red line inside a popup is
+    // nothing at all to a screen reader that only ever hears counts.
+    get status() {
+      if (!this.open) return "";
+      if (this.loading) return "Searching Items";
+      if (this.failed) return "The search did not answer";
+      if (!this.searched) return "";
+      return this.empty ? "No Items match" : "Items listed";
     },
 
     compute() {
       this.amount = linePaise(this.$refs.q.closest("fieldset"));
     },
 
-    scroll() {
-      this.$nextTick(() => {
-        const el = document.getElementById(this.activeId);
-        if (el) el.scrollIntoView({ block: "nearest" });
-      });
-    },
-
     show() {
-      if (this.open) return;
       this.open = true;
-      this.typed = false;
-      this.ai = Math.max(0, this.list.findIndex((o) => this.isSelected(o)));
-      this.scroll();
     },
 
     close() {
+      clearTimeout(this.timer);
       this.open = false;
-      this.typed = false;
-      this.q = this.label;
+      this.aid = null;
+      this.failed = false;
+      this.term = this.label;
+      this.$refs.q.value = this.label;
+    },
+
+    leaving(event) {
+      if (this.open && !this.$el.contains(event.relatedTarget)) this.close();
     },
 
     escape(event) {
@@ -919,20 +1000,15 @@ document.addEventListener("alpine:init", () => {
       this.$refs.q.focus();
     },
 
-    typing() {
-      this.typed = true;
-      this.open = true;
-      this.ai = 0;
-    },
-
     move(n) {
       if (!this.open) {
-        this.show();
+        this.open = true;
         return;
       }
-      if (!this.list.length) return;
-      this.ai = Math.min(this.list.length - 1, Math.max(0, this.ai + n));
-      this.scroll();
+      const rows = this.rows();
+      if (!rows.length) return;
+      this.ai = Math.min(rows.length - 1, Math.max(0, this.ai + n));
+      this.paint();
     },
 
     down() {
@@ -946,9 +1022,9 @@ document.addEventListener("alpine:init", () => {
     edge(end, event) {
       if (!this.open) return;
       event.preventDefault();
-      if (!this.list.length) return;
-      this.ai = end ? this.list.length - 1 : 0;
-      this.scroll();
+      if (!this.rows().length) return;
+      this.ai = end ? this.rows().length - 1 : 0;
+      this.paint();
     },
 
     home(event) {
@@ -959,27 +1035,42 @@ document.addEventListener("alpine:init", () => {
       this.edge(true, event);
     },
 
-    hover(i) {
-      this.ai = i;
+    hover(event) {
+      const row = event.target.closest("[role=option]");
+      if (!row) return;
+      this.ai = this.rows().indexOf(row);
+      this.paint();
     },
 
-    pickRow(o) {
-      this.sel = String(o.id);
-      this.$refs.item.value = this.sel;
-      this.$refs.unit.replaceChildren(...o.units.map((unit) => new Option(unit.code, unit.code)));
-      this.$refs.gstBox.querySelector("select").value = o.gstRate;
+    pick(event) {
+      this.take(event.target.closest("[role=option]"));
+    },
+
+    // The row is the only copy of the Item there is: its units and its GST
+    // rate are kept on the line, where the running totals can still read them
+    // once the next search has replaced the rows.
+    take(row) {
+      if (!row) return;
+      const item = this.$refs.item;
+      item.value = row.dataset.value;
+      item.dataset.gstRate = row.dataset.gstRate;
+      this.label = row.dataset.label;
+
+      const units = row.dataset.units.split(",").filter(Boolean);
+      this.$refs.unit.replaceChildren(...units.map((code) => new Option(code, code)));
+      this.$refs.gstBox.querySelector("select").value = row.dataset.gstRate;
+
       this.close();
       this.$refs.q.focus();
       // The hidden input changes without an event of its own, and formPage's
       // guard and the running totals have to hear of it.
-      this.$refs.item.dispatchEvent(new Event("change", { bubbles: true }));
+      item.dispatchEvent(new Event("change", { bubbles: true }));
     },
 
     enter(event) {
       if (!this.open) return;
       event.preventDefault();
-      const o = this.list[this.ai];
-      if (o) this.pickRow(o);
+      this.take(this.rows()[this.ai]);
     },
 
     dropLine() {
@@ -1233,13 +1324,6 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 });
-
-// The Items on the Purchase form, read once and shared by every line.
-let items = null;
-function itemOptions() {
-  items ??= JSON.parse(document.getElementById("item-options").textContent);
-  return items;
-}
 
 // A line's quantity at its rate less its own discount, in paise, each rounded
 // as the server rounds it. toPrecision drops the float noise that would

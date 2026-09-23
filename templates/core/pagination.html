@@ -1,0 +1,79 @@
+{% comment %}
+  konspec pagination/links, shared by every directory. Anchors rather than
+  buttons, because a page is a place and not a gesture: `?page=3` survives a
+  refresh, arrives intact in a colleague's message, and comes back where it
+  was when somebody opens a record and presses Back. Middle-click and
+  Ctrl-click open a page in a new tab, which a button swallows.
+
+  Drawn only when there is more than one page. The count of everything on file
+  is already the directory's own status line, which is where konspec's rule
+  that the total is never optional is answered.
+
+  `noun` names what is being counted and `pages_label` the register, both from
+  the caller. `kept_query` carries the search and the filters onto every link;
+  without it page 2 of a search is page 2 of everything.
+{% endcomment %}
+{% if page_obj.paginator.num_pages > 1 %}
+  {% with kept=kept_query %}
+  <nav data-kui="pagination/links" aria-label="{{ pages_label }}"
+       class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-300 bg-white px-4 py-2.5">
+
+    <p class="text-[13px]/5 tabular-nums text-zinc-600">{{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} {{ noun }}</p>
+
+    <div class="flex items-center gap-2">
+      <span class="text-[13px]/5 tabular-nums text-zinc-600 md:hidden">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+      {% comment %}
+        Previous is a disabled button at the first page rather than an anchor.
+        An anchor has no unavailable state: aria-disabled leaves it focusable
+        and clickable and stops nothing, and dropping the href stops it being
+        a link without ever announcing why. Swapping to a button also keeps
+        the width, which is why the ends never disappear.
+      {% endcomment %}
+      {% if page_obj.has_previous %}
+        <a href="?{% if kept %}{{ kept }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" rel="prev" aria-label="Previous page"
+           class="flex size-9 items-center justify-center rounded-lg border border-zinc-200 bg-white hover:bg-zinc-100 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+          <i data-lucide="chevron-left" class="size-4"></i>
+        </a>
+      {% else %}
+        <button type="button" disabled aria-label="Previous page"
+                class="flex size-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400">
+          <i data-lucide="chevron-left" class="size-4"></i>
+        </button>
+      {% endif %}
+
+      <ul role="list" class="hidden items-center gap-1 md:flex">
+        {% for p in page_range %}
+          <li>
+            {% comment %}
+              The gap is the paginator's own ELLIPSIS rather than a literal
+              character, which would break the day the constant changes.
+            {% endcomment %}
+            {% if p == page_obj.paginator.ELLIPSIS %}
+              <span aria-hidden="true" class="flex size-9 items-center justify-center text-[13px]/5 text-zinc-500">{{ p }}</span>
+            {% elif p == page_obj.number %}
+              <a href="?{% if kept %}{{ kept }}&amp;{% endif %}page={{ p }}" aria-label="Page {{ p }}" aria-current="page"
+                 class="flex size-9 items-center justify-center rounded-lg bg-zinc-700 text-[13px]/5 font-medium tabular-nums text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ p }}</a>
+            {% else %}
+              <a href="?{% if kept %}{{ kept }}&amp;{% endif %}page={{ p }}" aria-label="Page {{ p }}"
+                 class="flex size-9 items-center justify-center rounded-lg text-[13px]/5 tabular-nums hover:bg-zinc-100 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">{{ p }}</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+
+      {% if page_obj.has_next %}
+        <a href="?{% if kept %}{{ kept }}&amp;{% endif %}page={{ page_obj.next_page_number }}" rel="next" aria-label="Next page"
+           class="flex size-9 items-center justify-center rounded-lg border border-zinc-200 bg-white hover:bg-zinc-100 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+          <i data-lucide="chevron-right" class="size-4"></i>
+        </a>
+      {% else %}
+        <button type="button" disabled aria-label="Next page"
+                class="flex size-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400">
+          <i data-lucide="chevron-right" class="size-4"></i>
+        </button>
+      {% endif %}
+    </div>
+  </nav>
+  {% endwith %}
+{% endif %}
