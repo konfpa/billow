@@ -7,7 +7,8 @@ from django.utils.formats import date_format
 from apps.business.models import Business
 from apps.core.access import requires
 from apps.core.filters import chosen, date_given
-from apps.purchases.forms import PurchaseForm
+from apps.core.pagination import paged
+from apps.purchases.forms import PurchaseForm, items_on_file, units_of
 from apps.purchases.models import Purchase
 from apps.suppliers.models import Supplier
 
@@ -15,6 +16,11 @@ if TYPE_CHECKING:
     import datetime
 
     from django.http import HttpRequest, HttpResponse
+
+# What one search answers with. A line picker shows what was matched, not the
+# catalogue: an Operator who cannot see the Item they meant types another word
+# rather than scrolling, and the row count is what keeps the page light.
+OPTIONS_SHOWN = 20
 
 
 def day(date: datetime.date) -> str:
@@ -63,12 +69,17 @@ def purchase_directory(request: HttpRequest) -> HttpResponse:
         found = found.filter(bill_date__lte=billed_to)
 
     business = Business.load()
-    purchases = [(purchase, purchase.totals(business)) for purchase in found]
+    page = paged(request, found)
+    # The paginator's own count, not `if purchases:`. Asking a queryset whether
+    # it is empty fetches every row it has and caches them, and the slice that
+    # follows is then taken in Python: the page would be a page, and the
+    # register behind it would still arrive whole.
+    matched = page["page_obj"].paginator.count
 
     # As in the Item directory, a search that matches nothing is a no-match
     # even inside a filter, since the bill may be under another Supplier or
     # another period.
-    if purchases:
+    if matched:
         empty = None
     elif query:
         empty = "purchases/empty/no_match.html"
@@ -81,7 +92,13 @@ def purchase_directory(request: HttpRequest) -> HttpResponse:
         request,
         "purchases/directory.html",
         {
-            "purchases": purchases,
+            # Totalled a page at a time. Every bill on file was being added up
+            # to draw one screen of them, and a bill is totalled from its
+            # lines: see apps/core/pagination.py.
+            "purchases": [
+                (purchase, purchase.totals(business)) for purchase in page["page_obj"]
+            ],
+            "matched": matched,
             "total": everything.count(),
             "empty": empty,
             "suppliers": suppliers,
@@ -90,6 +107,38 @@ def purchase_directory(request: HttpRequest) -> HttpResponse:
             "billed_to": billed_to,
             "billed": billed_between(billed_from, billed_to),
             "query": query,
+            **page,
+        },
+    )
+
+
+@requires("purchases.add_purchase")
+def item_options(request: HttpRequest) -> HttpResponse:
+    """The Items a line picker's search matched, as its option rows.
+
+    The catalogue is not put on the page. Carrying every Item as JSON cost a
+    megabyte at ten thousand of them, and each line picker then rendered the
+    whole of it into the DOM whether it was open or not; the search belongs on
+    the server, where it already is for the directory. See combobox/remote.
+
+    `for` names the picker that asked, because each row's id has to be unique
+    across a bill with ten lines on it: aria-activedescendant points at one.
+    """
+    query = request.GET.get("q", "").strip()
+    return render(
+        request,
+        "purchases/options.html",
+        {
+            "options": [
+                {
+                    "item": item,
+                    # Comma-joined rather than JSON: the row is read by
+                    # `data-units`.split(","), and a unit code has no comma in it.
+                    "units": ",".join(unit.code for unit in units_of(item)),
+                }
+                for item in items_on_file().matching(query)[:OPTIONS_SHOWN]
+            ],
+            "list_id": request.GET.get("for", ""),
         },
     )
 

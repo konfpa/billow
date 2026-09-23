@@ -23,8 +23,8 @@
         <div class="min-w-0">
           <h1 class="text-[24px]/7 font-semibold tracking-tight">Customers</h1>
           <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">
-            {% if query %}{{ customers|length }} of {{ total }}{% else %}{{ total }}{% endif %}
-            {% if showing_archived %}archived{% else %}on file{% endif %}{% if query %} match{{ customers|length|pluralize:"es," }} “{{ query }}”{% endif %}
+            {% if query %}{{ matched }} of {{ total }}{% else %}{{ total }}{% endif %}
+            {% if showing_archived %}archived{% else %}on file{% endif %}{% if query %} match{{ matched|pluralize:"es," }} “{{ query }}”{% endif %}
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -200,6 +200,8 @@
           </a>
         {% endfor %}
       </div>
+
+      {% include "core/pagination.html" with noun="Customers" pages_label="Customer pages" %}
     {% endif %}
   </div>
 </div>

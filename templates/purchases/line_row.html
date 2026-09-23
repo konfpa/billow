@@ -7,7 +7,13 @@
   each cell shows its own label.
   The combobox's expressions live in linePicker in static/js/app.js.
 {% endcomment %}
-<fieldset {% if one_off %}x-data="oneOffLine"{% else %}x-data="linePicker" @click.outside="close" @keydown.escape="escape"{% endif %} @input="compute" @change="compute"
+{% comment %}
+  An Item line closes its picker on focus leaving rather than on Tab: Retry is
+  a control inside the popup, and closing on Tab leaves the mouse as the only
+  way out of a search that failed. A One-off line has no picker and so none of
+  this: it names its own Goods or Service and never searches the catalogue.
+{% endcomment %}
+<fieldset {% if one_off %}x-data="oneOffLine"{% else %}x-data="linePicker" @click.outside="close" @keydown.escape="escape" @focusout="leaving" @htmx:before-request.camel="started" @htmx:after-request.camel="finished" @htmx:after-swap.camel="swapped"{% endif %} @input="compute" @change="compute"
           class="relative m-3 rounded-lg border border-zinc-300 bg-white md:m-0 md:rounded-none md:border-0 md:border-b md:border-zinc-100 md:last:border-0" {% if line_form.DELETE.value %}hidden{% endif %}>
   <legend class="sr-only">Line {{ position }}</legend>
   {{ line_form.id }}
@@ -32,15 +38,31 @@
     {% endwith %}
     {% else %}
     {% with field=line_form.item %}
-    <div data-kui="combobox/dense" class="relative min-w-0">
+    <div data-kui="combobox/remote" class="relative min-w-0">
       <label for="{{ field.auto_id }}-q" class="mb-1 block text-[12px]/4 text-zinc-600 md:sr-only">Item</label>
       <div class="flex items-center rounded-lg border bg-white focus-within:outline-3 focus-within:outline-offset-2 {% if field.errors %}border-red-600 focus-within:outline-red-600/15{% else %}border-zinc-200 focus-within:border-zinc-700 focus-within:outline-zinc-700/15{% endif %}">
-        <input id="{{ field.auto_id }}-q" x-ref="q" x-model="q" type="text" role="combobox" autocomplete="off"
+        {% comment %}
+          combobox/remote spells the floor and the debounce as an htmx trigger
+          filter, `input[this.value.length > 1] changed delay:300ms`. htmx
+          compiles that filter with new Function, which `script-src 'self'`
+          refuses, and the floor then never applies at all. So the picker
+          dispatches `lookup` itself, having done the floor, the debounce and
+          the same-query check in linePicker; htmx still owns the request and
+          the swap, and `hx-sync this:replace` still drops a request in flight
+          so two keystrokes cannot settle on the older reply.
+
+          Named `q`, as the directory's search is. A bill with ten lines posts
+          ten of them and the form has no such field, so Django ignores them.
+        {% endcomment %}
+        <input id="{{ field.auto_id }}-q" x-ref="q" type="text" name="q" role="combobox" autocomplete="off"
                aria-autocomplete="list" aria-controls="{{ field.auto_id }}-list" aria-describedby="{{ field.auto_id }}-msg"
                aria-invalid="{% if field.errors %}true{% else %}false{% endif %}"
-               x-bind:aria-expanded="open" x-bind:aria-activedescendant="activeId"
+               x-bind:aria-expanded="open" x-bind:aria-activedescendant="aid"
                placeholder="Name, code or Brand"
                value="{{ line_form.chosen_item.name|default:'' }}"
+               hx-get="{% url 'item_options' %}?for={{ field.auto_id }}"
+               hx-trigger="lookup"
+               hx-target="#{{ field.auto_id }}-list" hx-swap="innerHTML" hx-sync="this:replace"
                @click="show"
                @input="typing"
                @keydown.arrow-down.prevent="down"
@@ -48,36 +70,69 @@
                @keydown.home="home"
                @keydown.end="end"
                @keydown.enter="enter"
-               @keydown.tab="close"
                class="w-full min-w-0 bg-transparent px-2.5 py-1.5 text-[14px]/5 outline-none placeholder:text-zinc-500 md:text-[13px]/5">
-        <span class="mr-2 flex size-4 shrink-0 items-center justify-center transition-transform motion-reduce:transition-none" x-bind:class="chevron">
+        <span x-show="loading" x-cloak class="mr-2 flex size-4 shrink-0 items-center justify-center">
+          <i data-lucide="loader-circle" class="size-3.5 animate-spin text-zinc-600"></i>
+        </span>
+        <span x-show="resting" class="mr-2 flex size-4 shrink-0 items-center justify-center transition-transform motion-reduce:transition-none" x-bind:class="chevron">
           <i data-lucide="chevron-down" class="size-3.5 text-zinc-600"></i>
         </span>
       </div>
 
-      <input type="hidden" name="{{ field.html_name }}" id="{{ field.auto_id }}" value="{{ field.value|default:'' }}" x-ref="item" data-item>
+      {% comment %}
+        The rate and the units of the Item now chosen, kept on the input that
+        carries it. The running totals fall back to the rate when the line
+        leaves GST at "Item's", and after an htmx swap the matched Items are
+        nowhere else on the page to read it from.
+      {% endcomment %}
+      <input type="hidden" name="{{ field.html_name }}" id="{{ field.auto_id }}" value="{{ field.value|default:'' }}"
+             x-ref="item" data-item
+             data-gst-rate="{{ line_form.chosen_item.gst_rate|default_if_none:'' }}">
 
       <p id="{{ field.auto_id }}-msg" class="mt-1 text-[12px]/4 font-medium text-red-600 empty:hidden">{{ field.errors.0|default:"" }}</p>
 
-      <p role="status" class="sr-only" x-text="count"></p>
+      <p role="status" class="sr-only" x-text="status"></p>
 
       <div x-show="open" x-cloak
            class="absolute top-full right-0 left-0 z-20 mt-1 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
-        <div id="{{ field.auto_id }}-list" role="listbox" aria-label="Items, line {{ position }}"
-             class="max-h-56 overflow-y-auto py-1">
-          <template x-for="(o, i) in list" x-bind:key="o.id">
-            <div x-bind:id="rowId(o)" role="option" x-bind:aria-selected="isSelected(o)"
-                 @mousedown.prevent @click="pickRow(o)" @mousemove="hover(i)"
-                 x-bind:class="rowClass(i)"
-                 class="flex items-center gap-2.5 px-3 py-2 text-[13px]/5">
-              <span class="min-w-0 flex-1 truncate" x-text="o.name"></span>
-              <span class="shrink-0 text-[12px]/4 tabular-nums text-zinc-500" x-text="o.code"></span>
-            </div>
-          </template>
+        {% comment %}
+          htmx swaps the rows in here. One delegated handler each, so the
+          fragment the server sends carries no behaviour of its own.
+        {% endcomment %}
+        <div id="{{ field.auto_id }}-list" x-ref="list" role="listbox" aria-label="Items, line {{ position }}"
+             class="max-h-56 overflow-y-auto py-1 empty:hidden"
+             @click="pick" @mousemove="hover"></div>
+
+        <div x-show="asking" x-cloak class="px-3 py-4 text-center">
+          <p class="text-[13px]/5 tabular-nums text-zinc-600">Type two characters to search {{ form.item_count }} Items.</p>
         </div>
+
+        <div x-show="loading" x-cloak class="px-3 py-4 text-center">
+          <p class="flex items-center justify-center gap-2 text-[13px]/5 text-zinc-500">
+            <i data-lucide="loader-circle" class="size-4 shrink-0 animate-spin"></i>Searching
+          </p>
+        </div>
+
         <div x-show="nothing" x-cloak class="px-3 py-4 text-center">
-          <p class="text-[13px]/5 font-medium">No Items match “<span x-text="q"></span>”</p>
+          <p class="text-[13px]/5 font-medium">No Items match “<span x-text="term"></span>”</p>
           <p class="mt-1 text-[12px]/4 text-zinc-500">Every word has to match the name, Item code or Brand.</p>
+        </div>
+
+        {% comment %}
+          A search that did not answer takes its rows with it: leaving the last
+          query's Goods under an error invites somebody to pick one of them.
+          Retry sends the query that failed rather than asking for a character
+          nobody wanted to type.
+        {% endcomment %}
+        <div x-show="failed" x-cloak class="px-3 py-4 text-center">
+          <p class="flex items-center justify-center gap-1.5 text-[13px]/5 font-medium text-red-600">
+            <i data-lucide="alert-circle" class="size-3.5 shrink-0"></i>The search did not answer
+          </p>
+          <p class="mt-1 text-[12px]/4 text-zinc-500">Nothing was lost. The last search is still in the box.</p>
+          <button type="button" @mousedown.prevent @click="retry"
+                  class="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-[13px]/5 font-medium hover:bg-zinc-100 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-zinc-700/15">
+            <i data-lucide="rotate-ccw" class="size-3.5 text-zinc-600"></i>Search again
+          </button>
         </div>
       </div>
     </div>

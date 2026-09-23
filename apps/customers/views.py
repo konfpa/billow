@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.core.access import requires
+from apps.core.pagination import paged
 from apps.core.redirects import back
 from apps.customers.forms import CustomerForm
 from apps.customers.models import Customer
@@ -30,11 +31,18 @@ def customer_directory(request: HttpRequest) -> HttpResponse:
     query = request.GET.get("q", "").strip()
     customers = everyone.matching(query) if query else everyone
 
+    page = paged(request, customers)
+    # The paginator's own count, not `if customers:`. Asking a queryset whether
+    # it is empty fetches every row it has and caches them, and the slice that
+    # follows is then taken in Python: the page would be a page, and the
+    # register behind it would still arrive whole.
+    matched = page["page_obj"].paginator.count
+
     # Which nothing this is gets decided here rather than in the template,
     # where every one of them is just an empty list. A search that matches
     # nothing is always a no-match, even over an empty list, since whoever
     # was searched for may be on the other side of archiving.
-    if customers:
+    if matched:
         empty = None
     elif query:
         empty = "customers/empty/no_match.html"
@@ -47,11 +55,14 @@ def customer_directory(request: HttpRequest) -> HttpResponse:
         request,
         "customers/directory.html",
         {
-            "customers": customers,
+            # The page, not the whole register: see apps/core/pagination.py.
+            "customers": page["page_obj"],
+            "matched": matched,
             "total": everyone.count(),
             "empty": empty,
             "showing_archived": showing_archived,
             "query": query,
+            **page,
         },
     )
 

@@ -19,7 +19,7 @@
       <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div class="min-w-0">
           <h1 class="text-[24px]/7 font-semibold tracking-tight">Purchases</h1>
-          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% if query or supplier or billed %}{{ purchases|length }} of {{ total }} recorded{% if supplier %} from {{ supplier.name }}{% endif %}{% if billed %} {{ billed }}{% endif %}{% if query %} match{{ purchases|length|pluralize:"es," }} “{{ query }}”{% endif %}{% else %}{{ total }} recorded, newest received first{% endif %}</p>
+          <p role="status" class="mt-1 text-[13px]/5 tabular-nums text-zinc-600">{% if query or supplier or billed %}{{ matched }} of {{ total }} recorded{% if supplier %} from {{ supplier.name }}{% endif %}{% if billed %} {{ billed }}{% endif %}{% if query %} match{{ matched|pluralize:"es," }} “{{ query }}”{% endif %}{% else %}{{ total }} recorded, newest received first{% endif %}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           {% if perms.purchases.add_purchase %}
@@ -133,6 +133,8 @@
           </a>
         {% endfor %}
       </div>
+
+      {% include "core/pagination.html" with noun="Purchases" pages_label="Purchase pages" %}
     {% endif %}
   </div>
 </div>

@@ -10,6 +10,7 @@ from apps.purchases.models import Purchase
 from tests.purchases.conftest import goods, line, submitted
 
 RECORD = reverse("record_purchase")
+SEARCH = reverse("item_options")
 
 
 def one_off(name="Freight", hsn_sac="996511", gst_rate="5.00", **fields):
@@ -36,9 +37,10 @@ def refused(response, message):
 
 @pytest.mark.django_db
 def test_a_service_is_offered_as_a_line(client, signed_in, fitting):
-    page = client.get(RECORD).content.decode()
+    """Offered by the picker's search: the page itself carries no Items."""
+    rows = client.get(SEARCH, {"q": "Fitting"}).content.decode()
 
-    assert '"code": "SVC-FIT"' in page
+    assert "SVC-FIT" in rows
 
 
 @pytest.mark.django_db
