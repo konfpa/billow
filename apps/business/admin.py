@@ -33,6 +33,7 @@ class BusinessAdmin(SimpleHistoryAdmin):
         "phone",
         "website",
         "logo",
+        "stock_start_date",
         "created_at",
         "updated_at",
     )

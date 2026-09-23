@@ -11,6 +11,7 @@ from apps.business.models import Business
 from apps.catalogue.models import Item
 from apps.core.models import state_field
 from apps.purchases.totals import Line, Totals, purchase_totals
+from apps.stock.models import StockMovement
 from apps.suppliers.models import Supplier
 from apps.tax.hsn_sac import validate_hsn_or_sac
 from apps.tax.rates import GSTRate
@@ -169,6 +170,28 @@ class Purchase(models.Model):
             business_registered=bool(business.is_gst_registered),
             bill_discount=self.bill_discount,
             round_off=self.round_off,
+        )
+
+    def move_stock(self) -> None:
+        """Replace this Purchase's Stock movements with those its lines make now.
+
+        Each Goods line brings its quantity in stock units into stock on the
+        Received date, at its cost per stock unit. See
+        docs/adr/0013-a-purchase-is-corrected-in-place.md.
+        """
+        lines = list(self.lines.select_related("item"))
+        totals = self.totals(lines=[line.as_line() for line in lines])
+        StockMovement.objects.filter(purchase_line__purchase=self).delete()
+        StockMovement.objects.bulk_create(
+            StockMovement(
+                item=line.item,
+                date=self.received_date,
+                quantity=line_totals.stock_quantity,
+                cost_per_stock_unit=line_totals.cost_per_stock_unit,
+                purchase_line=line,
+            )
+            for line, line_totals in zip(lines, totals.lines, strict=True)
+            if line_totals.moves_stock
         )
 
 

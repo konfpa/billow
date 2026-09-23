@@ -90,6 +90,15 @@ class Business(models.Model):
     website = models.URLField(blank=True)
     logo = models.ImageField(upload_to="business/", blank=True)
 
+    # Filters which Stock movements are counted rather than which are recorded,
+    # so moving it rewrites nothing. See
+    # docs/adr/0011-stock-is-the-sum-of-movements.md.
+    stock_start_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Stock is counted from this day. Leave blank to count none yet.",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

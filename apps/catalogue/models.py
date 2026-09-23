@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
@@ -13,6 +13,9 @@ from simple_history.models import HistoricalRecords
 from apps.tax.hsn_sac import validate_hsn, validate_sac
 from apps.tax.rates import GSTRate
 from apps.tax.units import REPORTED_UNDER, UNITS
+
+if TYPE_CHECKING:
+    import datetime
 
 ASSIGNED_CODE_PREFIX = "I-"
 CODE_ATTEMPTS = 3
@@ -205,6 +208,24 @@ class ItemQuerySet(models.QuerySet):
                 | models.Q(brand__name__icontains=word)
             )
         return items
+
+    def with_stock_on_hand(self, since: datetime.date) -> Self:
+        """Each Item annotated with its stock on hand, counted from `since`.
+
+        Goods only; a Service is never counted, and is annotated None. See
+        docs/adr/0011-stock-is-the-sum-of-movements.md.
+        """
+        counted = models.Sum(
+            "stock_movements__quantity",
+            filter=models.Q(stock_movements__date__gte=since),
+        )
+        return self.annotate(
+            stock_on_hand=models.Case(
+                models.When(kind=Item.Kind.GOODS, then=Coalesce(counted, Decimal(0))),
+                default=None,
+                output_field=models.DecimalField(max_digits=18, decimal_places=3),
+            )
+        )
 
 
 class OnFileManager(models.Manager.from_queryset(ItemQuerySet)):

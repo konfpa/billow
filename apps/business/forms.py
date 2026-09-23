@@ -51,6 +51,7 @@ class BusinessForm(StyledForm):
             "phone",
             "website",
             "logo",
+            "stock_start_date",
         )
         field_classes = {
             "gstin": TaxCodeField,
@@ -67,6 +68,7 @@ class BusinessForm(StyledForm):
             ),
         }
         widgets = {
+            "stock_start_date": forms.DateInput(attrs={"type": "date"}),
             "logo": LogoInput(
                 attrs={
                     "class": "peer sr-only",
