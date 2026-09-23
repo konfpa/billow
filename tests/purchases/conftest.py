@@ -151,3 +151,62 @@ def elbow(db):
 def pipe(db):
     """Stocked in NOS here, and billed by the bundle of 20 as often as not."""
     return goods("PVC pipe 110 mm", "PIPE-110", gst_rate="5.00", BDL="20")
+
+
+LINE_FIELDS = (
+    "id",
+    "item",
+    "name",
+    "hsn_sac",
+    "unit",
+    "quantity",
+    "rate",
+    "discount_percent",
+    "gst_rate",
+)
+
+
+def as_it_stands(purchase, **changes):
+    """What the edit form posts for `purchase` left as it is, with anything changed.
+
+    A line is changed by posting `lines-<n>-<field>`, as the form names it.
+    """
+    on_file = list(purchase.lines.all())
+    posted = {
+        "supplier": str(purchase.supplier_id),
+        "bill_number": purchase.bill_number,
+        "bill_date": purchase.bill_date.isoformat(),
+        "received_date": purchase.received_date.isoformat(),
+        "bill_discount": str(purchase.bill_discount),
+        "round_off": str(purchase.round_off),
+        "billed_total": str(purchase.billed_total),
+        "lines-TOTAL_FORMS": str(len(on_file)),
+        "lines-INITIAL_FORMS": str(len(on_file)),
+    }
+    for index, on_line in enumerate(on_file):
+        for name in LINE_FIELDS:
+            value = getattr(on_line, "item_id" if name == "item" else name)
+            if on_line.item_id is None and name == "unit":
+                continue
+            if on_line.item_id is not None and name in ("name", "hsn_sac"):
+                continue
+            posted[f"lines-{index}-{name}"] = "" if value is None else str(value)
+    return {**posted, **changes}
+
+
+@pytest.fixture
+def corrector(db):
+    """An Operator who records Purchases, and corrects and deletes them."""
+    user = User.objects.create_user(
+        email="farah@example.com", name="Farah Khan", password=PASSWORD
+    )
+    user.groups.add(
+        role(
+            "Purchase corrections",
+            "purchases.view_purchase",
+            "purchases.add_purchase",
+            "purchases.change_purchase",
+            "purchases.delete_purchase",
+        )
+    )
+    return user
