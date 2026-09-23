@@ -23,10 +23,16 @@ separately. Never authenticates and holds no credentials, and so is not a User.
 _Avoid_: Client, account, payer
 
 **Address on record**:
-The one address billow holds for a Customer, which decides the place of supply
-when nothing on the invoice says otherwise. Distinct from an address of
-delivery, which belongs to a single supply rather than to the Customer.
+The one address billow holds for a Customer, printed on every Invoice issued
+to them. Distinct from an Address of delivery, which belongs to a single sale
+rather than to the Customer.
 _Avoid_: Billing address, registered address, primary address
+
+**Address of delivery**:
+Where the goods of one sale are taken when the Business delivers them rather
+than handing them over at the counter. It decides that sale's Place of supply.
+It starts as the Customer's Address on record but belongs to the Invoice.
+_Avoid_: Shipping address, ship-to, consignee address
 
 **Archived**:
 A Customer, Supplier or Item withdrawn from everyday use: absent from the
@@ -64,6 +70,9 @@ _Avoid_: Registered name, trading name, entity name
 
 **Place of supply**:
 The state that decides whether a supply is taxed as CGST plus SGST or as IGST.
+For a sale, it is the Business's own state when the goods are handed over at
+the counter, whoever buys them, and the state of the Address of delivery when
+they are delivered.
 _Avoid_: Tax state, supply state, region
 
 **Setup gate**:
@@ -91,8 +100,49 @@ the registration threshold. The absence of a GSTIN is the whole distinction;
 whether the Customer is a person or an organisation is not one billow draws.
 _Avoid_: B2C customer, consumer, retail customer, individual
 
+**Invoice**:
+The document the Business issues for a sale, numbered in its own series and
+frozen once issued: a Tax invoice or a Bill of supply. B2B and B2C sales are
+both Invoices, told apart only by whether the Customer is a Registered
+customer. It records what was sold, not how it was paid.
+_Avoid_: Sales invoice, bill, sale, receipt, cash memo
+
+**Tax invoice**:
+The Invoice a GST registered Business issues, charging GST on each line. A line
+at 0% sits on the same Tax invoice rather than on a separate document.
+_Avoid_: GST invoice, B2B invoice
+
+**Bill of supply**:
+The Invoice a Business that is not GST registered issues. It charges no tax,
+and it is numbered in a series of its own.
+_Avoid_: Cash bill, retail invoice, non-GST invoice
+
+**Cancelled**:
+An issued Invoice withdrawn in full, with a reason. It keeps its number and
+everything it said, and its Stock movements are withdrawn. It is never edited
+or deleted instead. Distinct from a credit note, which corrects part of a sale
+after the fact.
+_Avoid_: Void, deleted, reversed
+
+**Held sale**:
+A sale set aside unfinished so the next customer can be served. It holds no
+number and moves no stock until it is recalled and issued, or discarded.
+_Avoid_: Draft, parked sale, suspended bill, open cart
+
+**Tray**:
+The pool of one day's Tray sales, billed together at the close of that day as
+a single Invoice. It is never a running account: it holds one day, and only
+sales too small to need an Invoice of their own.
+_Avoid_: Pool, batch, tab, day book
+
+**Tray sale**:
+A Counter sale below the Tray limit, put in the Tray instead of being invoiced
+on its own. It moves stock when it is made and ends up as part of the Tray's
+Invoice.
+_Avoid_: Small sale, petty sale, unbilled sale
+
 **Counter sale**:
-An invoice raised against no Customer at all, for a walk-in buyer nobody
+An Invoice raised against no Customer at all, for a walk-in buyer nobody
 records. Distinct from a sale to an Unregistered customer, who is recorded and
 can be invoiced again.
 _Avoid_: Walk-in customer, cash sale, anonymous customer, guest
@@ -157,15 +207,16 @@ Distinct from the bill date printed by the Supplier, which it usually equals.
 _Avoid_: Inward date, GRN date, entry date
 
 **Bill discount**:
-A discount a Supplier prints across a whole Purchase rather than on one line.
-It lowers the taxable value, and so the tax and the cost, of every line in
-proportion to that line's share. A discount given after tax, off what is
+A discount printed across a whole Purchase or Invoice rather than on one line.
+It lowers the taxable value, and so the tax (and, on a Purchase, the cost), of
+every line in proportion to that line's share. A discount given after tax, off what is
 payable, is about payment and is not recorded.
 _Avoid_: Trade discount, cash discount, overall discount
 
 **Round-off**:
-The paise a Supplier adds or takes off to bring a Purchase to a whole rupee,
-never more than a rupee either way.
+The paise added or taken off to bring a Purchase or an Invoice to a whole
+rupee, never more than a rupee either way. On a Purchase it is whatever the
+Supplier printed; on an Invoice billow works it out and nobody types it.
 _Avoid_: Adjustment, rounding difference
 
 **Opening stock**:
@@ -207,6 +258,13 @@ The short code every Item carries, assigned by billow unless the Operator gives
 one, and the one printed on the Business's own labels. Distinct from a maker's
 barcode, which an Item may also answer to when scanned.
 _Avoid_: SKU, barcode, product code, part number
+
+**Barcode**:
+A maker's code printed on packaging, which billow knows as meaning one of a
+particular unit of an Item, such as the EAN on a box of 100 screws meaning
+1 BOX. One unit may answer to several. Distinct from the Item code, which billow
+assigns and the Business's own labels print.
+_Avoid_: EAN, UPC, scan code, SKU
 
 **MRP**:
 The maximum retail price printed on packaged Goods, which no sale may exceed.
