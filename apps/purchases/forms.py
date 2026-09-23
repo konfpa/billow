@@ -362,4 +362,5 @@ class PurchaseForm(StyledForm):
         purchase.save()
         self.lines.instance = purchase
         self.lines.save()
+        purchase.move_stock()
         return purchase

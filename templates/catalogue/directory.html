@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ui %}
 
 {% block title %}Items · billow{% endblock %}
 
@@ -125,6 +126,7 @@
               <th scope="col" class="px-4 py-2.5 font-medium">Brand</th>
               <th scope="col" class="px-4 py-2.5 font-medium">Category</th>
               <th scope="col" class="px-4 py-2.5 font-medium">Stock unit</th>
+              {% if stock_start %}<th scope="col" class="px-4 py-2.5 text-right font-medium">Stock on hand</th>{% endif %}
               <th scope="col" class="px-4 py-2.5 text-right font-medium">Price</th>
               <th scope="col" class="px-4 py-2.5 text-right font-medium">GST rate</th>
             </tr>
@@ -146,6 +148,7 @@
                 <td class="px-4 py-2 text-zinc-600">{{ item.brand.name|default:"" }}</td>
                 <td class="px-4 py-2 text-zinc-600">{{ item.category|default:"" }}</td>
                 <td class="px-4 py-2">{{ unit.code }}</td>
+                {% if stock_start %}<td class="px-4 py-2 text-right tabular-nums">{% if item.stock_on_hand is not None %}{{ item.stock_on_hand|plain }} {{ unit.code }}{% endif %}</td>{% endif %}
                 <td class="px-4 py-2 text-right tabular-nums">{% if unit.selling_price is not None %}₹{{ unit.selling_price }}{% else %}<span class="text-zinc-600">No price</span>{% endif %}</td>
                 <td class="px-4 py-2 text-right tabular-nums">{{ item.get_gst_rate_display }}</td>
               </tr>
@@ -241,6 +244,12 @@
               <span class="text-[11px]/4 font-medium tracking-wider text-zinc-600 uppercase">Per {{ unit.code }}</span>
               <span class="text-[13px]/5 font-medium tabular-nums">{% if unit.selling_price is not None %}₹{{ unit.selling_price }}{% else %}<span class="font-normal text-zinc-600">No price</span>{% endif %}</span>
             </div>
+            {% if stock_start and item.stock_on_hand is not None %}
+            <div class="mt-1 flex items-center justify-between gap-2">
+              <span class="text-[11px]/4 font-medium tracking-wider text-zinc-600 uppercase">Stock on hand</span>
+              <span class="text-[13px]/5 font-medium tabular-nums">{{ item.stock_on_hand|plain }} {{ unit.code }}</span>
+            </div>
+            {% endif %}
           </a>
           {% endwith %}
         {% endfor %}

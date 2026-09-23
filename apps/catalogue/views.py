@@ -6,6 +6,7 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from apps.business.models import Business
 from apps.catalogue.forms import BrandForm, CategoryForm, ItemForm
 from apps.catalogue.models import Brand, Category, Item
 from apps.core.access import requires
@@ -51,6 +52,9 @@ def item_directory(request: HttpRequest) -> HttpResponse:
         items = items.filter(brand=brand)
     if category:
         items = items.filter(Q(category=category) | Q(category__parent=category))
+    stock_start = Business.load().stock_start_date
+    if stock_start:
+        items = items.with_stock_on_hand(stock_start)
 
     page = paged(request, items)
     # The paginator's own count, not `if items:`. Asking a queryset whether it
@@ -89,6 +93,7 @@ def item_directory(request: HttpRequest) -> HttpResponse:
             "category": category,
             "query": query,
             "showing_archived": showing_archived,
+            "stock_start": stock_start,
             **page,
         },
     )
@@ -140,21 +145,37 @@ def save_new_item(request: HttpRequest, source: Item | None = None) -> HttpRespo
 @requires("catalogue.view_item")
 def item_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """What is on file about an Item, as an invoice line will copy it."""
-    item = get_object_or_404(
-        Item.including_archived.select_related(
-            "brand", "category__parent"
-        ).prefetch_related("units"),
-        pk=pk,
-    )
+    items = Item.including_archived.select_related(
+        "brand", "category__parent"
+    ).prefetch_related("units")
+    stock_start = Business.load().stock_start_date
+    if stock_start:
+        items = items.with_stock_on_hand(stock_start)
+    item = get_object_or_404(items, pk=pk)
+
     other_units = [
         (unit, item.quote(Decimal(1), unit))
         for unit in sorted(item.units.all(), key=lambda unit: unit.pk)
         if not unit.is_stock_unit
     ]
+
+    # Only the movements that count are listed, so the list adds up to the
+    # stock on hand above it.
+    movements = None
+    if stock_start and item.stock_on_hand is not None:
+        movements = item.stock_movements.filter(date__gte=stock_start).select_related(
+            "purchase_line__purchase__supplier"
+        )
+
     return render(
         request,
         "catalogue/detail.html",
-        {"item": item, "other_units": other_units},
+        {
+            "item": item,
+            "other_units": other_units,
+            "stock_start": stock_start,
+            "movements": movements,
+        },
     )
 
 
